@@ -101,10 +101,20 @@ func _draw() -> void:
 				draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), line_color, adjusted_thick_width)
 
 func load_block(block_coord: Vector2i) -> void:
+	# 当前仅标记区块为已加载状态，实际资源加载逻辑可在此处扩展
+	# 后续可根据需求实现以下功能：
+	# 1. 加载对应区块的网格纹理/材质资源
+	# 2. 生成/加载地形数据
+	# 3. 实例化区块内的游戏对象、场景节点
+	# 4. 预加载区块相关的音频、动画等资源
 	loaded_blocks[block_coord] = true
 	queue_redraw()
 
 func unload_block(block_coord: Vector2i) -> void:
 	if loaded_blocks.has(block_coord):
 		loaded_blocks.erase(block_coord)
+		# 对应load_block的资源卸载逻辑可在此处实现
+		# 1. 释放区块占用的纹理、材质等资源
+		# 2. 销毁区块内的游戏对象、场景节点
+		# 3. 清理地形数据缓存
 		queue_redraw()
