@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://b7mm3n5spqr6d"]
+
+[ext_resource type="Script" path="res://InfiniteGridMap.gd" id="1"]
+[ext_resource type="Script" path="res://CameraController.gd" id="2"]
+
+[node name="Root" type="Node2D"]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("2")
+current = true
+
+[node name="InfiniteGridMap" type="Node2D" parent="."]
+script = ExtResource("1")
