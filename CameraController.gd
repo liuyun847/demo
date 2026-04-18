@@ -2,6 +2,7 @@ extends Camera2D
 
 @export var move_speed: float = 200.0 # 移动速度（像素/秒）
 @export var zoom_speed: float = 0.1 # 缩放灵敏度
+@export var shift_speed_multiplier: float = 3.0 # Shift键速度倍率
 
 func _ready() -> void:
 	set_process_input(true)
@@ -42,4 +43,8 @@ func _process(delta: float) -> void:
 	
 	if input_dir.length() > 0:
 		input_dir = input_dir.normalized()
-		position += input_dir * move_speed * delta / zoom.x
+		# 计算当前速度（考虑Shift键加速）
+		var current_speed = move_speed
+		if Input.is_key_pressed(KEY_SHIFT):
+			current_speed *= shift_speed_multiplier
+		position += input_dir * current_speed * delta / zoom.x
