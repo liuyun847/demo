@@ -101,6 +101,12 @@ func _draw() -> void:
 		if block_x == 0 and block_y == 0:
 			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x, block_offset.y + block_pixel_size), line_color, adjusted_thick_width)
 			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), line_color, adjusted_thick_width)
+	
+	# 绘制地图中心标注方框
+	var center_box_size = cell_size * 0.8
+	var center_box_offset = cell_size * 0.1
+	var center_box_rect = Rect2(Vector2(center_box_offset, center_box_offset), Vector2(center_box_size, center_box_size))
+	draw_rect(center_box_rect, Color.BLACK, false, 2.0 / current_zoom)
 
 func load_block(block_coord: Vector2i) -> void:
 	# 当前仅标记区块为已加载状态，实际资源加载逻辑可在此处扩展
