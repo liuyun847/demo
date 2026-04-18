@@ -5,7 +5,7 @@ extends Node2D
 @export var thin_line_width: float = 1.0
 @export var thick_line_width: float = 3.0
 @export var background_color: Color = Color("#1e3a5f")
-@export var line_color: Color = Color("#e0e0e0")
+@export var line_color: Color = Color("#e0e0e0", 0.5)
 
 var viewport: Viewport
 var loaded_blocks: Dictionary = {}
