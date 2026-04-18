@@ -56,9 +56,12 @@ func update_visible_blocks() -> void:
 			if not loaded_blocks.has(key):
 				load_block(key)
 	
+	var blocks_to_unload: Array[Vector2i] = []
 	for key in loaded_blocks:
 		if not current_blocks.has(key):
-			unload_block(key)
+			blocks_to_unload.append(key)
+	for key in blocks_to_unload:
+		unload_block(key)
 
 func _draw() -> void:
 	var camera = viewport.get_camera_2d()
