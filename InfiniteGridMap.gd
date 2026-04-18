@@ -78,27 +78,26 @@ func _draw() -> void:
 	var visible_big_cells_x = view_rect.size.x / (block_pixel_size * current_zoom)
 	var show_thin_lines = visible_big_cells_x < 6
 	
-	var visible_range = get_visible_block_range()
-	
-	for block_x in range(visible_range.start_x - 1, visible_range.end_x + 2):
-		for block_y in range(visible_range.start_y - 1, visible_range.end_y + 2):
-			var block_offset = Vector2(block_x * block_pixel_size, block_y * block_pixel_size)
+	for block_coord in loaded_blocks.keys():
+		var block_x = block_coord.x
+		var block_y = block_coord.y
+		var block_offset = Vector2(block_x * block_pixel_size, block_y * block_pixel_size)
+		
+		if show_thin_lines:
+			for x in range(1, big_cell_size):
+				var line_x = block_offset.x + x * cell_size
+				draw_line(Vector2(line_x, block_offset.y), Vector2(line_x, block_offset.y + block_pixel_size), line_color, adjusted_thin_width)
 			
-			if show_thin_lines:
-				for x in range(1, big_cell_size):
-					var line_x = block_offset.x + x * cell_size
-					draw_line(Vector2(line_x, block_offset.y), Vector2(line_x, block_offset.y + block_pixel_size), line_color, adjusted_thin_width)
-				
-				for y in range(1, big_cell_size):
-					var line_y = block_offset.y + y * cell_size
-					draw_line(Vector2(block_offset.x, line_y), Vector2(block_offset.x + block_pixel_size, line_y), line_color, adjusted_thin_width)
-			
-			draw_line(Vector2(block_offset.x + block_pixel_size, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y + block_pixel_size), line_color, adjusted_thick_width)
-			draw_line(Vector2(block_offset.x, block_offset.y + block_pixel_size), Vector2(block_offset.x + block_pixel_size, block_offset.y + block_pixel_size), line_color, adjusted_thick_width)
-			
-			if block_x == 0 and block_y == 0:
-				draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x, block_offset.y + block_pixel_size), line_color, adjusted_thick_width)
-				draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), line_color, adjusted_thick_width)
+			for y in range(1, big_cell_size):
+				var line_y = block_offset.y + y * cell_size
+				draw_line(Vector2(block_offset.x, line_y), Vector2(block_offset.x + block_pixel_size, line_y), line_color, adjusted_thin_width)
+		
+		draw_line(Vector2(block_offset.x + block_pixel_size, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y + block_pixel_size), line_color, adjusted_thick_width)
+		draw_line(Vector2(block_offset.x, block_offset.y + block_pixel_size), Vector2(block_offset.x + block_pixel_size, block_offset.y + block_pixel_size), line_color, adjusted_thick_width)
+		
+		if block_x == 0 and block_y == 0:
+			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x, block_offset.y + block_pixel_size), line_color, adjusted_thick_width)
+			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), line_color, adjusted_thick_width)
 
 func load_block(block_coord: Vector2i) -> void:
 	# 当前仅标记区块为已加载状态，实际资源加载逻辑可在此处扩展
