@@ -7,14 +7,20 @@ extends Node2D
 @export var background_color: Color = Color("#1e3a5f")
 @export var line_color: Color = Color("#e0e0e0", 0.5)
 
+const SAVE_FILE_PATH: String = "res://save/buildings.json"
+
 var viewport: Viewport
 var loaded_blocks: Dictionary = {}
 var block_pixel_size: int = 0
+var buildings: Dictionary = {} # 存储已放置的建筑，key为Vector2i网格坐标
 
 func _ready() -> void:
 	viewport = get_viewport()
 	block_pixel_size = cell_size * big_cell_size
 	set_process(true)
+	set_process_unhandled_input(true)
+	# 加载已保存的建筑
+	load_buildings()
 	queue_redraw()
 
 func _process(_delta: float) -> void:
@@ -126,3 +132,80 @@ func unload_block(block_coord: Vector2i) -> void:
 		# 2. 销毁区块内的游戏对象、场景节点
 		# 3. 清理地形数据缓存
 		queue_redraw()
+
+# 将世界坐标转换为网格坐标
+func world_to_grid(world_pos: Vector2) -> Vector2i:
+	return Vector2i(
+		floor(world_pos.x / cell_size),
+		floor(world_pos.y / cell_size)
+	)
+
+# 检查指定网格位置是否已有建筑
+func has_building(grid_pos: Vector2i) -> bool:
+	return buildings.has(grid_pos)
+
+# 在指定网格位置放置建筑
+func place_building(grid_pos: Vector2i) -> bool:
+	if has_building(grid_pos):
+		return false
+	# 创建建筑实例（直接创建ColorRect作为占位）
+	var building = ColorRect.new()
+	building.size = Vector2(60, 60)
+	building.color = Color("#2ecc71")
+	# 设置建筑位置，留2像素边框
+	building.global_position = Vector2(
+		grid_pos.x * cell_size + 2,
+		grid_pos.y * cell_size + 2
+	)
+	add_child(building)
+	# 记录建筑数据
+	buildings[grid_pos] = building
+	# 保存到文件
+	save_buildings()
+	return true
+
+# 保存建筑数据到文件
+func save_buildings() -> void:
+	# 确保save目录存在
+	DirAccess.make_dir_recursive_absolute(SAVE_FILE_PATH.get_base_dir())
+	# 转换建筑数据为可序列化格式
+	var save_data: Array = []
+	for grid_pos in buildings.keys():
+		save_data.append([grid_pos.x, grid_pos.y])
+	# 写入文件
+	var file = FileAccess.open(SAVE_FILE_PATH, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(save_data))
+		file.close()
+
+# 从文件加载建筑数据
+func load_buildings() -> void:
+	if not FileAccess.file_exists(SAVE_FILE_PATH):
+		return
+	var file = FileAccess.open(SAVE_FILE_PATH, FileAccess.READ)
+	if not file:
+		return
+	var content = file.get_as_text()
+	file.close()
+	var save_data = JSON.parse_string(content)
+	if not save_data is Array:
+		return
+	# 加载所有建筑
+	for data in save_data:
+		if data.size() == 2:
+			var grid_pos = Vector2i(data[0], data[1])
+			place_building(grid_pos)
+
+# 处理输入事件
+func _unhandled_input(event: InputEvent) -> void:
+	# 处理鼠标左键点击
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var camera = viewport.get_camera_2d()
+		if not camera:
+			return
+		# 将鼠标屏幕坐标转成世界坐标
+		var world_pos = screen_to_world(camera, event.position)
+		# 转成网格坐标
+		var grid_pos = world_to_grid(world_pos)
+		# 放置建筑
+		place_building(grid_pos)
