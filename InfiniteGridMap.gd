@@ -7,7 +7,7 @@ extends Node2D
 @export var background_color: Color = Color("#1e3a5f")
 @export var line_color: Color = Color("#e0e0e0", 0.5)
 
-const SAVE_FILE_PATH: String = "res://save/buildings.json"
+const SAVE_FILE_PATH: String = "res://save/buildings.json" # TODO: 开发阶段临时使用res路径，导出前需修改为"user://save/buildings.json"
 
 var viewport: Viewport
 var loaded_blocks: Dictionary = {}
@@ -167,7 +167,7 @@ func place_building(grid_pos: Vector2i) -> bool:
 # 保存建筑数据到文件
 func save_buildings() -> void:
 	# 确保save目录存在
-	DirAccess.make_dir_recursive_absolute(SAVE_FILE_PATH.get_base_dir())
+	DirAccess.make_dir_recursive_absolute(SAVE_FILE_PATH.get_base_dir()) # 目录路径获取正确，开发完成后路径修改为user://时无需改动这行
 	# 转换建筑数据为可序列化格式
 	var save_data: Array = []
 	for grid_pos in buildings.keys():
