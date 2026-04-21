@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b0njy8c5w1q2k"]
 
-[ext_resource type="Script" path="res://StartMenu.gd" id="1_8kf4m"]
+[ext_resource type="Script" path="res://scripts/StartMenu.gd" id="1_8kf4m"]
 
 [node name="StartMenu" type="Control"]
 anchors_preset = 15

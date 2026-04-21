@@ -26,6 +26,18 @@ demo/
 │   ├── imported/              # 资源导入缓存
 │   ├── shader_cache/          # 着色器编译缓存
 │   └── 其他缓存文件
+├── scripts/                   # 脚本文件目录
+│   ├── InfiniteGridMap.gd     # 无限方格地图核心实现脚本
+│   ├── InfiniteGridMap.gd.uid # Godot脚本唯一标识文件
+│   ├── CameraController.gd    # 相机控制器脚本，负责视角漫游控制
+│   ├── CameraController.gd.uid# 相机控制器脚本唯一标识文件
+│   ├── StartMenu.gd           # 开始页面逻辑脚本
+│   └── Settings.gd            # 设置页面逻辑脚本
+├── scenes/                    # 场景文件目录
+│   ├── main.tscn              # 游戏主场景文件
+│   ├── start_menu.tscn        # 开始页面场景文件
+│   └── settings.tscn          # 设置页面场景文件
+├── resources/                 # 资源文件目录，存放图片、音频、模型等游戏资源
 ├── icon.svg                   # 项目图标
 ├── icon.svg.import            # 图标导入配置
 ├── project.godot              # Godot项目核心配置文件
@@ -33,15 +45,7 @@ demo/
 ├── .gitattributes             # Git属性配置
 ├── .gitignore                 # Git忽略文件配置
 ├── save/                      # 持久化存储目录，保存游戏所有相关数据
-├── main.tscn                  # 游戏主场景文件
-├── InfiniteGridMap.gd         # 无限方格地图核心实现脚本
-├── InfiniteGridMap.gd.uid     # Godot脚本唯一标识文件
-├── CameraController.gd        # 相机控制器脚本，负责视角漫游控制
-├── CameraController.gd.uid    # 相机控制器脚本唯一标识文件
-├── start_menu.tscn            # 开始页面场景文件
-├── StartMenu.gd               # 开始页面逻辑脚本
-├── settings.tscn              # 设置页面场景文件
-└── Settings.gd                # 设置页面逻辑脚本
+└── AGENTS.md                  # 项目描述文档
 ```
 
 # 主场景结构
