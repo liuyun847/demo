@@ -37,7 +37,11 @@ demo/
 ├── InfiniteGridMap.gd         # 无限方格地图核心实现脚本
 ├── InfiniteGridMap.gd.uid     # Godot脚本唯一标识文件
 ├── CameraController.gd        # 相机控制器脚本，负责视角漫游控制
-└── CameraController.gd.uid    # 相机控制器脚本唯一标识文件
+├── CameraController.gd.uid    # 相机控制器脚本唯一标识文件
+├── start_menu.tscn            # 开始页面场景文件
+├── StartMenu.gd               # 开始页面逻辑脚本
+├── settings.tscn              # 设置页面场景文件
+└── Settings.gd                # 设置页面逻辑脚本
 ```
 
 # 主场景结构
@@ -52,8 +56,11 @@ Root (Node2D)
 
 当前项目处于开发阶段，已实现的功能：
 
+- **启动开始页面**：游戏启动默认显示开始页面，包含「开始游戏」和「设置」两个按钮
+  - 点击「开始游戏」进入主游戏场景
+  - 点击「设置」进入设置页面，可返回开始菜单
 - **动态加载无限方格地图**：支持基于相机视口动态加载/卸载地图块，实现无限大地图的无缝漫游效果
-  - 区块（block）大小 = cell_size × big_cell_size（默认 64×10 = 640像素）
+  - 区块（block）大小 = cell\_size × big\_cell\_size（默认 64×10 = 640像素）
   - 视口范围外扩1个区块作为缓冲区预加载
   - 离开视口的区块自动卸载
 - **细网格线自动隐藏**：当视口内可见的大格子数量达到6个及以上时，自动隐藏小格子细网格线，只保留大方格粗网格线，优化视觉效果
@@ -65,7 +72,7 @@ Root (Node2D)
 # 开发规范
 
 - 修改后调用godot-debug技能，确保代码无错误
-- GDScript代码遵循Godot官方风格指南
+- GDScript代码遵循Godot官方风格指南,对不确定的接口先使用context7查询
 - 使用`@export`注解暴露可配置参数
 - 节点脚本使用`extends`继承对应节点类型
 
@@ -94,3 +101,4 @@ Root (Node2D)
 - 禁止提交.godot目录下的自动生成缓存文件
 - 代码修改后必须经过godot-debug技能验证无误后才能合并
 - 不要在代码中硬编码任何敏感信息（如密钥、密码等）
+
