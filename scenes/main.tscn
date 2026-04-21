@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://b7mm3n5spqr6d"]
 
-[ext_resource type="Script" path="res://InfiniteGridMap.gd" id="1"]
-[ext_resource type="Script" path="res://CameraController.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/InfiniteGridMap.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/CameraController.gd" id="2"]
 
 [node name="Root" type="Node2D"]
 
