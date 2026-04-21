@@ -7,7 +7,7 @@ extends Node2D
 @export var background_color: Color = Color("#1e3a5f")
 @export var line_color: Color = Color("#e0e0e0", 0.5)
 
-const SAVE_FILE_PATH: String = "res://save/buildings.json" # TODO: 开发阶段临时使用res路径，导出前需修改为"user://save/buildings.json"
+var SAVE_FILE_PATH: String = "" # 动态计算路径：开发阶段用项目目录，导出后用游戏安装目录
 
 var viewport: Viewport
 var loaded_blocks: Dictionary = {}
@@ -19,6 +19,17 @@ func _ready() -> void:
 	block_pixel_size = cell_size * big_cell_size
 	set_process(true)
 	set_process_unhandled_input(true)
+	
+	# 动态计算存档路径
+	if OS.has_feature("editor"):
+		# 开发阶段：使用项目根目录下的save文件夹
+		SAVE_FILE_PATH = "res://save/buildings.json"
+	else:
+		# 导出后：使用游戏安装目录（可执行文件所在目录）下的save文件夹
+		var exe_path = OS.get_executable_path()
+		var install_dir = exe_path.get_base_dir()
+		SAVE_FILE_PATH = install_dir.path_join("save/buildings.json")
+	
 	# 加载已保存的建筑
 	load_buildings()
 	queue_redraw()
