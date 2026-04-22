@@ -8,7 +8,11 @@ func _ready() -> void:
 	btn_settings.pressed.connect(_on_settings_pressed)
 
 func _on_start_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/main.tscn")
+	var err = get_tree().change_scene_to_file("res://scenes/main.tscn")
+	if err != OK:
+		push_error("切换到主场景失败，错误码: %d" % err)
 
 func _on_settings_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/settings.tscn")
+	var err = get_tree().change_scene_to_file("res://scenes/settings.tscn")
+	if err != OK:
+		push_error("切换到设置场景失败，错误码: %d" % err)

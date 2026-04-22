@@ -6,6 +6,8 @@ extends Node2D
 @export var thick_line_width: float = 3.0
 @export var background_color: Color = Color("#1e3a5f")
 @export var line_color: Color = Color("#e0e0e0", 0.5)
+@export var building_size: int = 60
+@export var building_border: int = 2
 
 var SAVE_FILE_PATH: String = "" # 动态计算路径：开发阶段用项目目录，导出后用游戏安装目录
 
@@ -13,6 +15,7 @@ var viewport: Viewport
 var loaded_blocks: Dictionary = {}
 var block_pixel_size: int = 0
 var buildings: Dictionary = {} # 存储已放置的建筑，key为Vector2i网格坐标
+var _is_loading: bool = false # 加载期间抑制save_buildings的标志
 
 func _ready() -> void:
 	viewport = get_viewport()
@@ -159,20 +162,22 @@ func has_building(grid_pos: Vector2i) -> bool:
 func place_building(grid_pos: Vector2i) -> bool:
 	if has_building(grid_pos):
 		return false
-	# 创建建筑实例（直接创建ColorRect作为占位）
+	# TODO: 当前使用 ColorRect 作为建筑占位符，后续替换为实际建筑场景
 	var building = ColorRect.new()
-	building.size = Vector2(60, 60)
+	building.size = Vector2(building_size, building_size)
 	building.color = Color("#2ecc71")
-	# 设置建筑位置，留2像素边框
+	building.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	building.name = "Building_%d_%d" % [grid_pos.x, grid_pos.y]
 	building.global_position = Vector2(
-		grid_pos.x * cell_size + 2,
-		grid_pos.y * cell_size + 2
+		grid_pos.x * cell_size + building_border,
+		grid_pos.y * cell_size + building_border
 	)
 	add_child(building)
 	# 记录建筑数据
 	buildings[grid_pos] = building
-	# 保存到文件
-	save_buildings()
+	# 加载期间不触发保存，避免重复I/O和空数据覆盖风险
+	if not _is_loading:
+		save_buildings()
 	return true
 
 # 保存建筑数据到文件
@@ -201,22 +206,34 @@ func load_buildings() -> void:
 	var save_data = JSON.parse_string(content)
 	if not save_data is Array:
 		return
-	# 加载所有建筑
+	_is_loading = true
 	for data in save_data:
 		if data.size() == 2:
 			var grid_pos = Vector2i(data[0], data[1])
 			place_building(grid_pos)
+	_is_loading = false
+
+# 移除指定网格位置的建筑
+func remove_building(grid_pos: Vector2i) -> bool:
+	if not has_building(grid_pos):
+		return false
+	var building = buildings[grid_pos]
+	building.queue_free()
+	buildings.erase(grid_pos)
+	save_buildings()
+	return true
 
 # 处理输入事件
 func _unhandled_input(event: InputEvent) -> void:
-	# 处理鼠标左键点击
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	if event is InputEventMouseButton and event.pressed:
 		var camera = viewport.get_camera_2d()
 		if not camera:
 			return
-		# 将鼠标屏幕坐标转成世界坐标
 		var world_pos = screen_to_world(camera, event.position)
-		# 转成网格坐标
 		var grid_pos = world_to_grid(world_pos)
-		# 放置建筑
-		place_building(grid_pos)
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			place_building(grid_pos)
+			get_viewport().set_input_as_handled()
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			remove_building(grid_pos)
+			get_viewport().set_input_as_handled()
