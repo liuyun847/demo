@@ -32,13 +32,13 @@ func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
 func _process(delta: float) -> void:
 	# WASD移动控制
 	var input_dir = Vector2.ZERO
-	if Input.is_action_pressed("ui_right") or Input.is_key_pressed(KEY_D):
+	if Input.is_key_pressed(KEY_D):
 		input_dir.x += 1
-	if Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A):
+	if Input.is_key_pressed(KEY_A):
 		input_dir.x -= 1
-	if Input.is_action_pressed("ui_down") or Input.is_key_pressed(KEY_S):
+	if Input.is_key_pressed(KEY_S):
 		input_dir.y += 1
-	if Input.is_action_pressed("ui_up") or Input.is_key_pressed(KEY_W):
+	if Input.is_key_pressed(KEY_W):
 		input_dir.y -= 1
 	
 	if input_dir.length() > 0:
