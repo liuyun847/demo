@@ -17,6 +17,10 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+GameConfig="*res://scripts/autoload/game_config.gd"
+ScenePaths="*res://scripts/autoload/scene_paths.gd"
+EventBus="*res://scripts/autoload/event_bus.gd"
+SceneManager="*res://scripts/autoload/scene_manager.gd"
 MCPRuntime="*uid://dhstlv5uxlc36"
 
 [editor_plugins]

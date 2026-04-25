@@ -31,12 +31,25 @@ demo/
 │   ├── CameraController.gd    # 相机控制器脚本，负责视角漫游控制
 │   ├── CameraController.gd.uid# 相机控制器脚本唯一标识文件
 │   ├── StartMenu.gd           # 开始页面逻辑脚本
-│   └── Settings.gd            # 设置页面逻辑脚本
+│   ├── Settings.gd            # 设置页面逻辑脚本
+│   ├── autoload/              # 自动加载单例目录
+│   │   ├── game_config.gd     # 游戏配置与常量
+│   │   ├── scene_paths.gd      # 场景路径管理
+│   │   ├── event_bus.gd        # 事件总线
+│   │   └── scene_manager.gd    # 场景管理器
+│   ├── building/              # 建筑系统模块
+│   │   └── building_manager.gd # 建筑管理器
+│   ├── grid/                  # 网格系统模块
+│   │   ├── grid_coordinate.gd  # 网格坐标转换
+│   │   └── map_input_handler.gd # 地图输入处理
+│   └── persistence/           # 持久化模块
+│       └── save_manager.gd     # 数据存储管理
+├── resources/                 # 资源文件目录
+│   └── building_data.gd       # 建筑数据资源定义
 ├── scenes/                    # 场景文件目录
 │   ├── main.tscn              # 游戏主场景文件
 │   ├── start_menu.tscn        # 开始页面场景文件
 │   └── settings.tscn          # 设置页面场景文件
-├── resources/                 # 资源文件目录，存放图片、音频、模型等游戏资源（当前为空）
 ├── icon.svg                   # 项目图标
 ├── icon.svg.import            # 图标导入配置
 ├── project.godot              # Godot项目核心配置文件
@@ -48,12 +61,25 @@ demo/
 └── AGENTS.md                  # 项目描述文档
 ```
 
+# 自动加载单例
+
+| 单例名称      | 脚本路径                                    | 用途                    |
+| ----------- | --------------------------------------- | --------------------- |
+| GameConfig  | res://scripts/autoload/game_config.gd   | 游戏配置与常量集中管理        |
+| ScenePaths  | res://scripts/autoload/scene_paths.gd   | 场景路径常量管理            |
+| EventBus    | res://scripts/autoload/event_bus.gd     | 模块间事件通信              |
+| SceneManager| res://scripts/autoload/scene_manager.gd| 场景切换管理              |
+
 # 主场景结构
 
 ```
 Root (Node2D)
-├── Camera2D (Camera2D) → CameraController.gd  # 当前激活相机
-└── InfiniteGridMap (Node2D) → InfiniteGridMap.gd  # 无限方格地图
+├── Camera2D (Camera2D) → CameraController.gd        # 当前激活相机
+├── InfiniteGridMap (Node2D) → InfiniteGridMap.gd   # 无限方格地图
+├── GridCoordinate (Node) → GridCoordinate.gd       # 网格坐标转换工具
+├── BuildingManager (Node2D) → BuildingManager.gd    # 建筑管理器
+├── SaveManager (Node) → SaveManager.gd              # 数据持久化管理
+└── MapInputHandler (Node) → MapInputHandler.gd     # 地图输入处理
 ```
 
 # 核心功能说明
@@ -71,8 +97,8 @@ Root (Node2D)
 - **相机漫游控制**：WASD移动 + Shift加速 + 鼠标滚轮缩放（缩放以鼠标位置为中心）
 - **建筑数据持久化存储**：用户放置/删除的建筑数据自动保存到 `save/buildings.json`，游戏启动时自动加载，所有持久化存储数据均统一存放于save目录下
 - **MCP调试工具**：项目集成了 godot_mcp 编辑器插件和 MCPRuntime 自动加载单例，用于AI辅助开发时的场景运行、截图、输入模拟等调试操作
-
-后续将根据需求开发更多游戏玩法功能。
+- **事件驱动架构**：通过 EventBus 实现模块间松耦合通信
+- **配置集中管理**：所有游戏配置常量统一在 GameConfig 中管理
 
 # 开发规范
 - 对于不确定的接口，先查询，禁止猜测用法
@@ -80,6 +106,8 @@ Root (Node2D)
 - GDScript代码遵循Godot官方风格指南
 - 使用`@export`注解暴露可配置参数
 - 节点脚本使用`extends`继承对应节点类型
+- 使用事件总线(EventBus)进行模块间通信，避免直接节点引用
+- 遵循单一职责原则，每个脚本只负责一个功能域
 
 # 测试与验证
 
@@ -94,6 +122,7 @@ Root (Node2D)
    - Shift键：加速移动（3倍速）
    - 鼠标滚轮：缩放视角（以鼠标位置为中心）
    - 鼠标左键：放置建筑（默认大小60×60像素）
+   - 鼠标右键：删除建筑
    - 点击「开始游戏」进入主游戏场景
    - 点击「设置」进入设置页面，可返回开始菜单
 
@@ -109,4 +138,3 @@ Root (Node2D)
 - 禁止提交.godot目录下的自动生成缓存文件
 - 代码修改后必须经过调试无误后才能合并
 - 不要在代码中硬编码任何敏感信息（如密钥、密码等）
-
