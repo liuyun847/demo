@@ -1,40 +1,20 @@
 extends Node2D
 
-@export var cell_size: int = 64
-@export var big_cell_size: int = 10
-@export var thin_line_width: float = 1.0
-@export var thick_line_width: float = 3.0
-@export var background_color: Color = Color("#1e3a5f")
-@export var line_color: Color = Color("#e0e0e0", 0.5)
-@export var building_size: int = 60
-@export var building_border: int = 2
-
-var SAVE_FILE_PATH: String = "" # 动态计算路径：开发阶段用项目目录，导出后用游戏安装目录
+@export var cell_size: int = GameConfig.cell_size
+@export var big_cell_size: int = GameConfig.big_cell_size
+@export var thin_line_width: float = GameConfig.thin_line_width
+@export var thick_line_width: float = GameConfig.thick_line_width
+@export var background_color: Color = GameConfig.background_color
+@export var line_color: Color = GameConfig.line_color
 
 var viewport: Viewport
 var loaded_blocks: Dictionary = {}
 var block_pixel_size: int = 0
-var buildings: Dictionary = {} # 存储已放置的建筑，key为Vector2i网格坐标
-var _is_loading: bool = false # 加载期间抑制save_buildings的标志
 
 func _ready() -> void:
 	viewport = get_viewport()
 	block_pixel_size = cell_size * big_cell_size
 	set_process(true)
-	set_process_unhandled_input(true)
-	
-	# 动态计算存档路径
-	if OS.has_feature("editor"):
-		# 开发阶段：使用项目根目录下的save文件夹
-		SAVE_FILE_PATH = "res://save/buildings.json"
-	else:
-		# 导出后：使用游戏安装目录（可执行文件所在目录）下的save文件夹
-		var exe_path = OS.get_executable_path()
-		var install_dir = exe_path.get_base_dir()
-		SAVE_FILE_PATH = install_dir.path_join("save/buildings.json")
-	
-	# 加载已保存的建筑
-	load_buildings()
 	queue_redraw()
 
 func _process(_delta: float) -> void:
@@ -122,118 +102,22 @@ func _draw() -> void:
 			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x, block_offset.y + block_pixel_size), line_color, adjusted_thick_width)
 			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), line_color, adjusted_thick_width)
 	
-	# 绘制地图中心标注方框
 	var center_box_size = cell_size * 0.8
 	var center_box_offset = cell_size * 0.1
 	var center_box_rect = Rect2(Vector2(center_box_offset, center_box_offset), Vector2(center_box_size, center_box_size))
 	draw_rect(center_box_rect, Color.BLACK, false, 2.0 / current_zoom)
 
 func load_block(block_coord: Vector2i) -> void:
-	# 当前仅标记区块为已加载状态，实际资源加载逻辑可在此处扩展
-	# 后续可根据需求实现以下功能：
-	# 1. 加载对应区块的网格纹理/材质资源
-	# 2. 生成/加载地形数据
-	# 3. 实例化区块内的游戏对象、场景节点
-	# 4. 预加载区块相关的音频、动画等资源
 	loaded_blocks[block_coord] = true
 	queue_redraw()
 
 func unload_block(block_coord: Vector2i) -> void:
 	if loaded_blocks.has(block_coord):
 		loaded_blocks.erase(block_coord)
-		# 对应load_block的资源卸载逻辑可在此处实现
-		# 1. 释放区块占用的纹理、材质等资源
-		# 2. 销毁区块内的游戏对象、场景节点
-		# 3. 清理地形数据缓存
 		queue_redraw()
 
-# 将世界坐标转换为网格坐标
 func world_to_grid(world_pos: Vector2) -> Vector2i:
 	return Vector2i(
 		floor(world_pos.x / cell_size),
 		floor(world_pos.y / cell_size)
 	)
-
-# 检查指定网格位置是否已有建筑
-func has_building(grid_pos: Vector2i) -> bool:
-	return buildings.has(grid_pos)
-
-# 在指定网格位置放置建筑
-func place_building(grid_pos: Vector2i) -> bool:
-	if has_building(grid_pos):
-		return false
-	# TODO: 当前使用 ColorRect 作为建筑占位符，后续替换为实际建筑场景
-	var building = ColorRect.new()
-	building.size = Vector2(building_size, building_size)
-	building.color = Color("#2ecc71")
-	building.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	building.name = "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-	building.global_position = Vector2(
-		grid_pos.x * cell_size + building_border,
-		grid_pos.y * cell_size + building_border
-	)
-	add_child(building)
-	# 记录建筑数据
-	buildings[grid_pos] = building
-	# 加载期间不触发保存，避免重复I/O和空数据覆盖风险
-	if not _is_loading:
-		save_buildings()
-	return true
-
-# 保存建筑数据到文件
-func save_buildings() -> void:
-	# 确保save目录存在
-	DirAccess.make_dir_recursive_absolute(SAVE_FILE_PATH.get_base_dir()) # 目录路径获取正确，开发完成后路径修改为user://时无需改动这行
-	# 转换建筑数据为可序列化格式
-	var save_data: Array = []
-	for grid_pos in buildings.keys():
-		save_data.append([grid_pos.x, grid_pos.y])
-	# 写入文件
-	var file = FileAccess.open(SAVE_FILE_PATH, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(save_data))
-		file.close()
-
-# 从文件加载建筑数据
-func load_buildings() -> void:
-	if not FileAccess.file_exists(SAVE_FILE_PATH):
-		return
-	var file = FileAccess.open(SAVE_FILE_PATH, FileAccess.READ)
-	if not file:
-		return
-	var content = file.get_as_text()
-	file.close()
-	var save_data = JSON.parse_string(content)
-	if not save_data is Array:
-		return
-	_is_loading = true
-	for data in save_data:
-		if data.size() == 2:
-			var grid_pos = Vector2i(data[0], data[1])
-			place_building(grid_pos)
-	_is_loading = false
-
-# 移除指定网格位置的建筑
-func remove_building(grid_pos: Vector2i) -> bool:
-	if not has_building(grid_pos):
-		return false
-	var building = buildings[grid_pos]
-	building.queue_free()
-	buildings.erase(grid_pos)
-	save_buildings()
-	return true
-
-# 处理输入事件
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		var camera = viewport.get_camera_2d()
-		if not camera:
-			return
-		var world_pos = screen_to_world(camera, event.position)
-		var grid_pos = world_to_grid(world_pos)
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			place_building(grid_pos)
-			get_viewport().set_input_as_handled()
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			remove_building(grid_pos)
-			get_viewport().set_input_as_handled()
