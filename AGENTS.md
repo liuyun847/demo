@@ -25,50 +25,58 @@ demo/
 │   ├── imported/              # 资源导入缓存
 │   ├── shader_cache/          # 着色器编译缓存
 │   └── 其他缓存文件
+├── addons/                    # 编辑器插件目录（gitignore，不入版本控制）
+│   └── godot_mcp/             # MCP调试插件
 ├── scripts/                   # 脚本文件目录
 │   ├── InfiniteGridMap.gd     # 无限方格地图核心实现脚本
-│   ├── InfiniteGridMap.gd.uid # Godot脚本唯一标识文件
 │   ├── CameraController.gd    # 相机控制器脚本，负责视角漫游控制
-│   ├── CameraController.gd.uid# 相机控制器脚本唯一标识文件
 │   ├── StartMenu.gd           # 开始页面逻辑脚本
 │   ├── Settings.gd            # 设置页面逻辑脚本
 │   ├── autoload/              # 自动加载单例目录
 │   │   ├── game_config.gd     # 游戏配置与常量
-│   │   ├── scene_paths.gd      # 场景路径管理
-│   │   ├── event_bus.gd        # 事件总线
-│   │   └── scene_manager.gd    # 场景管理器
+│   │   ├── scene_paths.gd     # 场景路径管理
+│   │   ├── event_bus.gd       # 事件总线
+│   │   └── scene_manager.gd   # 场景管理器
 │   ├── building/              # 建筑系统模块
 │   │   └── building_manager.gd # 建筑管理器
 │   ├── grid/                  # 网格系统模块
 │   │   ├── grid_coordinate.gd  # 网格坐标转换
 │   │   └── map_input_handler.gd # 地图输入处理
-│   └── persistence/           # 持久化模块
-│       └── save_manager.gd     # 数据存储管理
-├── resources/                 # 资源文件目录
-│   └── building_data.gd       # 建筑数据资源定义
+│   ├── persistence/           # 持久化模块
+│   │   └── save_manager.gd     # 数据存储管理
+│   └── resources/             # 资源定义模块
+│       └── building_data.gd   # 建筑数据资源定义（class_name BuildingData, extends Resource）
 ├── scenes/                    # 场景文件目录
 │   ├── main.tscn              # 游戏主场景文件
 │   ├── start_menu.tscn        # 开始页面场景文件
 │   └── settings.tscn          # 设置页面场景文件
+├── save/                      # 持久化存储目录（运行时生成，gitignore）
+│   └── buildings.json         # 建筑放置数据
 ├── icon.svg                   # 项目图标
-├── icon.svg.import            # 图标导入配置
 ├── project.godot              # Godot项目核心配置文件
 ├── .editorconfig              # 编辑器代码风格配置
 ├── .gitattributes             # Git属性配置
 ├── .gitignore                 # Git忽略文件配置
-├── save/                      # 持久化存储目录，保存游戏所有相关数据
-│   └── buildings.json         # 建筑放置数据（网格坐标数组）
 └── AGENTS.md                  # 项目描述文档
 ```
 
 # 自动加载单例
 
-| 单例名称      | 脚本路径                                    | 用途                    |
-| ----------- | --------------------------------------- | --------------------- |
-| GameConfig  | res://scripts/autoload/game_config.gd   | 游戏配置与常量集中管理        |
-| ScenePaths  | res://scripts/autoload/scene_paths.gd   | 场景路径常量管理            |
-| EventBus    | res://scripts/autoload/event_bus.gd     | 模块间事件通信              |
-| SceneManager| res://scripts/autoload/scene_manager.gd| 场景切换管理              |
+| 单例名称         | 脚本路径                                      | 用途                |
+| ------------ | ----------------------------------------- | ----------------- |
+| GameConfig   | res\://scripts/autoload/game\_config.gd   | 游戏配置与常量集中管理       |
+| ScenePaths   | res\://scripts/autoload/scene\_paths.gd   | 场景路径常量管理          |
+| EventBus     | res\://scripts/autoload/event\_bus.gd     | 模块间事件通信           |
+| SceneManager | res\://scripts/autoload/scene\_manager.gd | 场景切换管理            |
+| MCPRuntime   | addons/godot\_mcp（uid引用）                  | MCP调试运行时辅助（编辑器插件） |
+
+## EventBus 信号列表
+
+| 信号名称              | 参数                  | 触发时机       |
+| ----------------- | ------------------- | ---------- |
+| building\_placed  | grid\_pos: Vector2i | 建筑放置成功时    |
+| building\_removed | grid\_pos: Vector2i | 建筑删除成功时    |
+| buildings\_loaded | 无                   | 存档建筑数据加载完成 |
 
 # 主场景结构
 
@@ -94,24 +102,23 @@ Root (Node2D)
   - 视口范围外扩1个区块作为缓冲区预加载
   - 离开视口的区块自动卸载
 - **细网格线自动隐藏**：当视口内可见的大格子数量达到6个及以上时，自动隐藏小格子细网格线，只保留大方格粗网格线，优化视觉效果
-- **相机漫游控制**：WASD移动 + Shift加速 + 鼠标滚轮缩放（缩放以鼠标位置为中心）
-- **建筑数据持久化存储**：用户放置/删除的建筑数据自动保存到 `save/buildings.json`，游戏启动时自动加载，所有持久化存储数据均统一存放于save目录下
-- **MCP调试工具**：项目集成了 godot_mcp 编辑器插件和 MCPRuntime 自动加载单例，用于AI辅助开发时的场景运行、截图、输入模拟等调试操作
+- **相机漫游控制**：支持键盘移动/加速、鼠标滚轮缩放（详见运行方式）
+- **建筑数据持久化存储**：用户放置/删除的建筑数据自动保存到 `save/buildings.json`，游戏启动时自动加载
+  - 存档格式：`{ "version": "1.0.0", "saved_at": "时间戳", "buildings": { "x,y": { "type": "default" } } }`
+  - 编辑器模式下存档路径为 `res://save/`，导出后为可执行文件同级的 `save/` 目录
+  - 所有持久化存储数据均统一存放于save目录下
+- **MCP调试工具**：项目集成了 godot\_mcp 编辑器插件和 MCPRuntime 自动加载单例，用于AI辅助开发时的场景运行、截图、输入模拟等调试操作
 - **事件驱动架构**：通过 EventBus 实现模块间松耦合通信
 - **配置集中管理**：所有游戏配置常量统一在 GameConfig 中管理
 
 # 开发规范
+
 - 对于不确定的接口，先查询，禁止猜测用法
-- 修改后调用godot-debug技能或mcp工具进行调试，确保代码无错误
-- GDScript代码遵循Godot官方风格指南
+- 修改后使用godot-debug技能或mcp工具进行代码静态检查和运行时错误检测，确保无错误
 - 使用`@export`注解暴露可配置参数
 - 节点脚本使用`extends`继承对应节点类型
 - 使用事件总线(EventBus)进行模块间通信，避免直接节点引用
 - 遵循单一职责原则，每个脚本只负责一个功能域
-
-# 测试与验证
-
-- 使用godot-debug技能或mcp工具进行代码静态检查和运行时错误检测
 
 # 运行方式
 
@@ -121,10 +128,8 @@ Root (Node2D)
    - WASD键：控制相机前后左右移动
    - Shift键：加速移动（3倍速）
    - 鼠标滚轮：缩放视角（以鼠标位置为中心）
-   - 鼠标左键：放置建筑（默认大小60×60像素）
+   - 鼠标左键：放置建筑
    - 鼠标右键：删除建筑
-   - 点击「开始游戏」进入主游戏场景
-   - 点击「设置」进入设置页面，可返回开始菜单
 
 # 部署方式
 
@@ -138,3 +143,4 @@ Root (Node2D)
 - 禁止提交.godot目录下的自动生成缓存文件
 - 代码修改后必须经过调试无误后才能合并
 - 不要在代码中硬编码任何敏感信息（如密钥、密码等）
+
