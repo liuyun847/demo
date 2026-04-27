@@ -15,6 +15,8 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	if listening_action.is_empty():
+		if event.is_action_pressed("ui_cancel"):
+			SceneManager.change_scene(ScenePaths.START_MENU)
 		return
 
 	if event is InputEventMouseMotion:
