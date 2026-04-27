@@ -27,9 +27,6 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if listening_action.is_empty():
-		return
-
 	if not event.pressed:
 		return
 
