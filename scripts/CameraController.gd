@@ -11,10 +11,9 @@ func _ready() -> void:
 	zoom = Vector2(1.0, 1.0)
 
 func _input(event: InputEvent) -> void:
-	# 鼠标滚轮缩放
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+	if event.is_action_pressed("zoom_in"):
 		zoom_at_position(event.position, 1 + zoom_speed)
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+	elif event.is_action_pressed("zoom_out"):
 		zoom_at_position(event.position, 1 - zoom_speed)
 
 # 在指定位置进行缩放
@@ -30,21 +29,19 @@ func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
 	position += (world_pos - new_world_pos)
 
 func _process(delta: float) -> void:
-	# WASD移动控制
 	var input_dir = Vector2.ZERO
-	if Input.is_key_pressed(KEY_D):
+	if Input.is_action_pressed("move_right"):
 		input_dir.x += 1
-	if Input.is_key_pressed(KEY_A):
+	if Input.is_action_pressed("move_left"):
 		input_dir.x -= 1
-	if Input.is_key_pressed(KEY_S):
+	if Input.is_action_pressed("move_down"):
 		input_dir.y += 1
-	if Input.is_key_pressed(KEY_W):
+	if Input.is_action_pressed("move_up"):
 		input_dir.y -= 1
 	
 	if input_dir.length() > 0:
 		input_dir = input_dir.normalized()
-		# 计算当前速度（考虑Shift键加速）
 		var current_speed = move_speed
-		if Input.is_key_pressed(KEY_SHIFT):
+		if Input.is_action_pressed("speed_up"):
 			current_speed *= shift_speed_multiplier
 		position += input_dir * current_speed * delta / zoom.x

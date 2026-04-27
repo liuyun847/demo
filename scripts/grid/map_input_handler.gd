@@ -15,9 +15,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	var world_pos: Vector2 = grid_coordinate.screen_to_world(camera, event.position)
 	var grid_pos: Vector2i = grid_coordinate.world_to_grid(world_pos)
 
-	if event.button_index == MOUSE_BUTTON_LEFT:
+	if event.is_action("place_building"):
 		building_manager.place_building(grid_pos)
 		viewport.set_input_as_handled()
-	elif event.button_index == MOUSE_BUTTON_RIGHT:
+	elif event.is_action("remove_building"):
 		building_manager.remove_building(grid_pos)
 		viewport.set_input_as_handled()
