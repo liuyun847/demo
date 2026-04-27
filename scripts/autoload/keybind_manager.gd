@@ -93,6 +93,16 @@ func remap_action(action: String, new_event: InputEvent) -> void:
 	if not InputMap.has_action(action):
 		push_error("KeybindManager: 未知的动作: %s" % action)
 		return
+
+	for existing_action in GAMEPLAY_ACTIONS:
+		if existing_action == action:
+			continue
+		var existing_events: Array[InputEvent] = InputMap.action_get_events(existing_action)
+		for ev in existing_events:
+			if _events_equal(ev, new_event):
+				push_error("KeybindManager: 按键 %s 已被「%s」使用" % [get_event_display_text(new_event), get_action_display_name(existing_action)])
+				return
+
 	InputMap.action_erase_events(action)
 	InputMap.action_add_event(action, new_event)
 	save_keybindings()
@@ -252,3 +262,14 @@ func _deserialize_event(data) -> InputEvent:
 			event.device = data.get("device", 0)
 			return event
 	return null
+
+func _events_equal(a: InputEvent, b: InputEvent) -> bool:
+	if a is InputEventKey and b is InputEventKey:
+		return a.keycode == b.keycode or a.physical_keycode == b.physical_keycode
+	elif a is InputEventMouseButton and b is InputEventMouseButton:
+		return a.button_index == b.button_index
+	elif a is InputEventJoypadButton and b is InputEventJoypadButton:
+		return a.button_index == b.button_index and a.device == b.device
+	elif a is InputEventJoypadMotion and b is InputEventJoypadMotion:
+		return a.axis == b.axis and sign(a.axis_value) == sign(b.axis_value) and a.device == b.device
+	return false
