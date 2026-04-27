@@ -21,9 +21,11 @@ extends Node
 const SAVE_VERSION: String = "1.0.0"
 
 var save_file_path: String = ""
+var keybind_file_path: String = ""
 
 func _ready() -> void:
 	_update_save_path()
+	_update_keybind_path()
 
 func _update_save_path() -> void:
 	if OS.has_feature("editor"):
@@ -32,6 +34,14 @@ func _update_save_path() -> void:
 		var exe_path := OS.get_executable_path()
 		var install_dir := exe_path.get_base_dir()
 		save_file_path = install_dir.path_join("save/buildings.json")
+
+func _update_keybind_path() -> void:
+	if OS.has_feature("editor"):
+		keybind_file_path = "res://save/keybindings.json"
+	else:
+		var exe_path := OS.get_executable_path()
+		var install_dir := exe_path.get_base_dir()
+		keybind_file_path = install_dir.path_join("save/keybindings.json")
 
 # 计算区块像素大小
 func get_block_pixel_size() -> int:

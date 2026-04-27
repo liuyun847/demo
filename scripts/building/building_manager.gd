@@ -3,6 +3,8 @@ extends Node2D
 
 var buildings: Dictionary = {}  # key: Vector2i, value: BuildingData
 
+@onready var building_texture: Texture2D = preload("res://resources/building_default.svg")
+
 func has_building(grid_pos: Vector2i) -> bool:
 	return buildings.has(grid_pos)
 
@@ -14,15 +16,15 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 	data.grid_position = grid_pos
 	data.building_type = building_type
 
-	# 创建视觉表现（ColorRect 占位符，后续可替换为实际建筑场景）
-	var visual := ColorRect.new()
-	visual.size = Vector2(GameConfig.building_size, GameConfig.building_size)
-	visual.color = GameConfig.building_default_color
-	visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# 创建视觉表现（使用 SVG 贴图）
+	var visual := Sprite2D.new()
+	visual.texture = building_texture
 	visual.name = "Building_%d_%d" % [grid_pos.x, grid_pos.y]
+	var half_size := GameConfig.building_size / 2.0
+	visual.scale = Vector2.ONE * (float(GameConfig.building_size) / building_texture.get_width())
 	visual.global_position = Vector2(
-		grid_pos.x * GameConfig.cell_size + GameConfig.building_border,
-		grid_pos.y * GameConfig.cell_size + GameConfig.building_border
+		grid_pos.x * GameConfig.cell_size + GameConfig.building_border + half_size,
+		grid_pos.y * GameConfig.cell_size + GameConfig.building_border + half_size
 	)
 	add_child(visual)
 
