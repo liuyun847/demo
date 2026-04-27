@@ -28,3 +28,7 @@ text = "开始游戏"
 [node name="btn_settings" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(200, 60)
 text = "设置"
+
+[node name="btn_quit" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(200, 60)
+text = "退出游戏"

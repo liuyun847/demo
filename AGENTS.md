@@ -29,6 +29,7 @@ demo/
 ├── addons/                    # 编辑器插件目录（gitignore，不入版本控制）
 │   └── godot_mcp/             # MCP调试插件
 ├── scripts/                   # 脚本文件目录
+│   ├── main.gd                # 主场景控制器（处理 ESC 返回主菜单）
 │   ├── InfiniteGridMap.gd     # 无限方格地图核心实现脚本
 │   ├── CameraController.gd    # 相机控制器脚本，负责视角漫游控制
 │   ├── StartMenu.gd           # 开始页面逻辑脚本
@@ -88,7 +89,7 @@ demo/
 # 主场景结构
 
 ```
-Root (Node2D)
+Root (Node2D) → main.gd                    # 主场景控制器（处理 ESC 返回主菜单）
 ├── Camera2D (Camera2D) → CameraController.gd        # 当前激活相机
 ├── InfiniteGridMap (Node2D) → InfiniteGridMap.gd   # 无限方格地图
 ├── GridCoordinate (Node) → GridCoordinate.gd       # 网格坐标转换工具
@@ -145,6 +146,7 @@ Root (Node2D)
    - 鼠标滚轮下：缩小视角
    - 鼠标左键：放置建筑
    - 鼠标右键：删除建筑
+   - ESC键：返回主菜单
 
 # 部署方式
 

@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://b7mm3n5spqr6d"]
 
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/InfiniteGridMap.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/CameraController.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/grid/grid_coordinate.gd" id="3_abc12"]
@@ -8,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/grid/map_input_handler.gd" id="6_jkl78"]
 
 [node name="Root" type="Node2D"]
+script = ExtResource("1_main")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 script = ExtResource("2")
