@@ -16,6 +16,8 @@ var line_color: Color = Color("#e0e0e0", 0.5)
 var building_size: int = 60
 var building_border: int = 2
 var building_default_color: Color = Color("#2ecc71")
+var ghost_alpha: float = 0.35
+var remove_ghost_alpha: float = 0.3
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"
