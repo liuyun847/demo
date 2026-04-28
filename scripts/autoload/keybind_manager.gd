@@ -206,6 +206,10 @@ func _apply_default_keybindings() -> void:
 func _create_key_event(keycode: Key) -> InputEventKey:
 	var event := InputEventKey.new()
 	event.keycode = keycode
+	event.alt_pressed = false
+	event.shift_pressed = false
+	event.ctrl_pressed = false
+	event.meta_pressed = false
 	return event
 
 func _create_mouse_event(button_index: MouseButton) -> InputEventMouseButton:
@@ -219,6 +223,10 @@ func _serialize_event(event: InputEvent) -> Dictionary:
 			"type": "key",
 			"keycode": event.keycode,
 			"physical_keycode": event.physical_keycode,
+			"alt_pressed": event.alt_pressed,
+			"shift_pressed": event.shift_pressed,
+			"ctrl_pressed": event.ctrl_pressed,
+			"meta_pressed": event.meta_pressed,
 		}
 	elif event is InputEventMouseButton:
 		return {
@@ -249,6 +257,10 @@ func _deserialize_event(data) -> InputEvent:
 			var event := InputEventKey.new()
 			event.keycode = data.get("keycode", 0) as Key
 			event.physical_keycode = data.get("physical_keycode", 0) as Key
+			event.alt_pressed = data.get("alt_pressed", false)
+			event.shift_pressed = data.get("shift_pressed", false)
+			event.ctrl_pressed = data.get("ctrl_pressed", false)
+			event.meta_pressed = data.get("meta_pressed", false)
 			return event
 		"mouse_button":
 			var event := InputEventMouseButton.new()
@@ -269,7 +281,7 @@ func _deserialize_event(data) -> InputEvent:
 
 func _events_equal(a: InputEvent, b: InputEvent) -> bool:
 	if a is InputEventKey and b is InputEventKey:
-		return a.keycode == b.keycode or a.physical_keycode == b.physical_keycode
+		return (a.keycode != KEY_NONE and a.keycode == b.keycode) or (a.physical_keycode != KEY_NONE and a.physical_keycode == b.physical_keycode)
 	elif a is InputEventMouseButton and b is InputEventMouseButton:
 		return a.button_index == b.button_index
 	elif a is InputEventJoypadButton and b is InputEventJoypadButton:

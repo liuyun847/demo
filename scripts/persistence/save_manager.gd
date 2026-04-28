@@ -2,12 +2,16 @@ extends Node
 
 @onready var building_manager: BuildingManager = get_node("../BuildingManager")
 
+var _is_loading: bool = false
+
 func _ready() -> void:
 	EventBus.building_placed.connect(_on_building_changed)
 	EventBus.building_removed.connect(_on_building_changed)
 	load_buildings()
 
 func _on_building_changed(_grid_pos: Vector2i) -> void:
+	if _is_loading:
+		return
 	save_buildings()
 
 func save_buildings() -> void:
@@ -30,12 +34,17 @@ func save_buildings() -> void:
 		}
 
 	var dir_path := GameConfig.save_file_path.get_base_dir()
-	DirAccess.make_dir_recursive_absolute(dir_path)
+	var err := DirAccess.make_dir_recursive_absolute(dir_path)
+	if err != OK:
+		push_error("SaveManager: 无法创建存档目录: %s" % dir_path)
+		return
 
-	var file := FileAccess.open(GameConfig.save_file_path, FileAccess.WRITE)
+	var temp_path := GameConfig.save_file_path + ".tmp"
+	var file := FileAccess.open(temp_path, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(save_dict))
+		file.store_string(JSON.stringify(save_dict, "\t"))
 		file.close()
+		DirAccess.rename_absolute(temp_path, GameConfig.save_file_path)
 	else:
 		push_error("SaveManager: 无法写入存档文件: %s" % GameConfig.save_file_path)
 
@@ -67,6 +76,7 @@ func load_buildings() -> void:
 		push_error("SaveManager: 找不到 BuildingManager 节点")
 		return
 
+	_is_loading = true
 	building_manager.clear_all_buildings()
 
 	if save_data.has("buildings") and save_data.buildings is Dictionary:
@@ -78,4 +88,5 @@ func load_buildings() -> void:
 				var b_type: String = b_data.get("type", "default")
 				building_manager.place_building(grid_pos, b_type)
 
+	_is_loading = false
 	EventBus.buildings_loaded.emit()
