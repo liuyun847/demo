@@ -36,10 +36,10 @@ func get_visible_block_range() -> Dictionary:
 	var view_rect = viewport.get_visible_rect()
 	var top_left = GridCoordinate.screen_to_world(camera, view_rect.position)
 	var bottom_right = GridCoordinate.screen_to_world(camera, view_rect.end)
-	var start_block_x = floor(top_left.x / block_pixel_size)
-	var end_block_x = floor(bottom_right.x / block_pixel_size)
-	var start_block_y = floor(top_left.y / block_pixel_size)
-	var end_block_y = floor(bottom_right.y / block_pixel_size)
+	var start_block_x = floori(top_left.x / block_pixel_size)
+	var end_block_x = floori(bottom_right.x / block_pixel_size)
+	var start_block_y = floori(top_left.y / block_pixel_size)
+	var end_block_y = floori(bottom_right.y / block_pixel_size)
 	return {
 		"start_x": start_block_x,
 		"end_x": end_block_x,

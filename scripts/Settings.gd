@@ -89,6 +89,7 @@ func _on_keybind_changed(action: String) -> void:
 	if listening_action == action and listening_button:
 		_update_button_text(action, listening_button)
 		_stop_listening()
+	_cancel_listening()
 	_refresh_keybind_list()
 
 func _on_reset_pressed() -> void:
