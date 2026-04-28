@@ -78,14 +78,13 @@ func get_keybind_info() -> Array[Dictionary]:
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
 		var display_name: String = get_action_display_name(action)
-		var event_texts: Array[String] = []
-		for ev in events:
-			event_texts.append(get_event_display_text(ev))
+		var event_text: String = ""
+		if events.size() > 0:
+			event_text = get_event_display_text(events[0])
 		result.append({
 			"action": action,
 			"display_name": display_name,
-			"events": events,
-			"event_texts": event_texts,
+			"event_text": event_text,
 		})
 	return result
 
@@ -125,10 +124,8 @@ func save_keybindings() -> void:
 		if not InputMap.has_action(action):
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
-		var event_list: Array = []
-		for ev in events:
-			event_list.append(_serialize_event(ev))
-		keybind_data.keybindings[action] = event_list
+		if events.size() > 0:
+			keybind_data.keybindings[action] = _serialize_event(events[0])
 
 	var dir_path := GameConfig.keybind_file_path.get_base_dir()
 	DirAccess.make_dir_recursive_absolute(dir_path)
@@ -172,11 +169,18 @@ func load_keybindings() -> void:
 		if not InputMap.has_action(action):
 			push_warning("KeybindManager: 忽略未知动作: %s" % action)
 			continue
-		var event_list = data.keybindings[action]
-		if not event_list is Array:
-			continue
+		var raw = data.keybindings[action]
 		InputMap.action_erase_events(action)
-		for ev_data in event_list:
+
+		var event_datas: Array = []
+		if raw is Array:
+			event_datas = raw
+		elif raw is Dictionary:
+			event_datas = [raw]
+		else:
+			continue
+
+		for ev_data in event_datas:
 			var event: InputEvent = _deserialize_event(ev_data)
 			if event:
 				InputMap.action_add_event(action, event)

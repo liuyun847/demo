@@ -22,10 +22,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 	visual.name = "Building_%d_%d" % [grid_pos.x, grid_pos.y]
 	var half_size := GameConfig.building_size / 2.0
 	visual.scale = Vector2.ONE * (float(GameConfig.building_size) / building_texture.get_width())
-	visual.global_position = Vector2(
-		grid_pos.x * GameConfig.cell_size + GameConfig.building_border + half_size,
-		grid_pos.y * GameConfig.cell_size + GameConfig.building_border + half_size
-	)
+	visual.global_position = GridCoordinate.grid_to_world(grid_pos)
 	add_child(visual)
 
 	buildings[grid_pos] = data

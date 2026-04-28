@@ -1,5 +1,5 @@
 class_name BuildingData
-extends Resource
+extends RefCounted
 
-@export var grid_position: Vector2i
-@export var building_type: String = "default"
+var grid_position: Vector2i
+var building_type: String = "default"
