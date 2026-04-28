@@ -1,7 +1,6 @@
 extends Node
 
 @onready var building_manager: BuildingManager = get_node("../BuildingManager")
-@onready var grid_coordinate: GridCoordinate = get_node("../GridCoordinate")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventMouseButton or not event.pressed:
@@ -12,8 +11,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not camera:
 		return
 
-	var world_pos: Vector2 = grid_coordinate.screen_to_world(camera, event.position)
-	var grid_pos: Vector2i = grid_coordinate.world_to_grid(world_pos)
+	var world_pos: Vector2 = GridCoordinate.screen_to_world(camera, event.position)
+	var grid_pos: Vector2i = GridCoordinate.world_to_grid(world_pos)
 
 	if event.is_action("place_building"):
 		building_manager.place_building(grid_pos)

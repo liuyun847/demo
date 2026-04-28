@@ -1,21 +1,21 @@
 extends Node
 
 # 网格配置
-@export var cell_size: int = 64
-@export var big_cell_size: int = 10
+var cell_size: int = 64
+var big_cell_size: int = 10
 
 # 线条配置
-@export var thin_line_width: float = 1.0
-@export var thick_line_width: float = 3.0
+var thin_line_width: float = 1.0
+var thick_line_width: float = 3.0
 
 # 颜色配置
-@export var background_color: Color = Color("#1e3a5f")
-@export var line_color: Color = Color("#e0e0e0", 0.5)
+var background_color: Color = Color("#1e3a5f")
+var line_color: Color = Color("#e0e0e0", 0.5)
 
 # 建筑配置
-@export var building_size: int = 60
-@export var building_border: int = 2
-@export var building_default_color: Color = Color("#2ecc71")
+var building_size: int = 60
+var building_border: int = 2
+var building_default_color: Color = Color("#2ecc71")
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"

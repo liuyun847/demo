@@ -51,8 +51,7 @@ func _refresh_keybind_list() -> void:
 		row.add_child(name_label)
 
 		var key_button := Button.new()
-		var event_texts: String = "、".join(info.event_texts)
-		key_button.text = event_texts if not event_texts.is_empty() else "未绑定"
+		key_button.text = info.event_text if not info.event_text.is_empty() else "未绑定"
 		key_button.custom_minimum_size = Vector2(160, 36)
 		key_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		var action: String = info.action
@@ -83,10 +82,8 @@ func _update_button_text(action: String, button: Button) -> void:
 		button.text = "未绑定"
 		return
 	var events: Array[InputEvent] = InputMap.action_get_events(action)
-	var texts: Array[String] = []
-	for ev in events:
-		texts.append(KeybindManager.get_event_display_text(ev))
-	button.text = "、".join(texts) if not texts.is_empty() else "未绑定"
+	var text: String = KeybindManager.get_event_display_text(events[0]) if events.size() > 0 else ""
+	button.text = text if not text.is_empty() else "未绑定"
 
 func _on_keybind_changed(action: String) -> void:
 	if listening_action == action and listening_button:

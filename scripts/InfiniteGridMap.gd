@@ -1,17 +1,23 @@
 extends Node2D
 
-@export var cell_size: int = GameConfig.cell_size
-@export var big_cell_size: int = GameConfig.big_cell_size
-@export var thin_line_width: float = GameConfig.thin_line_width
-@export var thick_line_width: float = GameConfig.thick_line_width
-@export var background_color: Color = GameConfig.background_color
-@export var line_color: Color = GameConfig.line_color
+var cell_size: int
+var big_cell_size: int
+var thin_line_width: float
+var thick_line_width: float
+var background_color: Color
+var line_color: Color
 
 var viewport: Viewport
 var loaded_blocks: Dictionary = {}
 var block_pixel_size: int = 0
 
 func _ready() -> void:
+	cell_size = GameConfig.cell_size
+	big_cell_size = GameConfig.big_cell_size
+	thin_line_width = GameConfig.thin_line_width
+	thick_line_width = GameConfig.thick_line_width
+	background_color = GameConfig.background_color
+	line_color = GameConfig.line_color
 	viewport = get_viewport()
 	block_pixel_size = cell_size * big_cell_size
 	set_process(true)
@@ -21,19 +27,15 @@ func _process(_delta: float) -> void:
 	update_visible_blocks()
 	queue_redraw()
 
-func screen_to_world(camera: Camera2D, screen_pos: Vector2) -> Vector2:
-	var view_size = viewport.get_visible_rect().size
-	var center = view_size / 2.0
-	var offset = (screen_pos - center) / camera.zoom
-	return offset + camera.global_position
+
 
 func get_visible_block_range() -> Dictionary:
 	var camera = viewport.get_camera_2d()
 	if not camera:
 		return {"start_x": 0, "end_x": 0, "start_y": 0, "end_y": 0}
 	var view_rect = viewport.get_visible_rect()
-	var top_left = screen_to_world(camera, view_rect.position)
-	var bottom_right = screen_to_world(camera, view_rect.end)
+	var top_left = GridCoordinate.screen_to_world(camera, view_rect.position)
+	var bottom_right = GridCoordinate.screen_to_world(camera, view_rect.end)
 	var start_block_x = floor(top_left.x / block_pixel_size)
 	var end_block_x = floor(bottom_right.x / block_pixel_size)
 	var start_block_y = floor(top_left.y / block_pixel_size)
@@ -69,8 +71,8 @@ func _draw() -> void:
 		return
 	
 	var view_rect = viewport.get_visible_rect()
-	var top_left = screen_to_world(camera, view_rect.position)
-	var bottom_right = screen_to_world(camera, view_rect.end)
+	var top_left = GridCoordinate.screen_to_world(camera, view_rect.position)
+	var bottom_right = GridCoordinate.screen_to_world(camera, view_rect.end)
 	
 	draw_rect(Rect2(top_left, bottom_right - top_left), background_color)
 	
@@ -116,8 +118,4 @@ func unload_block(block_coord: Vector2i) -> void:
 		loaded_blocks.erase(block_coord)
 		queue_redraw()
 
-func world_to_grid(world_pos: Vector2) -> Vector2i:
-	return Vector2i(
-		floor(world_pos.x / cell_size),
-		floor(world_pos.y / cell_size)
-	)
+
