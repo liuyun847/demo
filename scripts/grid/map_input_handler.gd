@@ -1,6 +1,7 @@
 extends Node
 
 @onready var building_manager: BuildingManager = get_node("../BuildingManager")
+@onready var inventory_bar: InventoryBar = get_node("../UIOverlay/InventoryBar")
 
 var _is_dragging: bool = false
 var _drag_start_grid: Vector2i
@@ -54,7 +55,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.is_action("place_building") and not event.pressed and _is_dragging:
 		var cells := BuildingManager.get_line_cells(_drag_start_grid, grid_pos)
-		building_manager.place_buildings_in_line(cells)
+		var building_type := inventory_bar.get_current_building_type() if inventory_bar else "default"
+		building_manager.place_buildings_in_line(cells, building_type)
 		building_manager.hide_ghost()
 		_is_dragging = false
 		viewport.set_input_as_handled()
