@@ -4,6 +4,7 @@ extends HBoxContainer
 signal slot_selected(index: int, type_id: String)
 
 const SLOT_SCENE := preload("res://scenes/inventory_slot.tscn")
+const MAX_BUILDING_TYPES := 10
 
 var current_slot_index: int = 0
 var building_types: Array[BuildingTypeData] = []
@@ -14,14 +15,14 @@ func _ready() -> void:
 	select_slot(0)
 
 func _init_default_types() -> void:
-	for i in range(1, 11):
+	for i in range(1, MAX_BUILDING_TYPES + 1):
 		var data := BuildingTypeData.new()
 		data.type_id = "type_%02d" % i
 		data.display_name = "建筑 %d" % i
 		var tex_path := "res://resources/buildings/building_%02d.svg" % i
 		if ResourceLoader.exists(tex_path):
 			data.icon_texture = load(tex_path)
-		data.building_color = Color.from_hsv(float(i - 1) / 10.0, 0.7, 0.9)
+		data.building_color = Color.from_hsv(float(i - 1) / float(MAX_BUILDING_TYPES), 0.7, 0.9)
 		building_types.append(data)
 
 func _setup_slots() -> void:
