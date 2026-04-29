@@ -10,6 +10,15 @@ var remove_ghost_cells: Array[Vector2i] = []
 func has_building(grid_pos: Vector2i) -> bool:
 	return buildings.has(grid_pos)
 
+func _get_building_texture(building_type: String) -> Texture2D:
+	if building_type == "default":
+		return building_texture
+	if building_type.begins_with("type_"):
+		var tex_path := "res://resources/buildings/building_%s.svg" % building_type.substr(5)
+		if ResourceLoader.exists(tex_path):
+			return load(tex_path)
+	return building_texture
+
 func place_building(grid_pos: Vector2i, building_type: String = "default") -> bool:
 	if has_building(grid_pos):
 		return false
@@ -19,9 +28,10 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 	data.building_type = building_type
 
 	var visual := Sprite2D.new()
-	visual.texture = building_texture
+	var type_texture := _get_building_texture(building_type)
+	visual.texture = type_texture
 	visual.name = "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-	var tex_width := building_texture.get_width()
+	var tex_width := type_texture.get_width()
 	if tex_width > 0:
 		visual.scale = Vector2.ONE * (float(GameConfig.building_size) / tex_width)
 	else:

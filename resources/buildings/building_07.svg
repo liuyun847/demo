@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- 圆顶建筑 -->
+  <rect x="16" y="32" width="32" height="22" rx="2" fill="#2ecc71" stroke="#27ae60" stroke-width="2"/>
+  <path d="M 16 32 A 16 16 0 0 1 48 32" fill="#2ecc71" stroke="#27ae60" stroke-width="2"/>
+  <rect x="28" y="40" width="8" height="14" rx="1" fill="#8e44ad" stroke="#6c3483" stroke-width="1.5"/>
+  <circle cx="32" cy="26" r="4" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1.5"/>
+  <rect x="20" y="36" width="6" height="6" rx="1" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1"/>
+  <rect x="38" y="36" width="6" height="6" rx="1" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1"/>
+  <line x1="16" y1="32" x2="48" y2="32" stroke="#27ae60" stroke-width="1.5"/>
+</svg>
