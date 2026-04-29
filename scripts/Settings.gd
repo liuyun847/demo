@@ -14,9 +14,13 @@ func _ready() -> void:
 	_refresh_keybind_list()
 
 func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+
 	if listening_action.is_empty():
 		if event.is_action_pressed("ui_cancel"):
-			SceneManager.change_scene(ScenePaths.START_MENU)
+			EventBus.show_start_menu_requested.emit()
+			get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventMouseMotion:
@@ -96,4 +100,4 @@ func _on_reset_pressed() -> void:
 	KeybindManager.reset_to_defaults()
 
 func _on_back_pressed() -> void:
-	SceneManager.change_scene(ScenePaths.START_MENU)
+	EventBus.show_start_menu_requested.emit()

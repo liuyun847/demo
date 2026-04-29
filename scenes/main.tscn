@@ -6,6 +6,8 @@
 [ext_resource type="Script" path="res://scripts/building/building_manager.gd" id="4_def34"]
 [ext_resource type="Script" path="res://scripts/persistence/save_manager.gd" id="5_ghi56"]
 [ext_resource type="Script" path="res://scripts/grid/map_input_handler.gd" id="6_jkl78"]
+[ext_resource type="PackedScene" uid="uid://b0njy8c5w1q2k" path="res://scenes/start_menu.tscn" id="7_t5y78"]
+[ext_resource type="PackedScene" uid="uid://dwxq7v1l0r8yx" path="res://scenes/settings.tscn" id="8_u3i12"]
 
 [node name="Root" type="Node2D"]
 script = ExtResource("1_main")
@@ -26,3 +28,14 @@ script = ExtResource("5_ghi56")
 
 [node name="MapInputHandler" type="Node" parent="."]
 script = ExtResource("6_jkl78")
+
+[node name="UIOverlay" type="CanvasLayer" parent="."]
+layer = 128
+process_mode = 3
+
+[node name="StartMenu" parent="UIOverlay" instance=ExtResource("7_t5y78")]
+process_mode = 3
+
+[node name="SettingsPanel" parent="UIOverlay" instance=ExtResource("8_u3i12")]
+visible = false
+process_mode = 3
