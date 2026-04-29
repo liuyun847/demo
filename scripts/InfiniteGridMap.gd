@@ -21,6 +21,7 @@ func _ready() -> void:
 	viewport = get_viewport()
 	block_pixel_size = cell_size * big_cell_size
 	set_process(true)
+	update_visible_blocks()
 	queue_redraw()
 
 func _process(_delta: float) -> void:
