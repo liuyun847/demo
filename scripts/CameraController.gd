@@ -11,6 +11,8 @@ func _ready() -> void:
 	zoom = Vector2(1.0, 1.0)
 
 func _input(event: InputEvent) -> void:
+	if get_tree().paused:
+		return
 	if event.is_action_pressed("zoom_in"):
 		zoom_at_position(event.position, 1 + zoom_speed)
 	elif event.is_action_pressed("zoom_out"):

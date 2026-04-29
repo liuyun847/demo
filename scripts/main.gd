@@ -11,6 +11,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	_hide_all_uis()
+	_pause_game(false)
 
 func _exit_tree() -> void:
 	EventBus.buildings_loaded.disconnect(_on_buildings_loaded)
@@ -38,13 +39,19 @@ func _on_show_start_menu_requested() -> void:
 func _on_show_settings_requested() -> void:
 	show_settings()
 
+func _pause_game(paused: bool) -> void:
+	get_tree().paused = paused
+
 func show_start_menu() -> void:
 	settings_panel.hide()
 	start_menu.show()
+	_pause_game(true)
 
 func hide_start_menu() -> void:
 	start_menu.hide()
+	_pause_game(false)
 
 func show_settings() -> void:
 	start_menu.hide()
 	settings_panel.show()
+	_pause_game(true)
