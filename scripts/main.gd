@@ -1,5 +1,10 @@
 extends Node2D
 
+const SLOT_KEYS := [
+	"slot_1", "slot_2", "slot_3", "slot_4", "slot_5",
+	"slot_6", "slot_7", "slot_8", "slot_9", "slot_0"
+]
+
 @onready var start_menu: Control = $UIOverlay/StartMenu
 @onready var settings_panel: Control = $UIOverlay/SettingsPanel
 @onready var inventory_bar: InventoryBar = $UIOverlay/InventoryBar
@@ -23,26 +28,11 @@ func _exit_tree() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		show_start_menu()
-	elif event.is_action_pressed("slot_1"):
-		inventory_bar.select_slot(0)
-	elif event.is_action_pressed("slot_2"):
-		inventory_bar.select_slot(1)
-	elif event.is_action_pressed("slot_3"):
-		inventory_bar.select_slot(2)
-	elif event.is_action_pressed("slot_4"):
-		inventory_bar.select_slot(3)
-	elif event.is_action_pressed("slot_5"):
-		inventory_bar.select_slot(4)
-	elif event.is_action_pressed("slot_6"):
-		inventory_bar.select_slot(5)
-	elif event.is_action_pressed("slot_7"):
-		inventory_bar.select_slot(6)
-	elif event.is_action_pressed("slot_8"):
-		inventory_bar.select_slot(7)
-	elif event.is_action_pressed("slot_9"):
-		inventory_bar.select_slot(8)
-	elif event.is_action_pressed("slot_0"):
-		inventory_bar.select_slot(9)
+		return
+	for i in SLOT_KEYS.size():
+		if event.is_action_pressed(SLOT_KEYS[i]):
+			inventory_bar.select_slot(i)
+			return
 
 func _hide_all_uis() -> void:
 	start_menu.hide()
