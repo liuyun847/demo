@@ -3,6 +3,7 @@ extends Node
 @onready var building_manager: BuildingManager = get_node("../BuildingManager")
 
 var _is_loading: bool = false
+var _save_pending: bool = false
 
 func _ready() -> void:
 	EventBus.building_placed.connect(_on_building_changed)
@@ -12,6 +13,12 @@ func _ready() -> void:
 func _on_building_changed(_grid_pos: Vector2i) -> void:
 	if _is_loading:
 		return
+	if not _save_pending:
+		_save_pending = true
+		call_deferred("_do_save")
+
+func _do_save() -> void:
+	_save_pending = false
 	save_buildings()
 
 func save_buildings() -> void:
