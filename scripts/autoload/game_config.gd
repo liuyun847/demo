@@ -74,13 +74,13 @@ func load_game_settings() -> void:
 
 	var data = JSON.parse_string(content)
 	if data == null or not data is Dictionary:
-		push_error("GameConfig: 游戏设置格式无效")
+		push_error("GameConfig: 游戏设置格式无效，使用默认值")
+		zoom_speed = 0.2
+		shift_speed_multiplier = 5.0
 		return
 
-	if data.has("zoom_speed") and data.zoom_speed is float:
-		zoom_speed = data.zoom_speed
-	if data.has("shift_speed_multiplier") and data.shift_speed_multiplier is float:
-		shift_speed_multiplier = data.shift_speed_multiplier
+	zoom_speed = data.get("zoom_speed", 0.2)
+	shift_speed_multiplier = data.get("shift_speed_multiplier", 5.0)
 
 func save_game_settings() -> void:
 	var settings_data := {
