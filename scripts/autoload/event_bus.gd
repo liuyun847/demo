@@ -9,3 +9,6 @@ signal keybind_changed(action: String)
 signal start_game_requested
 signal show_start_menu_requested
 signal show_settings_requested
+
+# 游戏数值设置变更信号
+signal game_settings_changed
