@@ -109,13 +109,20 @@ func _create_slider_option_row(label_text: String, min_val: float, max_val: floa
 	)
 	edit.text_submitted.connect(func(text: String) -> void:
 		var val := text.to_float()
+		if val == 0.0 and text.strip_edges() != "0" and text.strip_edges() != "0.0":
+			edit.text = format_str % slider.value
+			return
 		val = clampf(val, min_val, max_val)
 		slider.value = val
 		edit.text = format_str % val
 		callback.call(val)
 	)
 	edit.focus_exited.connect(func() -> void:
-		var val := edit.text.to_float()
+		var text := edit.text
+		var val := text.to_float()
+		if val == 0.0 and text.strip_edges() != "0" and text.strip_edges() != "0.0":
+			edit.text = format_str % slider.value
+			return
 		val = clampf(val, min_val, max_val)
 		slider.value = val
 		edit.text = format_str % val
