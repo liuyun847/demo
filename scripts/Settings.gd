@@ -1,6 +1,7 @@
 extends Control
 
-@onready var keybind_list: VBoxContainer = $MarginContainer/VBoxContainer/ScrollContainer/KeybindList
+@onready var keybind_list: VBoxContainer = $MarginContainer/VBoxContainer/ContentHBox/LeftVBox/ScrollContainer/KeybindList
+@onready var game_options_list: VBoxContainer = $MarginContainer/VBoxContainer/ContentHBox/RightVBox/GameOptionsList
 @onready var btn_reset: Button = $MarginContainer/VBoxContainer/ButtonBar/btn_reset
 @onready var btn_back: Button = $MarginContainer/VBoxContainer/ButtonBar/btn_back
 
@@ -12,6 +13,7 @@ func _ready() -> void:
 	btn_back.pressed.connect(_on_back_pressed)
 	EventBus.keybind_changed.connect(_on_keybind_changed)
 	_refresh_keybind_list()
+	_refresh_game_options()
 
 func _input(event: InputEvent) -> void:
 	if not visible:
@@ -64,6 +66,74 @@ func _refresh_keybind_list() -> void:
 
 		keybind_list.add_child(row)
 
+func _refresh_game_options() -> void:
+	for child in game_options_list.get_children():
+		child.queue_free()
+
+	game_options_list.add_child(_create_slider_option_row(
+		"滚轮缩放倍率", 0.01, 0.5, 0.01, GameConfig.zoom_speed, 2, _on_zoom_speed_changed
+	))
+	game_options_list.add_child(_create_slider_option_row(
+		"Shift加速倍率", 1.0, 10.0, 0.1, GameConfig.shift_speed_multiplier, 1, _on_shift_speed_changed
+	))
+
+func _create_slider_option_row(label_text: String, min_val: float, max_val: float, step: float, current_val: float, decimal_places: int, callback: Callable) -> HBoxContainer:
+	var row := HBoxContainer.new()
+
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(140, 36)
+	label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	row.add_child(label)
+
+	var slider := HSlider.new()
+	slider.min_value = min_val
+	slider.max_value = max_val
+	slider.step = step
+	slider.value = current_val
+	slider.custom_minimum_size = Vector2(120, 36)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(slider)
+
+	var edit := LineEdit.new()
+	var format_str := "%%.%df" % decimal_places
+	edit.text = format_str % current_val
+	edit.custom_minimum_size = Vector2(60, 36)
+	edit.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(edit)
+
+	slider.value_changed.connect(func(value: float) -> void:
+		edit.text = format_str % value
+		callback.call(value)
+	)
+	edit.text_submitted.connect(func(text: String) -> void:
+		var val := text.to_float()
+		val = clampf(val, min_val, max_val)
+		slider.value = val
+		edit.text = format_str % val
+		callback.call(val)
+	)
+	edit.focus_exited.connect(func() -> void:
+		var val := edit.text.to_float()
+		val = clampf(val, min_val, max_val)
+		slider.value = val
+		edit.text = format_str % val
+		callback.call(val)
+	)
+
+	return row
+
+func _on_zoom_speed_changed(value: float) -> void:
+	GameConfig.zoom_speed = value
+	GameConfig.save_game_settings()
+	EventBus.game_settings_changed.emit()
+
+func _on_shift_speed_changed(value: float) -> void:
+	GameConfig.shift_speed_multiplier = value
+	GameConfig.save_game_settings()
+	EventBus.game_settings_changed.emit()
+
 func _on_key_button_pressed(action: String, button: Button) -> void:
 	if not listening_action.is_empty():
 		_cancel_listening()
@@ -98,6 +168,12 @@ func _on_keybind_changed(action: String) -> void:
 
 func _on_reset_pressed() -> void:
 	KeybindManager.reset_to_defaults()
+	# 恢复游戏数值默认值
+	GameConfig.zoom_speed = 0.2
+	GameConfig.shift_speed_multiplier = 5.0
+	GameConfig.save_game_settings()
+	EventBus.game_settings_changed.emit()
+	_refresh_game_options()
 
 func _on_back_pressed() -> void:
 	EventBus.show_start_menu_requested.emit()
