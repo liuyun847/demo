@@ -36,29 +36,22 @@ func _ready() -> void:
 	_update_game_settings_path()
 	load_game_settings()
 
-func _update_save_path() -> void:
+func _get_config_file_path(file_name: String) -> String:
 	if OS.has_feature("editor"):
-		save_file_path = "res://save/buildings.json"
+		return "res://save/%s" % file_name
 	else:
 		var exe_path := OS.get_executable_path()
 		var install_dir := exe_path.get_base_dir()
-		save_file_path = install_dir.path_join("save/buildings.json")
+		return install_dir.path_join("save/%s" % file_name)
+
+func _update_save_path() -> void:
+	save_file_path = _get_config_file_path("buildings.json")
 
 func _update_keybind_path() -> void:
-	if OS.has_feature("editor"):
-		keybind_file_path = "res://save/keybindings.json"
-	else:
-		var exe_path := OS.get_executable_path()
-		var install_dir := exe_path.get_base_dir()
-		keybind_file_path = install_dir.path_join("save/keybindings.json")
+	keybind_file_path = _get_config_file_path("keybindings.json")
 
 func _update_game_settings_path() -> void:
-	if OS.has_feature("editor"):
-		game_settings_file_path = "res://save/game_settings.json"
-	else:
-		var exe_path := OS.get_executable_path()
-		var install_dir := exe_path.get_base_dir()
-		game_settings_file_path = install_dir.path_join("save/game_settings.json")
+	game_settings_file_path = _get_config_file_path("game_settings.json")
 
 func load_game_settings() -> void:
 	if not FileAccess.file_exists(game_settings_file_path):
