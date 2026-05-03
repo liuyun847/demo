@@ -1,6 +1,8 @@
 class_name InventorySlot
 extends Control
 
+signal clicked(index: int)
+
 @onready var background: Panel = $Background
 @onready var icon_texture_rect: TextureRect = $IconTextureRect
 @onready var key_label: Label = $KeyLabel
@@ -18,3 +20,7 @@ func setup_slot(index: int, type_data: BuildingTypeData) -> void:
 
 func set_selected(selected: bool) -> void:
 	selection_border.visible = selected
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		clicked.emit(_slot_index)
