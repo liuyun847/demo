@@ -19,6 +19,10 @@ var building_default_color: Color = Color("#2ecc71")
 var ghost_alpha: float = 0.35
 var remove_ghost_alpha: float = 0.3
 
+var selection_highlight_color: Color = Color(0.2, 0.6, 1.0, 0.4)
+var selection_border_color: Color = Color(0.2, 0.6, 1.0, 0.8)
+var paste_ghost_alpha: float = 0.45
+
 # 游戏数值设置
 var zoom_speed: float = 0.2
 var shift_speed_multiplier: float = 5.0

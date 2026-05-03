@@ -33,6 +33,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed(SLOT_KEYS[i]):
 			inventory_bar.select_slot(i)
 			return
+	if event.is_action_pressed("ui_copy"):
+		SelectionManager.copy_selection()
+		return
+	if event.is_action_pressed("ui_cut"):
+		SelectionManager.cut_selection()
+		return
+	if event.is_action_pressed("ui_paste"):
+		SelectionManager.start_paste_mode()
+		return
+	if event.is_action_pressed("ui_undo"):
+		SelectionManager.undo()
+		return
 
 func _hide_all_uis() -> void:
 	start_menu.hide()

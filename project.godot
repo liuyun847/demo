@@ -22,6 +22,7 @@ ScenePaths="*res://scripts/autoload/scene_paths.gd"
 EventBus="*res://scripts/autoload/event_bus.gd"
 SceneManager="*res://scripts/autoload/scene_manager.gd"
 KeybindManager="*res://scripts/autoload/keybind_manager.gd"
+SelectionManager="*res://scripts/autoload/selection_manager.gd"
 MCPRuntime="*uid://dhstlv5uxlc36"
 
 [editor_plugins]
