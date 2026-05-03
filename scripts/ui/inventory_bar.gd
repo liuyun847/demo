@@ -6,13 +6,12 @@ signal slot_selected(index: int, type_id: String)
 const SLOT_SCENE := preload("res://scenes/inventory_slot.tscn")
 const MAX_BUILDING_TYPES := 10
 
-var current_slot_index: int = 0
+var current_slot_index: int = -1
 var building_types: Array[BuildingTypeData] = []
 
 func _ready() -> void:
 	_init_default_types()
 	_setup_slots()
-	select_slot(0)
 
 func _init_default_types() -> void:
 	for i in range(1, MAX_BUILDING_TYPES + 1):
@@ -35,9 +34,13 @@ func _setup_slots() -> void:
 func select_slot(index: int) -> void:
 	if index < 0 or index >= get_child_count():
 		return
-	var old_slot := get_child(current_slot_index) as InventorySlot
-	if old_slot:
-		old_slot.set_selected(false)
+	if index == current_slot_index:
+		deselect()
+		return
+	if current_slot_index >= 0:
+		var old_slot := get_child(current_slot_index) as InventorySlot
+		if old_slot:
+			old_slot.set_selected(false)
 	current_slot_index = index
 	var new_slot := get_child(current_slot_index) as InventorySlot
 	if new_slot:
@@ -46,6 +49,17 @@ func select_slot(index: int) -> void:
 	if current_slot_index < building_types.size():
 		type_id = building_types[current_slot_index].type_id
 	slot_selected.emit(current_slot_index, type_id)
+
+func deselect() -> void:
+	if current_slot_index >= 0:
+		var old_slot := get_child(current_slot_index) as InventorySlot
+		if old_slot:
+			old_slot.set_selected(false)
+	current_slot_index = -1
+	slot_selected.emit(-1, "")
+
+func has_building_type_selected() -> bool:
+	return current_slot_index >= 0
 
 func get_current_building_type() -> String:
 	if current_slot_index >= 0 and current_slot_index < building_types.size():

@@ -4,8 +4,19 @@ extends Node2D
 var buildings: Dictionary = {}  # key: Vector2i, value: BuildingData
 var ghost_cells: Array[Vector2i] = []
 var remove_ghost_cells: Array[Vector2i] = []
+var selected_cells: Array[Vector2i] = []
+var paste_ghost_cells: Array[Vector2i] = []
+var paste_ghost_types: Dictionary = {}
+var select_ghost_cells: Array[Vector2i] = []
+var deselect_ghost_cells: Array[Vector2i] = []
 
 @onready var building_texture: Texture2D = preload("res://resources/building_default.svg")
+
+func _ready() -> void:
+	EventBus.selection_changed.connect(_on_selection_changed)
+
+func _on_selection_changed(cells: Array[Vector2i]) -> void:
+	set_selected_cells(cells)
 
 func has_building(grid_pos: Vector2i) -> bool:
 	return buildings.has(grid_pos)
@@ -79,6 +90,62 @@ func hide_remove_ghost() -> void:
 	remove_ghost_cells.clear()
 	queue_redraw()
 
+func set_selected_cells(cells: Array[Vector2i]) -> void:
+	selected_cells = cells
+	queue_redraw()
+
+func set_paste_preview(anchor: Vector2i, clipboard: Dictionary) -> void:
+	paste_ghost_cells.clear()
+	paste_ghost_types.clear()
+	if clipboard.is_empty() or not clipboard.has("buildings"):
+		queue_redraw()
+		return
+	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
+	for item in clip_buildings:
+		var grid_pos: Vector2i = anchor + item["offset"]
+		var building_type: String = item["type"]
+		paste_ghost_cells.append(grid_pos)
+		paste_ghost_types[grid_pos] = building_type
+	queue_redraw()
+
+func clear_paste_preview() -> void:
+	paste_ghost_cells.clear()
+	paste_ghost_types.clear()
+	queue_redraw()
+
+func show_select_ghost(cells: Array[Vector2i]) -> void:
+	select_ghost_cells = cells
+	queue_redraw()
+
+func hide_select_ghost() -> void:
+	select_ghost_cells.clear()
+	queue_redraw()
+
+func show_deselect_ghost(cells: Array[Vector2i]) -> void:
+	deselect_ghost_cells = cells
+	queue_redraw()
+
+func hide_deselect_ghost() -> void:
+	deselect_ghost_cells.clear()
+	queue_redraw()
+
+func get_buildings_in_cells(cells: Array[Vector2i]) -> Dictionary:
+	var result := {}
+	for grid_pos: Vector2i in cells:
+		if has_building(grid_pos):
+			var data: BuildingData = buildings[grid_pos]
+			result[grid_pos] = data.building_type
+	return result
+
+func _get_building_color(building_type: String) -> Color:
+	if building_type == "default":
+		return GameConfig.building_default_color
+	if building_type.begins_with("type_"):
+		var idx := building_type.substr(5).to_int()
+		if idx >= 1 and idx <= 10:
+			return Color.from_hsv(float(idx - 1) / 10.0, 0.7, 0.9)
+	return GameConfig.building_default_color
+
 func _draw() -> void:
 	if not ghost_cells.is_empty():
 		var building_size := GameConfig.building_size
@@ -105,6 +172,54 @@ func _draw() -> void:
 			var rect := Rect2(world_pos - Vector2(half_cell, half_cell), Vector2(cell_size, cell_size))
 			draw_rect(rect, remove_fill, true)
 			draw_rect(rect, remove_border, false, 2.0)
+
+	if not select_ghost_cells.is_empty():
+		var cell_size := GameConfig.cell_size
+		var half_cell := cell_size / 2.0
+		var fill := GameConfig.selection_highlight_color
+		var border := GameConfig.selection_border_color
+		for grid_pos in select_ghost_cells:
+			var world_pos := GridCoordinate.grid_to_world(grid_pos)
+			var rect := Rect2(world_pos - Vector2(half_cell, half_cell), Vector2(cell_size, cell_size))
+			draw_rect(rect, fill, true)
+			draw_rect(rect, border, false, 2.0)
+
+	if not deselect_ghost_cells.is_empty():
+		var cell_size := GameConfig.cell_size
+		var half_cell := cell_size / 2.0
+		var fill := Color(0.6, 0.2, 0.2, 0.3)
+		var border := Color(0.6, 0.2, 0.2, 0.8)
+		for grid_pos in deselect_ghost_cells:
+			var world_pos := GridCoordinate.grid_to_world(grid_pos)
+			var rect := Rect2(world_pos - Vector2(half_cell, half_cell), Vector2(cell_size, cell_size))
+			draw_rect(rect, fill, true)
+			draw_rect(rect, border, false, 2.0)
+
+	if not selected_cells.is_empty():
+		var cell_size := GameConfig.cell_size
+		var half_cell := cell_size / 2.0
+		var fill := GameConfig.selection_highlight_color
+		var border := GameConfig.selection_border_color
+		for grid_pos in selected_cells:
+			var world_pos := GridCoordinate.grid_to_world(grid_pos)
+			var rect := Rect2(world_pos - Vector2(half_cell, half_cell), Vector2(cell_size, cell_size))
+			draw_rect(rect, fill, true)
+			draw_rect(rect, border, false, 2.0)
+
+	if not paste_ghost_cells.is_empty():
+		var building_size := GameConfig.building_size
+		var half_size := building_size / 2.0
+		var alpha := GameConfig.paste_ghost_alpha
+		for grid_pos in paste_ghost_cells:
+			var world_pos := GridCoordinate.grid_to_world(grid_pos)
+			var rect := Rect2(world_pos - Vector2(half_size, half_size), Vector2(building_size, building_size))
+			var building_type: String = paste_ghost_types.get(grid_pos, "default")
+			var color := _get_building_color(building_type)
+			color.a = alpha
+			draw_rect(rect, color, true)
+			var border_color := color
+			border_color.a = minf(alpha + 0.35, 1.0)
+			draw_rect(rect, border_color, false, 2.0)
 
 static func get_line_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
