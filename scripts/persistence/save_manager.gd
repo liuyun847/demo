@@ -36,9 +36,13 @@ func save_buildings() -> void:
 	for grid_pos in buildings_data.keys():
 		var data: BuildingData = buildings_data[grid_pos]
 		var key := "%d,%d" % [grid_pos.x, grid_pos.y]
-		save_dict.buildings[key] = {
+		var entry := {
 			"type": data.building_type
 		}
+		if data.building_type == GameConfig.container_type_id or data.building_type == GameConfig.pipe_type_id:
+			entry["capacity"] = data.capacity
+			entry["max_capacity"] = data.max_capacity
+		save_dict.buildings[key] = entry
 
 	var dir_path := GameConfig.save_file_path.get_base_dir()
 	var err := DirAccess.make_dir_recursive_absolute(dir_path)
@@ -94,6 +98,23 @@ func load_buildings() -> void:
 				var b_data: Dictionary = save_data.buildings[key]
 				var b_type: String = b_data.get("type", "default")
 				building_manager.place_building(grid_pos, b_type)
+				if (b_type == GameConfig.container_type_id or b_type == GameConfig.pipe_type_id) and building_manager.buildings.has(grid_pos):
+					var data: BuildingData = building_manager.buildings[grid_pos]
+					data.capacity = b_data.get("capacity", 0)
+					data.max_capacity = b_data.get("max_capacity", data.max_capacity)
+					var node := building_manager.get_node_or_null("Building_%d_%d" % [grid_pos.x, grid_pos.y])
+					if node is ContainerNode:
+						node.capacity = data.capacity
+						node.max_capacity = data.max_capacity
+					elif node is PipeNode:
+						node.capacity = data.capacity
+						node.max_capacity = data.max_capacity
+
+	for grid_pos in building_manager.buildings.keys():
+		var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
+		var node := building_manager.get_node_or_null(node_name)
+		if node is PipeNode:
+			node.refresh_connections()
 
 	_is_loading = false
 	EventBus.buildings_loaded.emit()

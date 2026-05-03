@@ -38,20 +38,39 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 	data.grid_position = grid_pos
 	data.building_type = building_type
 
-	var visual := Sprite2D.new()
-	var type_texture := _get_building_texture(building_type)
-	visual.texture = type_texture
-	visual.name = "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-	var tex_width := type_texture.get_width()
-	if tex_width > 0:
-		visual.scale = Vector2.ONE * (float(GameConfig.building_size) / tex_width)
+	var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
+	var world_pos := GridCoordinate.grid_to_world(grid_pos)
+
+	if building_type == GameConfig.container_type_id:
+		var container := ContainerNode.new()
+		container.name = node_name
+		container.global_position = world_pos
+		container.capacity = data.capacity
+		container.max_capacity = data.max_capacity
+		add_child(container)
+	elif building_type == GameConfig.pipe_type_id:
+		var pipe := PipeNode.new()
+		pipe.name = node_name
+		pipe.global_position = world_pos
+		pipe.capacity = data.capacity
+		pipe.max_capacity = data.max_capacity
+		add_child(pipe)
 	else:
-		visual.scale = Vector2.ONE
-	visual.global_position = GridCoordinate.grid_to_world(grid_pos)
-	add_child(visual)
+		var visual := Sprite2D.new()
+		var type_texture := _get_building_texture(building_type)
+		visual.texture = type_texture
+		visual.name = node_name
+		var tex_width := type_texture.get_width()
+		if tex_width > 0:
+			visual.scale = Vector2.ONE * (float(GameConfig.building_size) / tex_width)
+		else:
+			visual.scale = Vector2.ONE
+		visual.global_position = world_pos
+		add_child(visual)
 
 	buildings[grid_pos] = data
 	EventBus.building_placed.emit(grid_pos)
+	_refresh_pipe_connections(grid_pos)
 	return true
 
 func remove_building(grid_pos: Vector2i) -> bool:
@@ -59,12 +78,18 @@ func remove_building(grid_pos: Vector2i) -> bool:
 		return false
 
 	var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-	var visual := get_node_or_null(node_name)
-	if visual:
-		visual.queue_free()
+	var node := get_node_or_null(node_name)
+	if node is ContainerNode or node is PipeNode:
+		var data: BuildingData = buildings[grid_pos]
+		data.capacity = node.capacity
+		data.max_capacity = node.max_capacity
+		node.queue_free()
+	elif node:
+		node.queue_free()
 
 	buildings.erase(grid_pos)
 	EventBus.building_removed.emit(grid_pos)
+	_refresh_pipe_connections(grid_pos)
 	return true
 
 func get_all_buildings_data() -> Dictionary:
@@ -267,3 +292,17 @@ func remove_buildings_in_rect(cells: Array[Vector2i]) -> int:
 		if remove_building(grid_pos):
 			removed_count += 1
 	return removed_count
+
+func _refresh_pipe_connections(grid_pos: Vector2i) -> void:
+	var neighbors := [
+		grid_pos + Vector2i(0, -1),
+		grid_pos + Vector2i(1, 0),
+		grid_pos + Vector2i(0, 1),
+		grid_pos + Vector2i(-1, 0)
+	]
+	for npos in neighbors:
+		if has_building(npos):
+			var node_name := "Building_%d_%d" % [npos.x, npos.y]
+			var node := get_node_or_null(node_name)
+			if node is PipeNode:
+				node.refresh_connections()
