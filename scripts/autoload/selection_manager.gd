@@ -54,14 +54,15 @@ func copy_selection() -> void:
 	if buildings_data.is_empty():
 		return
 
-	var min_x := 9999999
-	var min_y := 9999999
-	for grid_pos: Vector2i in buildings_data.keys():
+	var grid_keys := buildings_data.keys()
+	var min_x: int = grid_keys[0].x
+	var min_y: int = grid_keys[0].y
+	for grid_pos: Vector2i in grid_keys:
 		min_x = mini(min_x, grid_pos.x)
 		min_y = mini(min_y, grid_pos.y)
 
 	var clipboard_buildings: Array[Dictionary] = []
-	for grid_pos: Vector2i in buildings_data.keys():
+	for grid_pos: Vector2i in grid_keys:
 		var offset := Vector2i(grid_pos.x - min_x, grid_pos.y - min_y)
 		clipboard_buildings.append({
 			"offset": offset,
@@ -84,14 +85,15 @@ func cut_selection() -> void:
 	if buildings_data.is_empty():
 		return
 
-	var min_x := 9999999
-	var min_y := 9999999
-	for grid_pos: Vector2i in buildings_data.keys():
+	var grid_keys := buildings_data.keys()
+	var min_x: int = grid_keys[0].x
+	var min_y: int = grid_keys[0].y
+	for grid_pos: Vector2i in grid_keys:
 		min_x = mini(min_x, grid_pos.x)
 		min_y = mini(min_y, grid_pos.y)
 
 	var clipboard_buildings: Array[Dictionary] = []
-	for grid_pos: Vector2i in buildings_data.keys():
+	for grid_pos: Vector2i in grid_keys:
 		var offset := Vector2i(grid_pos.x - min_x, grid_pos.y - min_y)
 		clipboard_buildings.append({
 			"offset": offset,
