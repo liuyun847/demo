@@ -30,6 +30,7 @@ func _setup_slots() -> void:
 		var slot := SLOT_SCENE.instantiate() as InventorySlot
 		add_child(slot)
 		slot.setup_slot(i, building_types[i])
+		slot.clicked.connect(select_slot)
 
 func select_slot(index: int) -> void:
 	if index < 0 or index >= get_child_count():
