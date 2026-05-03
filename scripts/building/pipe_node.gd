@@ -65,10 +65,12 @@ static func is_connectable(node: Node) -> bool:
 	return node is PipeNode or node is ContainerNode
 
 func _is_connectable_at(bm: BuildingManager, grid_pos: Vector2i) -> bool:
-	if not bm.has_building(grid_pos):
+	if not bm.buildings.has(grid_pos):
 		return false
-	var building_type: String = bm.buildings[grid_pos].building_type
-	return building_type == GameConfig.pipe_type_id or building_type == GameConfig.container_type_id
+	var building_data: BuildingData = bm.buildings[grid_pos] as BuildingData
+	if not building_data:
+		return false
+	return building_data.building_type == GameConfig.pipe_type_id or building_data.building_type == GameConfig.container_type_id
 
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0
