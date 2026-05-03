@@ -27,6 +27,12 @@ var paste_ghost_alpha: float = 0.45
 var zoom_speed: float = 0.2
 var shift_speed_multiplier: float = 5.0
 
+# 容器建筑类型标识
+const container_type_id: String = "type_01"
+
+# 管道建筑类型标识
+const pipe_type_id: String = "type_02"
+
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"
 
