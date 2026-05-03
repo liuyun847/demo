@@ -52,6 +52,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 		var pipe := PipeNode.new()
 		pipe.name = node_name
 		pipe.global_position = world_pos
+		pipe.grid_position = grid_pos
 		pipe.capacity = data.capacity
 		pipe.max_capacity = data.max_capacity
 		add_child(pipe)

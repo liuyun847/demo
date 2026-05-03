@@ -8,6 +8,8 @@ enum ConnectionDir {
 	LEFT = 8,
 }
 
+@export var grid_position: Vector2i
+
 @export var capacity: int = 0:
 	set(value):
 		capacity = clampi(value, 0, max_capacity)
@@ -57,10 +59,7 @@ func refresh_connections() -> void:
 	connection_mask = mask
 
 func _get_grid_position() -> Vector2i:
-	var parts := name.split("_")
-	if parts.size() >= 3:
-		return Vector2i(int(parts[1]), int(parts[2]))
-	return Vector2i.ZERO
+	return grid_position
 
 static func is_connectable(node: Node) -> bool:
 	return node is PipeNode or node is ContainerNode
@@ -68,9 +67,8 @@ static func is_connectable(node: Node) -> bool:
 func _is_connectable_at(bm: BuildingManager, grid_pos: Vector2i) -> bool:
 	if not bm.has_building(grid_pos):
 		return false
-	var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-	var node := bm.get_node_or_null(node_name)
-	return node != null and is_connectable(node)
+	var building_type: String = bm.buildings[grid_pos].building_type
+	return building_type == GameConfig.pipe_type_id or building_type == GameConfig.container_type_id
 
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0
