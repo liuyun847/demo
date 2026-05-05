@@ -1,6 +1,8 @@
 class_name PipeNode
 extends Node2D
 
+const _WaterSourceScript = preload("res://scripts/building/water_source_node.gd")
+
 enum ConnectionDir {
 	TOP = 1,
 	RIGHT = 2,
@@ -26,8 +28,61 @@ var connection_mask: int = 0:
 		connection_mask = value
 		queue_redraw()
 
+const _DIR_VECTORS := [
+	Vector2i(0, -1),
+	Vector2i(1, 0),
+	Vector2i(0, 1),
+	Vector2i(-1, 0),
+]
+
+func _ready() -> void:
+	add_to_group("fluid_node")
+
 func get_fill_ratio() -> float:
 	return float(capacity) / float(max_capacity)
+
+func get_pressure() -> float:
+	return float(capacity) / float(max_capacity)
+
+func collect_transfers(transfers: Array[Dictionary]) -> void:
+	if capacity <= 0:
+		return
+
+	var bm := get_parent()
+	if not bm is BuildingManager:
+		return
+
+	var available := capacity
+
+	for dir_idx in 4:
+		if available <= 0:
+			break
+		if not (connection_mask & (1 << dir_idx)):
+			continue
+
+		var neighbor_pos: Vector2i = grid_position + _DIR_VECTORS[dir_idx]
+		var nname := "Building_%d_%d" % [neighbor_pos.x, neighbor_pos.y]
+		var neighbor := bm.get_node_or_null(nname)
+		if not neighbor or not neighbor.has_method("get_pressure"):
+			continue
+
+		var diff: float = get_pressure() - neighbor.get_pressure()
+		if diff <= GameConfig.fluid_pressure_threshold:
+			continue
+
+		var amount := int(diff * GameConfig.fluid_flow_rate * float(max_capacity))
+		amount = mini(amount, available)
+		amount = mini(amount, neighbor.max_capacity - neighbor.capacity)
+		if amount == 0 and available > 0 and neighbor.max_capacity > neighbor.capacity:
+			amount = 1
+
+		if amount > 0:
+			transfers.append({
+				"src": self ,
+				"dst": neighbor,
+				"amount": amount,
+			})
+			available -= amount
 
 func add(amount: int) -> int:
 	var old := capacity
@@ -62,7 +117,7 @@ func _get_grid_position() -> Vector2i:
 	return grid_position
 
 static func is_connectable(node: Node) -> bool:
-	return node is PipeNode or node is ContainerNode
+	return node is PipeNode or node is ContainerNode or (node and node.get_script() == _WaterSourceScript)
 
 func _is_connectable_at(bm: BuildingManager, grid_pos: Vector2i) -> bool:
 	if not bm.buildings.has(grid_pos):
@@ -70,36 +125,38 @@ func _is_connectable_at(bm: BuildingManager, grid_pos: Vector2i) -> bool:
 	var building_data: BuildingData = bm.buildings[grid_pos] as BuildingData
 	if not building_data:
 		return false
-	return building_data.building_type == GameConfig.pipe_type_id or building_data.building_type == GameConfig.container_type_id
+	return building_data.building_type == GameConfig.pipe_type_id or building_data.building_type == GameConfig.container_type_id or building_data.building_type == GameConfig.water_source_type_id
 
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0
 	var wall_w := 2.5
 
 	var color_bg := Color(0.12, 0.12, 0.12)
-	var color_passage := Color(0.38, 0.38, 0.38)
 	var color_wall := Color(0.25, 0.25, 0.25)
-	var color_filled := Color.WHITE
+
+	var fill_ratio := get_fill_ratio()
+	var color_empty := Color(0.38, 0.38, 0.38)
+	var color_full := Color(1.0, 1.0, 1.0)
+	var color_passage := color_empty.lerp(color_full, fill_ratio)
 
 	var passage_w := 14.0
 	var pw := passage_w / 2.0
 
 	draw_rect(Rect2(-half, -half, GameConfig.building_size, GameConfig.building_size), color_bg)
 
-	var has_h := (connection_mask & (ConnectionDir.LEFT | ConnectionDir.RIGHT)) != 0
-	var has_v := (connection_mask & (ConnectionDir.TOP | ConnectionDir.BOTTOM)) != 0
+	var hw := passage_w / 2.0
 
-	if has_h:
-		draw_rect(Rect2(-half, -pw, GameConfig.building_size, passage_w), color_passage)
+	if connection_mask & ConnectionDir.LEFT:
+		draw_rect(Rect2(-half, -hw, half, passage_w), color_passage)
+	if connection_mask & ConnectionDir.RIGHT:
+		draw_rect(Rect2(0, -hw, half, passage_w), color_passage)
+	if connection_mask & ConnectionDir.TOP:
+		draw_rect(Rect2(-hw, -half, passage_w, half), color_passage)
+	if connection_mask & ConnectionDir.BOTTOM:
+		draw_rect(Rect2(-hw, 0, passage_w, half), color_passage)
 
-	if has_v:
-		draw_rect(Rect2(-pw, -half, passage_w, GameConfig.building_size), color_passage)
-
-	if not has_h and not has_v:
-		draw_rect(Rect2(-pw, -pw, passage_w, passage_w), color_passage)
-
-	if has_h and has_v:
-		draw_rect(Rect2(-pw, -pw, passage_w, passage_w), color_passage)
+	if connection_mask != 0:
+		draw_rect(Rect2(-hw, -hw, passage_w, passage_w), color_passage)
 
 	draw_rect(Rect2(-half, -half, GameConfig.building_size, GameConfig.building_size), color_wall, false, wall_w)
 
@@ -111,9 +168,3 @@ func _draw() -> void:
 		draw_rect(Rect2(-pw, -half, passage_w, wall_w), color_passage)
 	if connection_mask & ConnectionDir.BOTTOM:
 		draw_rect(Rect2(-pw, half - wall_w, passage_w, wall_w), color_passage)
-
-	var fill_ratio := get_fill_ratio()
-	if fill_ratio > 0.0:
-		var fill_w := 8.0
-		var fill_h := (GameConfig.building_size - wall_w * 2.0) * fill_ratio
-		draw_rect(Rect2(-fill_w / 2.0, half - wall_w - fill_h, fill_w, fill_h), color_filled)

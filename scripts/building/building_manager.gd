@@ -1,7 +1,7 @@
 class_name BuildingManager
 extends Node2D
 
-var buildings: Dictionary = {}  # key: Vector2i, value: BuildingData
+var buildings: Dictionary = {} # key: Vector2i, value: BuildingData
 var ghost_cells: Array[Vector2i] = []
 var remove_ghost_cells: Array[Vector2i] = []
 var selected_cells: Array[Vector2i] = []
@@ -12,8 +12,16 @@ var deselect_ghost_cells: Array[Vector2i] = []
 
 @onready var building_texture: Texture2D = preload("res://resources/building_default.svg")
 
+const _WaterSourceScript = preload("res://scripts/building/water_source_node.gd")
+
 func _ready() -> void:
 	EventBus.selection_changed.connect(_on_selection_changed)
+	_init_fluid_coordinator()
+
+func _init_fluid_coordinator() -> void:
+	var coordinator := FluidCoordinator.new()
+	coordinator.name = "FluidCoordinator"
+	add_child(coordinator)
 
 func _on_selection_changed(cells: Array[Vector2i]) -> void:
 	set_selected_cells(cells)
@@ -45,6 +53,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 		var container := ContainerNode.new()
 		container.name = node_name
 		container.global_position = world_pos
+		container.grid_position = grid_pos
 		container.capacity = data.capacity
 		container.max_capacity = data.max_capacity
 		add_child(container)
@@ -56,6 +65,12 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 		pipe.capacity = data.capacity
 		pipe.max_capacity = data.max_capacity
 		add_child(pipe)
+	elif building_type == GameConfig.water_source_type_id:
+		var source = _WaterSourceScript.new()
+		source.name = node_name
+		source.global_position = world_pos
+		source.grid_position = grid_pos
+		add_child(source)
 	else:
 		var visual := Sprite2D.new()
 		var type_texture := _get_building_texture(building_type)

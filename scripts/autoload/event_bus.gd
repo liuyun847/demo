@@ -15,3 +15,6 @@ signal game_settings_changed
 
 signal selection_changed(selected_cells: Array[Vector2i])
 signal paste_mode_changed(active: bool)
+
+# 流体系统信号
+signal fluid_updated

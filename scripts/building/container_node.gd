@@ -1,6 +1,8 @@
 class_name ContainerNode
 extends Node2D
 
+@export var grid_position: Vector2i
+
 @export var capacity: int = 0:
 	set(value):
 		capacity = clampi(value, 0, max_capacity)
@@ -13,8 +15,15 @@ extends Node2D
 		queue_redraw()
 
 
+func _ready() -> void:
+	add_to_group("fluid_node")
+
 func get_fill_ratio() -> float:
 	return float(capacity) / float(max_capacity)
+
+
+func get_pressure() -> float:
+	return 0.0
 
 
 func add(amount: int) -> int:
@@ -32,7 +41,7 @@ func remove(amount: int) -> int:
 func _draw() -> void:
 	var half_size: float = GameConfig.building_size / 2.0
 	var wall_w: float = 4.0
-	var inner_left: float = -half_size + wall_w
+	var inner_left: float = - half_size + wall_w
 	var inner_w: float = GameConfig.building_size - wall_w * 2.0
 	var total_h: float = GameConfig.building_size
 	var fill_ratio: float = get_fill_ratio()
