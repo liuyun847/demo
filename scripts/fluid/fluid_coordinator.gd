@@ -39,6 +39,8 @@ func _on_tick() -> void:
 			var amount: int = t.amount
 
 			if src.has_method("get_pressure") and not src is WaterSourceNode:
+				if src.capacity < amount:
+					continue
 				src.capacity -= amount
 				var bm_src = src.get_parent()
 				if bm_src is BuildingManager and bm_src.buildings.has(src.grid_position):
