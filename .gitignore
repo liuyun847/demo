@@ -3,6 +3,7 @@
 /android/
 .trae/
 *.tmp
+*.uid
 save/
 addons/*
 !addons/godot_mcp/

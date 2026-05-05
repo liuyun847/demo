@@ -307,3 +307,8 @@ func _refresh_pipe_connections(grid_pos: Vector2i) -> void:
 			var node := get_node_or_null(node_name)
 			if node is PipeNode:
 				node.refresh_connections()
+
+	var self_node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
+	var self_node := get_node_or_null(self_node_name)
+	if self_node is PipeNode:
+		self_node.refresh_connections()
