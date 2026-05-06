@@ -36,6 +36,20 @@ func remove(amount: int) -> int:
 	return old - capacity
 
 
+func get_building_name() -> String:
+	return "容器"
+
+func get_tooltip_summary() -> Dictionary:
+	return {
+		"容量": "%d / %d" % [capacity, max_capacity],
+	}
+
+func get_tooltip_details() -> Dictionary:
+	return {
+		"填充率": "%d%%" % int(get_fill_ratio() * 100.0),
+		"压力": "%.2f" % get_pressure(),
+	}
+
 func _draw() -> void:
 	var half_size: float = GameConfig.building_size / 2.0
 	var wall_w: float = 4.0

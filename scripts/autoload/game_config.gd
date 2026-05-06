@@ -39,6 +39,7 @@ const pipe_type_id: String = "type_02"
 const water_source_type_id: String = "type_03"
 
 # 流体系统配置
+const fluid_tick_interval: float = 0.3 # 流体系统每 tick 间隔（秒）
 const fluid_flow_rate: float = 0.3 # 每次迭代压力差转移比例 (0.0~1.0)
 const fluid_sub_iterations: int = 5 # 每 tick 子迭代次数
 const fluid_pressure_threshold: float = 0.02 # 压力差阈值，低于此不推水（防抖动）

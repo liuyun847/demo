@@ -5,7 +5,7 @@ var _timer: Timer
 
 func _ready() -> void:
 	_timer = Timer.new()
-	_timer.wait_time = 0.3
+	_timer.wait_time = GameConfig.fluid_tick_interval
 	_timer.autostart = true
 	_timer.timeout.connect(_on_tick)
 	add_child(_timer)

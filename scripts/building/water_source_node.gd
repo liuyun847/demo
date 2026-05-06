@@ -55,6 +55,20 @@ func collect_transfers(transfers: Array[Dictionary]) -> void:
 			available -= amount
 
 
+func get_building_name() -> String:
+	return "水源"
+
+func get_tooltip_summary() -> Dictionary:
+	return {
+		"每 tick 产出": str(output_per_tick),
+	}
+
+func get_tooltip_details() -> Dictionary:
+	return {
+		"压力": "1.0 (恒定)",
+		"剩余待输出": str(remaining_output),
+	}
+
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0
 

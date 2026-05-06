@@ -9,3 +9,12 @@ func get_pressure() -> float:
 
 func collect_transfers(_transfers: Array[Dictionary]) -> void:
 	pass
+
+func get_building_name() -> String:
+	return "未知建筑"
+
+func get_tooltip_summary() -> Dictionary:
+	return {}
+
+func get_tooltip_details() -> Dictionary:
+	return {}

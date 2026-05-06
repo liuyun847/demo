@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://b0njy8c5w1q2k" path="res://scenes/start_menu.tscn" id="7_t5y78"]
 [ext_resource type="PackedScene" uid="uid://dwxq7v1l0r8yx" path="res://scenes/settings.tscn" id="8_u3i12"]
 [ext_resource type="PackedScene" path="res://scenes/inventory_bar.tscn" id="9_invbar"]
+[ext_resource type="PackedScene" uid="uid://c8k5y2p1x3m9z" path="res://scenes/building_tooltip.tscn" id="10_tooltip"]
 
 [node name="Root" type="Node2D"]
 script = ExtResource("1_main")
@@ -43,3 +44,5 @@ process_mode = 3
 
 [node name="InventoryBar" parent="UIOverlay" instance=ExtResource("9_invbar")]
 visible = false
+
+[node name="BuildingTooltip" parent="UIOverlay" instance=ExtResource("10_tooltip")]
