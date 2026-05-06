@@ -24,14 +24,8 @@ func collect_transfers(transfers: Array[Dictionary]) -> void:
 	var available := remaining_output
 
 	# 水源作为特殊节点，直接向四邻居推水（不受连接掩码约束）
-	var neighbors := [
-		grid_position + Vector2i(0, -1),
-		grid_position + Vector2i(1, 0),
-		grid_position + Vector2i(0, 1),
-		grid_position + Vector2i(-1, 0),
-	]
-
-	for npos in neighbors:
+	for offset in GridCoordinate.DIR_4:
+		var npos: Vector2i = grid_position + offset
 		if available <= 0:
 			break
 		if not bm.has_building(npos):

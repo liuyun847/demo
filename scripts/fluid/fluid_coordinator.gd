@@ -46,9 +46,7 @@ func _on_tick() -> void:
 					continue
 				committed_output[src_id] = committed + amount
 				src.remove(amount)
-				var bm_src = src.get_parent()
-				if bm_src != null and bm_src.has_method("has_building") and bm_src.buildings.has(src.grid_position):
-					bm_src.buildings[src.grid_position].capacity = src.capacity
+				_sync_building_data(src)
 
 			if dst.has_method("add"):
 				dst.add(amount)
@@ -58,9 +56,12 @@ func _on_tick() -> void:
 			if src is WaterSourceNode:
 				src.remaining_output -= amount
 
-			var bm_dst = dst.get_parent()
-			if bm_dst != null and bm_dst.has_method("has_building") and bm_dst.buildings.has(dst.grid_position):
-				bm_dst.buildings[dst.grid_position].capacity = dst.capacity
+			_sync_building_data(dst)
 
 	if has_flow:
 		EventBus.fluid_updated.emit()
+
+func _sync_building_data(node: Node) -> void:
+	var bm = node.get_parent()
+	if bm != null and bm.has_method("has_building") and bm.buildings.has(node.grid_position):
+		bm.buildings[node.grid_position].capacity = node.capacity

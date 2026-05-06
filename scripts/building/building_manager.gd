@@ -319,13 +319,8 @@ func remove_buildings_in_rect(cells: Array[Vector2i]) -> int:
 	return removed_count
 
 func _refresh_pipe_connections(grid_pos: Vector2i) -> void:
-	var neighbors := [
-		grid_pos + Vector2i(0, -1),
-		grid_pos + Vector2i(1, 0),
-		grid_pos + Vector2i(0, 1),
-		grid_pos + Vector2i(-1, 0)
-	]
-	for npos in neighbors:
+	for offset in GridCoordinate.DIR_4:
+		var npos: Vector2i = grid_pos + offset
 		if has_building(npos):
 			var node_name := "Building_%d_%d" % [npos.x, npos.y]
 			var node := get_node_or_null(node_name)

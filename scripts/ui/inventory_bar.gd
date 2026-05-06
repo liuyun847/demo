@@ -96,7 +96,6 @@ func _init_default_types() -> void:
 			var tex_path := "res://resources/buildings/building_%02d.svg" % i
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
-		data.building_color = Color.from_hsv(float(i - 1) / float(MAX_BUILDING_TYPES), 0.7, 0.9)
 		building_types.append(data)
 
 func _setup_slots() -> void:

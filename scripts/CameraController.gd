@@ -7,11 +7,6 @@ func _ready() -> void:
 	set_process(true)
 	# 初始化缩放
 	zoom = Vector2(1.0, 1.0)
-	EventBus.game_settings_changed.connect(_on_game_settings_changed)
-
-func _on_game_settings_changed() -> void:
-	# 配置变更时无需额外处理，_input 和 _process 中直接读取 GameConfig 即可
-	pass
 
 func _input(event: InputEvent) -> void:
 	if get_tree().paused:
