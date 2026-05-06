@@ -119,7 +119,7 @@ func _is_connectable_at(bm: Node, grid_pos: Vector2i) -> bool:
 	var building_data: BuildingData = building_manager.buildings[grid_pos] as BuildingData
 	if not building_data:
 		return false
-	return BuildingData.has_capacity(building_data.building_type)
+	return BuildingData.has_capacity(building_data.building_type) or building_data.building_type == GameConfig.water_source_type_id
 
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0
