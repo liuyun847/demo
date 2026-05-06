@@ -40,16 +40,23 @@ func _on_tick() -> void:
 			var amount: int = t.amount
 
 			if src.has_method("get_pressure") and not src is WaterSourceNode:
-				var committed: int = committed_output.get(src, 0)
+				var src_id := src.get_instance_id()
+				var committed: int = committed_output.get(src_id, 0)
 				if src.capacity - committed < amount:
 					continue
-				committed_output[src] = committed + amount
-				src.capacity -= amount
+				committed_output[src_id] = committed + amount
+				src.remove(amount)
 				var bm_src = src.get_parent()
 				if bm_src != null and bm_src.has_method("has_building") and bm_src.buildings.has(src.grid_position):
 					bm_src.buildings[src.grid_position].capacity = src.capacity
 
-			dst.capacity = clampi(dst.capacity + amount, 0, dst.max_capacity)
+			if dst.has_method("add"):
+				dst.add(amount)
+			else:
+				dst.capacity = clampi(dst.capacity + amount, 0, dst.max_capacity)
+
+			if src is WaterSourceNode:
+				src.remaining_output -= amount
 
 			var bm_dst = dst.get_parent()
 			if bm_dst != null and bm_dst.has_method("has_building") and bm_dst.buildings.has(dst.grid_position):

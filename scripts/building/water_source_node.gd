@@ -21,6 +21,8 @@ func collect_transfers(transfers: Array[Dictionary]) -> void:
 	if bm == null or not bm.has_method("has_building"):
 		return
 
+	var available := remaining_output
+
 	# 水源作为特殊节点，直接向四邻居推水（不受连接掩码约束）
 	var neighbors := [
 		grid_position + Vector2i(0, -1),
@@ -30,7 +32,7 @@ func collect_transfers(transfers: Array[Dictionary]) -> void:
 	]
 
 	for npos in neighbors:
-		if remaining_output <= 0:
+		if available <= 0:
 			break
 		if not bm.has_building(npos):
 			continue
@@ -45,19 +47,18 @@ func collect_transfers(transfers: Array[Dictionary]) -> void:
 			continue
 
 		var amount := int(diff * GameConfig.fluid_flow_rate * float(neighbor.max_capacity))
-		amount = mini(amount, remaining_output)
+		amount = mini(amount, available)
 		amount = mini(amount, neighbor.max_capacity - neighbor.capacity)
-		if amount == 0 and remaining_output > 0 and neighbor.max_capacity > neighbor.capacity:
+		if amount == 0 and available > 0 and neighbor.max_capacity > neighbor.capacity:
 			amount = 1
 
 		if amount > 0:
 			transfers.append({
-				"src": self,
+				"src": self ,
 				"dst": neighbor,
 				"amount": amount,
 			})
-			remaining_output -= amount
-
+			available -= amount
 
 
 func _draw() -> void:
