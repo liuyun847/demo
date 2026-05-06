@@ -1,8 +1,6 @@
 class_name PipeNode
 extends FluidNodeBase
 
-const _WaterSourceScript = preload("res://scripts/building/water_source_node.gd")
-
 enum ConnectionDir {
 	TOP = 1,
 	RIGHT = 2,
@@ -114,16 +112,14 @@ func refresh_connections() -> void:
 func _get_grid_position() -> Vector2i:
 	return grid_position
 
-static func is_connectable(node: Node) -> bool:
-	return node is PipeNode or node is ContainerNode or node is WaterSourceNode
-
 func _is_connectable_at(bm: Node, grid_pos: Vector2i) -> bool:
-	if not bm.buildings.has(grid_pos):
+	var building_manager := bm as BuildingManager
+	if not building_manager or not building_manager.buildings.has(grid_pos):
 		return false
-	var building_data: BuildingData = bm.buildings[grid_pos] as BuildingData
+	var building_data: BuildingData = building_manager.buildings[grid_pos] as BuildingData
 	if not building_data:
 		return false
-	return BuildingData.has_capacity(building_data.building_type) or building_data.building_type == GameConfig.water_source_type_id
+	return BuildingData.has_capacity(building_data.building_type)
 
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0

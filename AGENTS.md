@@ -31,9 +31,7 @@ demo/
 │   ├── Settings.gd            # 设置面板
 │   ├── autoload/              # 自动加载单例目录
 │   │   ├── game_config.gd     # 游戏配置与常量
-│   │   ├── scene_paths.gd     # 场景路径管理
 │   │   ├── event_bus.gd       # 事件总线
-│   │   ├── scene_manager.gd   # 场景管理器
 │   │   ├── keybind_manager.gd # 按键配置管理
 │   │   └── selection_manager.gd # 选中/剪贴板/撤销管理
 │   ├── building/              # 建筑系统模块
@@ -84,9 +82,7 @@ demo/
 | 单例名称         | 脚本路径                                      | 用途                |
 | ------------ | ----------------------------------------- | ----------------- |
 | GameConfig     | res\://scripts/autoload/game\_config.gd     | 游戏配置与常量集中管理（含 container_type_id, pipe_type_id, water_source_type_id, fluid_* 常量, SAVE_VERSION 等）       |
-| ScenePaths     | res\://scripts/autoload/scene\_paths.gd     | 场景路径常量管理          |
 | EventBus       | res\://scripts/autoload/event\_bus.gd       | 模块间事件通信           |
-| SceneManager   | res\://scripts/autoload/scene\_manager.gd   | 场景切换管理            |
 | KeybindManager | res\://scripts/autoload/keybind_manager.gd | 按键配置加载/保存/重映射    |
 | SelectionManager | res\://scripts/autoload/selection_manager.gd | 选中状态/剪贴板/撤销栈管理 |
 | MCPRuntime     | addons/godot\_mcp（uid引用）                  | MCP调试运行时辅助（编辑器插件） |
