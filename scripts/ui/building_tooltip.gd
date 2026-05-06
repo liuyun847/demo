@@ -127,11 +127,7 @@ func _update_details() -> void:
 			label.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
 			_details_container.add_child(label)
 
-func _get_fallback_name(node: Node) -> String:
-	if node.name.begins_with("Building_"):
-		var parts := node.name.split("_")
-		if parts.size() >= 3:
-			return "建筑"
+func _get_fallback_name(_node: Node) -> String:
 	return "建筑"
 
 func _process(_delta: float) -> void:
