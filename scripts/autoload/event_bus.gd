@@ -18,3 +18,7 @@ signal paste_mode_changed(active: bool)
 
 # 流体系统信号
 signal fluid_updated
+
+# 建筑悬停提示信号
+signal building_hovered(grid_pos: Vector2i, node: Node2D)
+signal building_hover_exited(grid_pos: Vector2i)

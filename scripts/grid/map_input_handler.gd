@@ -16,6 +16,8 @@ var _is_removing: bool = false
 var _is_selecting: bool = false
 var _is_deselecting: bool = false
 
+var _last_hovered_grid: Vector2i = Vector2i(-99999, -99999)
+
 func _ready() -> void:
 	if inventory_bar:
 		inventory_bar.slot_selected.connect(_on_slot_selected)
@@ -86,8 +88,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_selection_mode(event, grid_pos, viewport)
 
 func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> void:
+	var grid_pos := _get_grid_pos(event)
+
+	# 建筑悬停检测（仅在非拖拽状态下触发）
+	if not _is_dragging and not _is_removing and not _is_selecting and not _is_deselecting:
+		if grid_pos != _last_hovered_grid:
+			if building_manager.has_building(grid_pos):
+				var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
+				var node := building_manager.get_node_or_null(node_name)
+				if node:
+					EventBus.building_hovered.emit(grid_pos, node)
+				else:
+					EventBus.building_hover_exited.emit(_last_hovered_grid)
+			else:
+				if building_manager.has_building(_last_hovered_grid):
+					EventBus.building_hover_exited.emit(_last_hovered_grid)
+			_last_hovered_grid = grid_pos
+
 	if _is_paste_mode():
-		var grid_pos := _get_grid_pos(event)
 		SelectionManager.paste_anchor = grid_pos
 		building_manager.set_paste_preview(grid_pos, SelectionManager.clipboard)
 		viewport.set_input_as_handled()
@@ -95,14 +113,12 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 
 	if _is_building_placement_mode():
 		if _is_dragging:
-			var grid_pos := _get_grid_pos(event)
 			if grid_pos != _drag_start_grid:
 				var cells := BuildingManager.get_line_cells(_drag_start_grid, grid_pos)
 				building_manager.show_ghost(cells)
 			viewport.set_input_as_handled()
 			return
 		if _is_removing:
-			var grid_pos := _get_grid_pos(event)
 			if grid_pos != _removing_start_grid:
 				var cells := BuildingManager.get_rect_cells(_removing_start_grid, grid_pos)
 				building_manager.show_remove_ghost(cells)
@@ -111,14 +127,12 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 
 	if _is_selection_mode():
 		if _is_selecting:
-			var grid_pos := _get_grid_pos(event)
 			if grid_pos != _select_start_grid:
 				var cells := BuildingManager.get_rect_cells(_select_start_grid, grid_pos)
 				building_manager.show_select_ghost(cells)
 			viewport.set_input_as_handled()
 			return
 		if _is_deselecting:
-			var grid_pos := _get_grid_pos(event)
 			if grid_pos != _deselect_start_grid:
 				var cells := BuildingManager.get_rect_cells(_deselect_start_grid, grid_pos)
 				building_manager.show_deselect_ghost(cells)

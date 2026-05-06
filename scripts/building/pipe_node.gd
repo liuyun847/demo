@@ -111,6 +111,31 @@ func _is_connectable_at(bm: Node, grid_pos: Vector2i) -> bool:
 		return false
 	return BuildingData.has_capacity(building_data.building_type)
 
+func get_building_name() -> String:
+	return "管道"
+
+func get_tooltip_summary() -> Dictionary:
+	return {
+		"容量": "%d / %d" % [capacity, max_capacity],
+	}
+
+func get_tooltip_details() -> Dictionary:
+	var connections: Array[String] = []
+	if connection_mask & ConnectionDir.TOP:
+		connections.append("上")
+	if connection_mask & ConnectionDir.BOTTOM:
+		connections.append("下")
+	if connection_mask & ConnectionDir.LEFT:
+		connections.append("左")
+	if connection_mask & ConnectionDir.RIGHT:
+		connections.append("右")
+	var conn_str := "无" if connections.is_empty() else "、".join(connections)
+	return {
+		"填充率": "%d%%" % int(get_fill_ratio() * 100.0),
+		"压力": "%.2f" % get_pressure(),
+		"连接方向": conn_str,
+	}
+
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0
 	var wall_w := 2.5
