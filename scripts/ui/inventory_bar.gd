@@ -5,6 +5,7 @@ signal slot_selected(index: int, type_id: String)
 
 const SLOT_SCENE := preload("res://scenes/inventory_slot.tscn")
 const MAX_BUILDING_TYPES := 10
+const FALLBACK_TYPE_ID := "default"
 
 var current_slot_index: int = -1
 var building_types: Array[BuildingTypeData] = []
@@ -12,6 +13,7 @@ var building_types: Array[BuildingTypeData] = []
 var _slots: Array[InventorySlot] = []
 var _mode_indicator_panel: Panel
 var _mode_indicator_label: Label
+var _mode_indicator_style: StyleBoxFlat = null
 
 func _ready() -> void:
 	_create_mode_indicator()
@@ -47,26 +49,25 @@ func _create_mode_indicator() -> void:
 	add_child(indicator)
 
 func _update_mode_indicator() -> void:
-	var style := StyleBoxFlat.new()
-	style.set_content_margin_all(4)
+	if _mode_indicator_style == null:
+		_mode_indicator_style = StyleBoxFlat.new()
+		_mode_indicator_style.set_content_margin_all(4)
+		_mode_indicator_style.set_border_width_all(3)
 
 	if SelectionManager.is_paste_mode:
-		style.bg_color = Color(0.25, 0.15, 0.02, 0.9)
-		style.set_border_width_all(3)
-		style.border_color = Color(1, 0.5, 0, 1)
+		_mode_indicator_style.bg_color = Color(0.25, 0.15, 0.02, 0.9)
+		_mode_indicator_style.border_color = Color(1, 0.5, 0, 1)
 		_mode_indicator_label.text = "粘贴"
 	elif current_slot_index >= 0:
-		style.bg_color = Color(0.05, 0.2, 0.08, 0.9)
-		style.set_border_width_all(3)
-		style.border_color = Color(0.3, 0.85, 0.3, 1)
+		_mode_indicator_style.bg_color = Color(0.05, 0.2, 0.08, 0.9)
+		_mode_indicator_style.border_color = Color(0.3, 0.85, 0.3, 1)
 		_mode_indicator_label.text = "放置"
 	else:
-		style.bg_color = Color(0.05, 0.1, 0.22, 0.9)
-		style.set_border_width_all(3)
-		style.border_color = Color(0.4, 0.65, 1, 1)
+		_mode_indicator_style.bg_color = Color(0.05, 0.1, 0.22, 0.9)
+		_mode_indicator_style.border_color = Color(0.4, 0.65, 1, 1)
 		_mode_indicator_label.text = "框选"
 
-	_mode_indicator_panel.add_theme_stylebox_override("panel", style)
+	_mode_indicator_panel.add_theme_stylebox_override("panel", _mode_indicator_style)
 
 func _on_paste_mode_changed(_active: bool) -> void:
 	_update_mode_indicator()
@@ -116,7 +117,7 @@ func select_slot(index: int) -> void:
 		_slots[current_slot_index].set_selected(false)
 	current_slot_index = index
 	_slots[current_slot_index].set_selected(true)
-	var type_id := "default"
+	var type_id := FALLBACK_TYPE_ID
 	if current_slot_index < building_types.size():
 		type_id = building_types[current_slot_index].type_id
 	_update_mode_indicator()
@@ -135,4 +136,4 @@ func has_building_type_selected() -> bool:
 func get_current_building_type() -> String:
 	if current_slot_index >= 0 and current_slot_index < building_types.size():
 		return building_types[current_slot_index].type_id
-	return "default"
+	return FALLBACK_TYPE_ID

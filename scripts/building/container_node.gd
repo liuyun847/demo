@@ -1,7 +1,5 @@
 class_name ContainerNode
-extends Node2D
-
-@export var grid_position: Vector2i
+extends FluidNodeBase
 
 @export var capacity: int = 0:
 	set(value):

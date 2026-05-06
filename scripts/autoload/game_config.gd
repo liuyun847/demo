@@ -1,31 +1,33 @@
 extends Node
 
 # 网格配置
-var cell_size: int = 64
-var big_cell_size: int = 10
+const cell_size: int = 64
+const big_cell_size: int = 10
 
 # 线条配置
-var thin_line_width: float = 1.0
-var thick_line_width: float = 3.0
+const thin_line_width: float = 1.0
+const thick_line_width: float = 3.0
 
 # 颜色配置
-var background_color: Color = Color("#1e3a5f")
-var line_color: Color = Color("#e0e0e0", 0.5)
+const background_color: Color = Color("#1e3a5f")
+const line_color: Color = Color("#e0e0e0", 0.5)
 
 # 建筑配置
-var building_size: int = 60
-var building_border: int = 2
-var building_default_color: Color = Color("#2ecc71")
-var ghost_alpha: float = 0.35
-var remove_ghost_alpha: float = 0.3
+const building_size: int = 60
+const building_border: int = 2
+const building_default_color: Color = Color("#2ecc71")
+const ghost_alpha: float = 0.35
+const remove_ghost_alpha: float = 0.3
 
-var selection_highlight_color: Color = Color(0.2, 0.6, 1.0, 0.4)
-var selection_border_color: Color = Color(0.2, 0.6, 1.0, 0.8)
-var paste_ghost_alpha: float = 0.45
+const selection_highlight_color: Color = Color(0.2, 0.6, 1.0, 0.4)
+const selection_border_color: Color = Color(0.2, 0.6, 1.0, 0.8)
+const paste_ghost_alpha: float = 0.45
 
 # 游戏数值设置
-var zoom_speed: float = 0.2
-var shift_speed_multiplier: float = 5.0
+const DEFAULT_ZOOM_SPEED: float = 0.2
+const DEFAULT_SHIFT_SPEED_MULTIPLIER: float = 5.0
+var zoom_speed: float = DEFAULT_ZOOM_SPEED
+var shift_speed_multiplier: float = DEFAULT_SHIFT_SPEED_MULTIPLIER
 
 # 容器建筑类型标识
 const container_type_id: String = "type_01"
@@ -86,12 +88,13 @@ func load_game_settings() -> void:
 	var data = JSON.parse_string(content)
 	if data == null or not data is Dictionary:
 		push_error("GameConfig: 游戏设置格式无效，使用默认值")
-		zoom_speed = 0.2
-		shift_speed_multiplier = 5.0
+		zoom_speed = DEFAULT_ZOOM_SPEED
+		shift_speed_multiplier = DEFAULT_SHIFT_SPEED_MULTIPLIER
 		return
 
-	zoom_speed = data.get("zoom_speed", 0.2)
-	shift_speed_multiplier = data.get("shift_speed_multiplier", 5.0)
+	zoom_speed = data.get("zoom_speed", DEFAULT_ZOOM_SPEED)
+	shift_speed_multiplier = data.get("shift_speed_multiplier", DEFAULT_SHIFT_SPEED_MULTIPLIER)
+	EventBus.game_settings_changed.emit()
 
 func save_game_settings() -> void:
 	var settings_data := {

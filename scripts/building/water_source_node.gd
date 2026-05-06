@@ -1,10 +1,11 @@
 class_name WaterSourceNode
-extends Node2D
-
-@export var grid_position: Vector2i
+extends FluidNodeBase
 
 var output_per_tick: int = 30
 var remaining_output: int = 0
+
+var capacity: int = 0
+var max_capacity: int = 0
 
 func _ready() -> void:
 	add_to_group("fluid_node")
@@ -17,9 +18,10 @@ func collect_transfers(transfers: Array[Dictionary]) -> void:
 		return
 
 	var bm := get_parent()
-	if not bm is BuildingManager:
+	if bm == null or not bm.has_method("has_building"):
 		return
 
+	# 水源作为特殊节点，直接向四邻居推水（不受连接掩码约束）
 	var neighbors := [
 		grid_position + Vector2i(0, -1),
 		grid_position + Vector2i(1, 0),

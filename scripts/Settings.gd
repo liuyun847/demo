@@ -28,7 +28,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		return
 
-	if event is InputEventKey and event.keycode == KEY_ESCAPE and event.pressed:
+	if event.is_action_pressed("ui_cancel"):
 		_cancel_listening()
 		get_viewport().set_input_as_handled()
 		return
@@ -108,10 +108,10 @@ func _create_slider_option_row(label_text: String, min_val: float, max_val: floa
 		callback.call(value)
 	)
 	edit.text_submitted.connect(func(text: String) -> void:
-		var val := text.to_float()
-		if val == 0.0 and text.strip_edges() != "0" and text.strip_edges() != "0.0":
+		if not text.strip_edges().is_valid_float():
 			edit.text = format_str % slider.value
 			return
+		var val := text.to_float()
 		val = clampf(val, min_val, max_val)
 		slider.value = val
 		edit.text = format_str % val
@@ -119,10 +119,10 @@ func _create_slider_option_row(label_text: String, min_val: float, max_val: floa
 	)
 	edit.focus_exited.connect(func() -> void:
 		var text := edit.text
-		var val := text.to_float()
-		if val == 0.0 and text.strip_edges() != "0" and text.strip_edges() != "0.0":
+		if not text.strip_edges().is_valid_float():
 			edit.text = format_str % slider.value
 			return
+		var val := text.to_float()
 		val = clampf(val, min_val, max_val)
 		slider.value = val
 		edit.text = format_str % val
@@ -176,8 +176,8 @@ func _on_keybind_changed(action: String) -> void:
 func _on_reset_pressed() -> void:
 	KeybindManager.reset_to_defaults()
 	# 恢复游戏数值默认值
-	GameConfig.zoom_speed = 0.2
-	GameConfig.shift_speed_multiplier = 5.0
+	GameConfig.zoom_speed = GameConfig.DEFAULT_ZOOM_SPEED
+	GameConfig.shift_speed_multiplier = GameConfig.DEFAULT_SHIFT_SPEED_MULTIPLIER
 	GameConfig.save_game_settings()
 	EventBus.game_settings_changed.emit()
 	_refresh_game_options()

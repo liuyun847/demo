@@ -1,5 +1,8 @@
 extends Node2D
 
+enum UIState { START_MENU, IN_GAME, SETTINGS }
+var _current_ui_state: UIState = UIState.START_MENU
+
 const SLOT_KEYS := [
 	"slot_1", "slot_2", "slot_3", "slot_4", "slot_5",
 	"slot_6", "slot_7", "slot_8", "slot_9", "slot_0"
@@ -52,7 +55,7 @@ func _hide_all_uis() -> void:
 	inventory_bar.hide()
 
 func _on_buildings_loaded() -> void:
-	call_deferred("show_start_menu")
+	show_start_menu.call_deferred()
 
 func _on_start_game_requested() -> void:
 	hide_start_menu()
@@ -71,14 +74,17 @@ func show_start_menu() -> void:
 	start_menu.show()
 	inventory_bar.hide()
 	_pause_game(true)
+	_current_ui_state = UIState.START_MENU
 
 func hide_start_menu() -> void:
 	start_menu.hide()
 	inventory_bar.show()
 	_pause_game(false)
+	_current_ui_state = UIState.IN_GAME
 
 func show_settings() -> void:
 	start_menu.hide()
 	settings_panel.show()
 	inventory_bar.hide()
 	_pause_game(true)
+	_current_ui_state = UIState.SETTINGS

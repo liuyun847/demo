@@ -1,5 +1,5 @@
 class_name PipeNode
-extends Node2D
+extends FluidNodeBase
 
 const _WaterSourceScript = preload("res://scripts/building/water_source_node.gd")
 
@@ -9,8 +9,6 @@ enum ConnectionDir {
 	BOTTOM = 4,
 	LEFT = 8,
 }
-
-@export var grid_position: Vector2i
 
 @export var capacity: int = 0:
 	set(value):
@@ -42,14 +40,14 @@ func get_fill_ratio() -> float:
 	return float(capacity) / float(max_capacity)
 
 func get_pressure() -> float:
-	return float(capacity) / float(max_capacity)
+	return get_fill_ratio()
 
 func collect_transfers(transfers: Array[Dictionary]) -> void:
 	if capacity <= 0:
 		return
 
 	var bm := get_parent()
-	if not bm is BuildingManager:
+	if bm == null or not bm.has_method("has_building"):
 		return
 
 	var available := capacity
@@ -96,7 +94,7 @@ func remove(amount: int) -> int:
 
 func refresh_connections() -> void:
 	var bm := get_parent()
-	if not bm or not bm is BuildingManager:
+	if bm == null or not bm.has_method("has_building"):
 		return
 
 	var my_pos := _get_grid_position()
@@ -117,15 +115,15 @@ func _get_grid_position() -> Vector2i:
 	return grid_position
 
 static func is_connectable(node: Node) -> bool:
-	return node is PipeNode or node is ContainerNode or (node and node.get_script() == _WaterSourceScript)
+	return node is PipeNode or node is ContainerNode or node is WaterSourceNode
 
-func _is_connectable_at(bm: BuildingManager, grid_pos: Vector2i) -> bool:
+func _is_connectable_at(bm: Node, grid_pos: Vector2i) -> bool:
 	if not bm.buildings.has(grid_pos):
 		return false
 	var building_data: BuildingData = bm.buildings[grid_pos] as BuildingData
 	if not building_data:
 		return false
-	return building_data.building_type == GameConfig.pipe_type_id or building_data.building_type == GameConfig.container_type_id or building_data.building_type == GameConfig.water_source_type_id
+	return BuildingData.has_capacity(building_data.building_type) or building_data.building_type == GameConfig.water_source_type_id
 
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0
