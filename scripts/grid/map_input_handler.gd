@@ -3,7 +3,7 @@ extends Node
 @onready var building_manager: BuildingManager = get_node("../BuildingManager")
 @onready var inventory_bar: InventoryBar = get_node("../UIOverlay/InventoryBar")
 
-enum InteractionMode { NONE, PLACE, REMOVE, SELECT, DESELECT, PASTE }
+enum InteractionMode {NONE, PLACE, REMOVE, SELECT, DESELECT, PASTE}
 var _current_mode: InteractionMode = InteractionMode.NONE
 
 var _drag_start_grid: Vector2i
@@ -42,7 +42,6 @@ func _cancel_all_dragging() -> void:
 	if _is_deselecting:
 		building_manager.hide_deselect_ghost()
 		_is_deselecting = false
-	_current_mode = InteractionMode.NONE
 
 func _get_grid_pos(event: InputEvent) -> Vector2i:
 	var viewport := get_viewport()

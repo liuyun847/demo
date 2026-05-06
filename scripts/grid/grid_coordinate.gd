@@ -1,5 +1,12 @@
 class_name GridCoordinate
 
+const DIR_4 := [
+	Vector2i(0, -1),
+	Vector2i(1, 0),
+	Vector2i(0, 1),
+	Vector2i(-1, 0),
+]
+
 static func screen_to_world(camera: Camera2D, screen_pos: Vector2) -> Vector2:
 	var viewport := camera.get_viewport()
 	var view_size := viewport.get_visible_rect().size

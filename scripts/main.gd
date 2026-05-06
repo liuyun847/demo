@@ -1,8 +1,5 @@
 extends Node2D
 
-enum UIState { START_MENU, IN_GAME, SETTINGS }
-var _current_ui_state: UIState = UIState.START_MENU
-
 const SLOT_KEYS := [
 	"slot_1", "slot_2", "slot_3", "slot_4", "slot_5",
 	"slot_6", "slot_7", "slot_8", "slot_9", "slot_0"
@@ -19,7 +16,9 @@ func _enter_tree() -> void:
 	EventBus.show_settings_requested.connect(_on_show_settings_requested)
 
 func _ready() -> void:
-	_hide_all_uis()
+	start_menu.hide()
+	settings_panel.hide()
+	inventory_bar.hide()
 	_pause_game(false)
 
 func _exit_tree() -> void:
@@ -49,11 +48,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		SelectionManager.undo()
 		return
 
-func _hide_all_uis() -> void:
-	start_menu.hide()
-	settings_panel.hide()
-	inventory_bar.hide()
-
 func _on_buildings_loaded() -> void:
 	show_start_menu.call_deferred()
 
@@ -74,17 +68,14 @@ func show_start_menu() -> void:
 	start_menu.show()
 	inventory_bar.hide()
 	_pause_game(true)
-	_current_ui_state = UIState.START_MENU
 
 func hide_start_menu() -> void:
 	start_menu.hide()
 	inventory_bar.show()
 	_pause_game(false)
-	_current_ui_state = UIState.IN_GAME
 
 func show_settings() -> void:
 	start_menu.hide()
 	settings_panel.show()
 	inventory_bar.hide()
 	_pause_game(true)
-	_current_ui_state = UIState.SETTINGS

@@ -24,13 +24,6 @@ var connection_mask: int = 0:
 		connection_mask = value
 		queue_redraw()
 
-const _DIR_VECTORS := [
-	Vector2i(0, -1),
-	Vector2i(1, 0),
-	Vector2i(0, 1),
-	Vector2i(-1, 0),
-]
-
 func _ready() -> void:
 	add_to_group("fluid_node")
 
@@ -56,7 +49,7 @@ func collect_transfers(transfers: Array[Dictionary]) -> void:
 		if not (connection_mask & (1 << dir_idx)):
 			continue
 
-		var neighbor_pos: Vector2i = grid_position + _DIR_VECTORS[dir_idx]
+		var neighbor_pos: Vector2i = grid_position + GridCoordinate.DIR_4[dir_idx]
 		var nname := "Building_%d_%d" % [neighbor_pos.x, neighbor_pos.y]
 		var neighbor := bm.get_node_or_null(nname)
 		if not neighbor or not neighbor.has_method("get_pressure"):
@@ -95,7 +88,7 @@ func refresh_connections() -> void:
 	if bm == null or not bm.has_method("has_building"):
 		return
 
-	var my_pos := _get_grid_position()
+	var my_pos := grid_position
 	var mask := 0
 
 	if _is_connectable_at(bm, my_pos + Vector2i(0, -1)):
@@ -108,9 +101,6 @@ func refresh_connections() -> void:
 		mask |= ConnectionDir.LEFT
 
 	connection_mask = mask
-
-func _get_grid_position() -> Vector2i:
-	return grid_position
 
 func _is_connectable_at(bm: Node, grid_pos: Vector2i) -> bool:
 	var building_manager := bm as BuildingManager

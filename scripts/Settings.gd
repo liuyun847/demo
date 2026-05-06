@@ -167,9 +167,6 @@ func _update_button_text(action: String, button: Button) -> void:
 	button.text = text if not text.is_empty() else "未绑定"
 
 func _on_keybind_changed(action: String) -> void:
-	if listening_action == action and listening_button:
-		_update_button_text(action, listening_button)
-		_stop_listening()
 	_cancel_listening()
 	_refresh_keybind_list()
 
