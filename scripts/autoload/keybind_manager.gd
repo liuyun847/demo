@@ -12,6 +12,16 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	"zoom_out": "缩小",
 	"place_building": "放置建筑",
 	"remove_building": "删除建筑",
+	"slot_1": "槽位 1",
+	"slot_2": "槽位 2",
+	"slot_3": "槽位 3",
+	"slot_4": "槽位 4",
+	"slot_5": "槽位 5",
+	"slot_6": "槽位 6",
+	"slot_7": "槽位 7",
+	"slot_8": "槽位 8",
+	"slot_9": "槽位 9",
+	"slot_0": "槽位 0",
 }
 
 const GAMEPLAY_ACTIONS: Array[String] = [
@@ -24,6 +34,16 @@ const GAMEPLAY_ACTIONS: Array[String] = [
 	"zoom_out",
 	"place_building",
 	"remove_building",
+	"slot_1",
+	"slot_2",
+	"slot_3",
+	"slot_4",
+	"slot_5",
+	"slot_6",
+	"slot_7",
+	"slot_8",
+	"slot_9",
+	"slot_0",
 ]
 
 func _ready() -> void:
@@ -124,8 +144,11 @@ func save_keybindings() -> void:
 		if not InputMap.has_action(action):
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
-		if events.size() > 0:
-			keybind_data.keybindings[action] = _serialize_event(events[0])
+		var event_array: Array[Dictionary] = []
+		for ev in events:
+			event_array.append(_serialize_event(ev))
+		if event_array.size() > 0:
+			keybind_data.keybindings[action] = event_array
 
 	var dir_path := GameConfig.keybind_file_path.get_base_dir()
 	DirAccess.make_dir_recursive_absolute(dir_path)
@@ -281,7 +304,13 @@ func _deserialize_event(data) -> InputEvent:
 
 func _events_equal(a: InputEvent, b: InputEvent) -> bool:
 	if a is InputEventKey and b is InputEventKey:
-		return (a.keycode != KEY_NONE and a.keycode == b.keycode) or (a.physical_keycode != KEY_NONE and a.physical_keycode == b.physical_keycode)
+		var key_match: bool = (a.keycode != KEY_NONE and a.keycode == b.keycode) or (a.physical_keycode != KEY_NONE and a.physical_keycode == b.physical_keycode)
+		if not key_match:
+			return false
+		return a.alt_pressed == b.alt_pressed and \
+			a.shift_pressed == b.shift_pressed and \
+			a.ctrl_pressed == b.ctrl_pressed and \
+			a.meta_pressed == b.meta_pressed
 	elif a is InputEventMouseButton and b is InputEventMouseButton:
 		return a.button_index == b.button_index
 	elif a is InputEventJoypadButton and b is InputEventJoypadButton:

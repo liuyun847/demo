@@ -19,7 +19,7 @@ func _ready() -> void:
 	_init_fluid_coordinator()
 
 func _init_fluid_coordinator() -> void:
-	var coordinator := FluidCoordinator.new()
+	var coordinator := preload("res://scripts/fluid/fluid_coordinator.gd").new()
 	coordinator.name = "FluidCoordinator"
 	add_child(coordinator)
 
@@ -38,7 +38,7 @@ func _get_building_texture(building_type: String) -> Texture2D:
 			return load(tex_path)
 	return building_texture
 
-func place_building(grid_pos: Vector2i, building_type: String = "default") -> bool:
+func place_building(grid_pos: Vector2i, building_type: String = "default", capacity: int = 0, max_capacity: int = -1) -> bool:
 	if has_building(grid_pos):
 		return false
 
@@ -54,17 +54,17 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 		container.name = node_name
 		container.global_position = world_pos
 		container.grid_position = grid_pos
-		container.capacity = data.capacity
-		container.max_capacity = data.max_capacity
 		add_child(container)
+		data.capacity = container.capacity
+		data.max_capacity = container.max_capacity
 	elif building_type == GameConfig.pipe_type_id:
 		var pipe := PipeNode.new()
 		pipe.name = node_name
 		pipe.global_position = world_pos
 		pipe.grid_position = grid_pos
-		pipe.capacity = data.capacity
-		pipe.max_capacity = data.max_capacity
 		add_child(pipe)
+		data.capacity = pipe.capacity
+		data.max_capacity = pipe.max_capacity
 	elif building_type == GameConfig.water_source_type_id:
 		var source = _WaterSourceScript.new()
 		source.name = node_name
@@ -83,6 +83,15 @@ func place_building(grid_pos: Vector2i, building_type: String = "default") -> bo
 			visual.scale = Vector2.ONE
 		visual.global_position = world_pos
 		add_child(visual)
+
+	if capacity > 0 or max_capacity >= 0:
+		data.capacity = capacity
+		if max_capacity >= 0:
+			data.max_capacity = max_capacity
+		var node := get_node_or_null(node_name)
+		if node is ContainerNode or node is PipeNode:
+			node.capacity = data.capacity
+			node.max_capacity = data.max_capacity
 
 	buildings[grid_pos] = data
 	EventBus.building_placed.emit(grid_pos)
@@ -109,7 +118,7 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	return true
 
 func get_all_buildings_data() -> Dictionary:
-	return buildings.duplicate()
+	return buildings.duplicate(true)
 
 func clear_all_buildings() -> void:
 	for grid_pos in buildings.keys():

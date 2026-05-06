@@ -23,6 +23,7 @@ func _on_tick() -> void:
 
 	for _iter in range(GameConfig.fluid_sub_iterations):
 		var transfers: Array[Dictionary] = []
+		var committed_output: Dictionary = {}
 
 		for node in nodes:
 			if node.has_method("collect_transfers"):
@@ -39,17 +40,19 @@ func _on_tick() -> void:
 			var amount: int = t.amount
 
 			if src.has_method("get_pressure") and not src is WaterSourceNode:
-				if src.capacity < amount:
+				var committed: int = committed_output.get(src, 0)
+				if src.capacity - committed < amount:
 					continue
+				committed_output[src] = committed + amount
 				src.capacity -= amount
 				var bm_src = src.get_parent()
-				if bm_src is BuildingManager and bm_src.buildings.has(src.grid_position):
+				if bm_src != null and bm_src.has_method("has_building") and bm_src.buildings.has(src.grid_position):
 					bm_src.buildings[src.grid_position].capacity = src.capacity
 
 			dst.capacity = clampi(dst.capacity + amount, 0, dst.max_capacity)
 
 			var bm_dst = dst.get_parent()
-			if bm_dst is BuildingManager and bm_dst.buildings.has(dst.grid_position):
+			if bm_dst != null and bm_dst.has_method("has_building") and bm_dst.buildings.has(dst.grid_position):
 				bm_dst.buildings[dst.grid_position].capacity = dst.capacity
 
 	if has_flow:
