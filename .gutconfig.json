@@ -1,0 +1,10 @@
+{
+    "dirs": [
+        "res://tests/unit"
+    ],
+    "include_subdirs": true,
+    "prefix": "test_",
+    "suffix": ".gd",
+    "log_level": 3,
+    "compact_mode": false
+}
