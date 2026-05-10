@@ -23,7 +23,7 @@ func _get_transfer_capacity_base(_neighbor: Node) -> int:
 	return 0
 
 func _get_neighbor_node(bm: Node, grid_pos: Vector2i) -> Node:
-	var node_name := BuildingManager.get_building_node_name(grid_pos)
+	var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
 	return bm.get_node_or_null(node_name)
 
 func _collect_fluid_transfers(transfers: Array[Dictionary]) -> void:
@@ -45,6 +45,8 @@ func _collect_fluid_transfers(transfers: Array[Dictionary]) -> void:
 
 		var neighbor := _get_neighbor_node(bm, neighbor_pos)
 		if not neighbor or not neighbor.has_method("get_pressure"):
+			continue
+		if not ("max_capacity" in neighbor and "capacity" in neighbor):
 			continue
 
 		var diff: float = _get_source_pressure() - neighbor.get_pressure()
