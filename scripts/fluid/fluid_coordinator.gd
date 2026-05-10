@@ -133,7 +133,7 @@ func _process_network(network: Dictionary) -> bool:
 	if total_output <= 0:
 		for pipe in pipes:
 			if pipe is PipeNode:
-				pipe.network_state = 1
+				pipe.network_state = 0
 		return false
 
 	var candidates: Array[Node] = []
@@ -154,7 +154,7 @@ func _process_network(network: Dictionary) -> bool:
 	if to_distribute <= 0:
 		for pipe in pipes:
 			if pipe is PipeNode:
-				pipe.network_state = 1
+				pipe.network_state = 0
 		return false
 
 	var per := to_distribute / candidates.size()
