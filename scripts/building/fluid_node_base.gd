@@ -23,8 +23,7 @@ func _get_transfer_capacity_base(_neighbor: Node) -> int:
 	return 0
 
 func _get_neighbor_node(bm: Node, grid_pos: Vector2i) -> Node:
-	var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-	return bm.get_node_or_null(node_name)
+	return bm.get_node_or_null(BuildingManager.get_building_node_name(grid_pos))
 
 func _collect_fluid_transfers(transfers: Array[Dictionary]) -> void:
 	var available := _get_available_fluid()
