@@ -102,14 +102,13 @@ func load_buildings() -> void:
 					var data: BuildingData = building_manager.buildings[grid_pos]
 					data.capacity = b_data.get("capacity", 0)
 					data.max_capacity = b_data.get("max_capacity", data.max_capacity)
-					var node := building_manager.get_node_or_null("Building_%d_%d" % [grid_pos.x, grid_pos.y])
-					if node is ContainerNode or node is PipeNode:
+					var node := building_manager.get_building_node(grid_pos)
+					if BuildingData.is_fluid_storage_building(node):
 						node.capacity = data.capacity
 						node.max_capacity = data.max_capacity
 
 	for grid_pos in building_manager.buildings.keys():
-		var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-		var node := building_manager.get_node_or_null(node_name)
+		var node := building_manager.get_building_node(grid_pos)
 		if node is PipeNode:
 			node.refresh_connections()
 

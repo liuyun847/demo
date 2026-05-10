@@ -14,8 +14,7 @@ func after_each():
 
 
 func _add_to_fluid_group(pos: Vector2i) -> void:
-	var node_name := "Building_%d_%d" % [pos.x, pos.y]
-	var node = _bm.get_node_or_null(node_name)
+	var node = _bm.get_building_node(pos)
 	if node:
 		node.add_to_group("fluid_node")
 

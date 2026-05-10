@@ -90,8 +90,8 @@ func _build_clipboard(cut: bool) -> Dictionary:
 		for grid_pos: Vector2i in grid_keys:
 			var type_id: String = buildings_data[grid_pos]
 			var entry := {"type": type_id}
-			var node := building_manager.get_node_or_null("Building_%d_%d" % [grid_pos.x, grid_pos.y])
-			if node is ContainerNode or node is PipeNode:
+			var node := building_manager.get_building_node(grid_pos)
+			if BuildingData.is_fluid_storage_building(node):
 				entry["capacity"] = node.capacity
 				entry["max_capacity"] = node.max_capacity
 			undo_buildings[grid_pos] = entry

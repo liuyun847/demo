@@ -46,7 +46,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 	data.grid_position = grid_pos
 	data.building_type = building_type
 
-	var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
+	var node_name := get_building_node_name(grid_pos)
 	var world_pos := GridCoordinate.grid_to_world(grid_pos)
 
 	if building_type == GameConfig.container_type_id:
@@ -89,7 +89,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 		if max_capacity >= 0:
 			data.max_capacity = max_capacity
 		var node := get_node_or_null(node_name)
-		if node is ContainerNode or node is PipeNode:
+		if BuildingData.is_fluid_storage_building(node):
 			node.capacity = data.capacity
 			node.max_capacity = data.max_capacity
 
@@ -102,9 +102,8 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	if not has_building(grid_pos):
 		return false
 
-	var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-	var node := get_node_or_null(node_name)
-	if node is ContainerNode or node is PipeNode:
+	var node := get_building_node(grid_pos)
+	if BuildingData.is_fluid_storage_building(node):
 		var data: BuildingData = buildings[grid_pos]
 		data.capacity = node.capacity
 		data.max_capacity = node.max_capacity
@@ -271,6 +270,12 @@ func _draw() -> void:
 			border_color.a = minf(alpha + 0.35, 1.0)
 			draw_rect(rect, border_color, false, 2.0)
 
+static func get_building_node_name(grid_pos: Vector2i) -> String:
+	return "Building_%d_%d" % [grid_pos.x, grid_pos.y]
+
+func get_building_node(grid_pos: Vector2i) -> Node:
+	return get_node_or_null(get_building_node_name(grid_pos))
+
 static func get_line_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	var dx := to_pos.x - from_pos.x
@@ -322,12 +327,10 @@ func _refresh_pipe_connections(grid_pos: Vector2i) -> void:
 	for offset in GridCoordinate.DIR_4:
 		var npos: Vector2i = grid_pos + offset
 		if has_building(npos):
-			var node_name := "Building_%d_%d" % [npos.x, npos.y]
-			var node := get_node_or_null(node_name)
+			var node := get_building_node(npos)
 			if node is PipeNode:
 				node.refresh_connections()
 
-	var self_node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-	var self_node := get_node_or_null(self_node_name)
+	var self_node := get_building_node(grid_pos)
 	if self_node is PipeNode:
 		self_node.refresh_connections()

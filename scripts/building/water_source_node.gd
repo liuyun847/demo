@@ -14,45 +14,20 @@ func get_pressure() -> float:
 	return 1.0
 
 func collect_transfers(transfers: Array[Dictionary]) -> void:
-	if remaining_output <= 0:
-		return
+	_collect_fluid_transfers(transfers)
 
+func _get_available_fluid() -> int:
+	return remaining_output
+
+func _can_transfer_to_direction(_dir_idx: int, neighbor_pos: Vector2i) -> bool:
 	var bm := get_parent()
-	if bm == null or not bm.has_method("has_building"):
-		return
+	return bm != null and bm.has_method("has_building") and bm.has_building(neighbor_pos)
 
-	var available := remaining_output
+func _get_source_pressure() -> float:
+	return 1.0
 
-	# 水源作为特殊节点，直接向四邻居推水（不受连接掩码约束）
-	for offset in GridCoordinate.DIR_4:
-		var npos: Vector2i = grid_position + offset
-		if available <= 0:
-			break
-		if not bm.has_building(npos):
-			continue
-
-		var nname := "Building_%d_%d" % [npos.x, npos.y]
-		var neighbor := bm.get_node_or_null(nname)
-		if not neighbor or not neighbor.has_method("get_pressure"):
-			continue
-
-		var diff: float = 1.0 - neighbor.get_pressure()
-		if diff <= GameConfig.fluid_pressure_threshold:
-			continue
-
-		var amount := int(diff * GameConfig.fluid_flow_rate * float(neighbor.max_capacity))
-		amount = mini(amount, available)
-		amount = mini(amount, neighbor.max_capacity - neighbor.capacity)
-		if amount == 0 and available > 0 and neighbor.max_capacity > neighbor.capacity:
-			amount = 1
-
-		if amount > 0:
-			transfers.append({
-				"src": self ,
-				"dst": neighbor,
-				"amount": amount,
-			})
-			available -= amount
+func _get_transfer_capacity_base(neighbor: Node) -> int:
+	return neighbor.max_capacity
 
 
 func get_building_name() -> String:
