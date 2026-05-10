@@ -1,7 +1,7 @@
 extends GutTest
 
 var _bm: BuildingManager = null
-var _coordinator: FluidCoordinator = null
+var _coordinator: Node = null
 
 func before_each():
 	_bm = autoqfree(BuildingManager.new())
@@ -12,11 +12,11 @@ func after_each():
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
-
-func _add_to_fluid_group(pos: Vector2i) -> void:
-	var node = _bm.get_building_node(pos)
-	if node:
-		node.add_to_group("fluid_node")
+func _refresh_all_pipes() -> void:
+	for grid_pos in _bm.buildings.keys():
+		var node := _bm.get_building_node(grid_pos)
+		if node is PipeNode:
+			node.refresh_connections()
 
 func _find_timer() -> Timer:
 	for child in _coordinator.get_children():
@@ -39,88 +39,103 @@ func test_empty_fluid_list_does_not_crash():
 
 func test_water_source_remaining_output_reset():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
-	_add_to_fluid_group(Vector2i(0, 0))
 	var source = _bm.get_node("Building_0_0")
 	source.remaining_output = 0
 	_coordinator._on_tick()
 	assert_eq(source.remaining_output, source.output_per_tick, "水源每 tick 应重置 remaining_output")
 
 
-func test_source_to_pipe_transfer():
-	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
-	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-	_add_to_fluid_group(Vector2i(0, 0))
-	_add_to_fluid_group(Vector2i(1, 0))
-	var pipe = _bm.get_node("Building_1_0")
-	assert_eq(pipe.capacity, 0, "初始管道应为空")
-	_coordinator._on_tick()
-	assert_true(pipe.capacity > 0, "水源应向管道推水")
-
-
-func test_pipe_to_container_transfer():
-	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(1, 0), GameConfig.container_type_id)
-	_add_to_fluid_group(Vector2i(0, 0))
-	_add_to_fluid_group(Vector2i(1, 0))
-	var pipe = _bm.get_node("Building_0_0")
-	var container = _bm.get_node("Building_1_0")
-	pipe.capacity = pipe.max_capacity
-	_coordinator._on_tick()
-	assert_true(container.capacity > 0, "满管道应向容器推水")
-
-
-func test_multi_iteration_convergence():
+func test_source_to_container_via_pipe():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
-	for x in range(3):
-		_add_to_fluid_group(Vector2i(x, 0))
-	var pipe = _bm.get_node("Building_1_0")
-	pipe.capacity = 0
-	var old_total = 0
-	for _iter in range(3):
-		_coordinator._on_tick()
-		var total = 0
-		for x in range(3):
-			var node = _bm.get_node("Building_%d_0" % x)
-			if node.has_method("get_pressure"):
-				total += node.capacity
-		if total == old_total:
-			break
-		old_total = total
-	assert_true(true, "多次迭代后应收敛")
+	_refresh_all_pipes()
+
+	var container = _bm.get_node("Building_2_0")
+	assert_eq(container.capacity, 0, "初始容器应为空")
+
+	_coordinator._on_tick()
+
+	assert_true(container.capacity > 0, "水源应通过管道向容器输水")
+	assert_eq(container.capacity, 30, "水源每 tick 产出 30，应全部分配给容器")
+
+
+func test_source_to_two_containers_even_split():
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(0, 1), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(0, 2), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(0, 3), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var container_a = _bm.get_node("Building_0_2")
+	var container_b = _bm.get_node("Building_0_3")
+
+	_coordinator._on_tick()
+
+	assert_eq(container_a.capacity, 15, "30 应均分给两个容器，各得 15")
+	assert_eq(container_b.capacity, 15, "30 应均分给两个容器，各得 15")
+
+
+func test_three_containers_with_remainder():
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(0, 1), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(0, 2), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(1, 2), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(-1, 2), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var containers = []
+	for x in [-1, 0, 1]:
+		containers.append(_bm.get_node("Building_%d_2" % x))
+
+	_coordinator._on_tick()
+
+	var total = 0
+	for c in containers:
+		total += c.capacity
+	assert_eq(total, 30, "总分配量应为 30")
+	assert_eq(containers[0].capacity, 10, "余数应使各容器容量相差不超过 1")
+	assert_eq(containers[1].capacity, 10, "余数应使各容器容量相差不超过 1")
+	assert_eq(containers[2].capacity, 10, "余数应使各容器容量相差不超过 1")
 
 
 func test_output_per_tick_constraint():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-	_add_to_fluid_group(Vector2i(0, 0))
-	_add_to_fluid_group(Vector2i(1, 0))
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
 	var source = _bm.get_node("Building_0_0")
 	source.output_per_tick = 0
+	var container = _bm.get_node("Building_2_0")
+
 	_coordinator._on_tick()
-	var pipe = _bm.get_node("Building_1_0")
-	assert_eq(pipe.capacity, 0, "output_per_tick=0 时不应推水")
+
+	assert_eq(container.capacity, 0, "output_per_tick=0 时不应输水")
 
 
-func test_pipe_cannot_exceed_max_capacity():
+func test_flow_stops_when_containers_full():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-	_add_to_fluid_group(Vector2i(0, 0))
-	_add_to_fluid_group(Vector2i(1, 0))
-	var pipe = _bm.get_node("Building_1_0")
-	pipe.capacity = pipe.max_capacity - 1
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
 	var source = _bm.get_node("Building_0_0")
-	source.remaining_output = 999
+	var container = _bm.get_node("Building_2_0")
+	container.capacity = container.max_capacity
+
 	_coordinator._on_tick()
-	assert_true(pipe.capacity <= pipe.max_capacity, "管道容量不应超过 max_capacity")
+
+	assert_eq(container.capacity, container.max_capacity, "满容器不应再接收水")
+	assert_eq(source.remaining_output, source.output_per_tick, "水未分配时水源 remaining_output 应不变")
 
 
 func test_fluid_updated_emitted_when_flow():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-	_add_to_fluid_group(Vector2i(0, 0))
-	_add_to_fluid_group(Vector2i(1, 0))
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
 	watch_signals(EventBus)
 	_coordinator._on_tick()
 	assert_signal_emitted(EventBus, "fluid_updated", "有流量时应发射 fluid_updated 信号")
@@ -133,12 +148,80 @@ func test_fluid_updated_not_emitted_when_no_flow():
 
 
 func test_sync_building_data_after_tick():
-	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(1, 0), GameConfig.container_type_id)
-	_add_to_fluid_group(Vector2i(0, 0))
-	_add_to_fluid_group(Vector2i(1, 0))
-	var pipe = _bm.get_node("Building_0_0")
-	var pipe_data = _bm.buildings[Vector2i(0, 0)]
-	pipe.capacity = 3
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var container_data = _bm.buildings[Vector2i(2, 0)]
 	_coordinator._on_tick()
-	assert_eq(pipe_data.capacity, pipe.capacity, "tick 后 BuildingManager 的 data.capacity 应与节点同步")
+	assert_eq(container_data.capacity, 30, "tick 后 BuildingManager 的 data.capacity 应与容器同步")
+
+
+func test_pipe_network_state_active():
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var pipe = _bm.get_node("Building_1_0")
+	_coordinator._on_tick()
+	assert_eq(pipe.network_state, 1, "有水源且容器未满时 network_state 应为 1")
+
+
+func test_pipe_network_state_full():
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var pipe = _bm.get_node("Building_1_0")
+	var container = _bm.get_node("Building_2_0")
+	container.capacity = container.max_capacity
+
+	_coordinator._on_tick()
+	assert_eq(pipe.network_state, 2, "有水源且所有容器已满时 network_state 应为 2")
+
+
+func test_pipe_network_state_no_source():
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var pipe = _bm.get_node("Building_1_0")
+	_coordinator._on_tick()
+	assert_eq(pipe.network_state, 0, "无水源时 network_state 应为 0")
+
+
+func test_multi_hop_pipe_network():
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(3, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(4, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var container = _bm.get_node("Building_4_0")
+
+	_coordinator._on_tick()
+	assert_true(container.capacity > 0, "水源应通过多段管道向容器输水")
+	assert_eq(container.capacity, 30, "多段管道传输后水量不应丢失")
+
+
+func test_disconnected_networks():
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+
+	_bm.place_building(Vector2i(5, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(6, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(7, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var container_a = _bm.get_node("Building_2_0")
+	var container_b = _bm.get_node("Building_7_0")
+
+	_coordinator._on_tick()
+
+	assert_eq(container_a.capacity, 30, "网络 A 应正常分配 30")
+	assert_eq(container_b.capacity, 30, "网络 B 应正常分配 30")

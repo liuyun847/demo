@@ -38,7 +38,6 @@ func test_update_content_shows_building_name():
 func test_update_content_shows_summary():
 	var mock_node := Node2D.new()
 	mock_node.set_script(preload("res://scripts/building/pipe_node.gd"))
-	mock_node.capacity = 3
 	add_child_autoqfree(mock_node)
 	_tooltip._on_building_hovered(Vector2i(0, 0), mock_node)
 	assert_true(_tooltip._summary_container.get_child_count() > 0, "摘要容器应有子节点")

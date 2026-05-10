@@ -63,8 +63,6 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 		pipe.global_position = world_pos
 		pipe.grid_position = grid_pos
 		add_child(pipe)
-		data.capacity = pipe.capacity
-		data.max_capacity = pipe.max_capacity
 	elif building_type == GameConfig.water_source_type_id:
 		var source = _WaterSourceScript.new()
 		source.name = node_name
