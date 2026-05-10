@@ -8,26 +8,10 @@ var capacity: int = 0
 var max_capacity: int = 0
 
 func _ready() -> void:
-	add_to_group("fluid_node")
+	add_to_group("water_source")
 
 func get_pressure() -> float:
 	return 1.0
-
-func collect_transfers(transfers: Array[Dictionary]) -> void:
-	_collect_fluid_transfers(transfers)
-
-func _get_available_fluid() -> int:
-	return remaining_output
-
-func _can_transfer_to_direction(_dir_idx: int, neighbor_pos: Vector2i) -> bool:
-	var bm := get_parent()
-	return bm != null and bm.has_method("has_building") and bm.has_building(neighbor_pos)
-
-func _get_source_pressure() -> float:
-	return 1.0
-
-func _get_transfer_capacity_base(neighbor: Node) -> int:
-	return neighbor.max_capacity
 
 
 func get_building_name() -> String:

@@ -14,7 +14,7 @@ extends FluidNodeBase
 
 
 func _ready() -> void:
-	add_to_group("fluid_node")
+	add_to_group("container")
 
 func get_fill_ratio() -> float:
 	return float(capacity) / float(max_capacity)

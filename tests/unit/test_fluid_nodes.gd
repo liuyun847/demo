@@ -85,62 +85,45 @@ func test_container_node_set_max_capacity_min():
 	node.max_capacity = 0
 	assert_eq(node.max_capacity, 1, "max_capacity 应至少为 1")
 
+func test_container_node_group():
+	var node = autoqfree(ContainerNode.new())
+	add_child_autoqfree(node)
+	assert_true(node.is_in_group("container"), "容器应加入 container 组")
+
 # ===== PipeNode 测试 =====
 
 func test_pipe_node_defaults():
 	var node = autoqfree(PipeNode.new())
-	assert_eq(node.capacity, 0, "默认 capacity 应为 0")
-	assert_eq(node.max_capacity, 5, "默认 max_capacity 应为 5")
 	assert_eq(node.connection_mask, 0, "默认 connection_mask 应为 0")
+	assert_eq(node.network_state, 0, "默认 network_state 应为 0")
 
-func test_pipe_node_get_fill_ratio():
+func test_pipe_node_no_capacity():
 	var node = autoqfree(PipeNode.new())
-	assert_eq(node.get_fill_ratio(), 0.0, "空管道填充率应为 0.0")
-	node.capacity = 5
-	assert_eq(node.get_fill_ratio(), 1.0, "满管道填充率应为 1.0")
-
-func test_pipe_node_get_pressure():
-	var node = autoqfree(PipeNode.new())
-	assert_eq(node.get_pressure(), 0.0, "空管道压力应为 0.0")
-	node.capacity = 3
-	assert_eq(node.get_pressure(), 0.6, "3/5 管道压力应为 0.6")
-
-func test_pipe_node_add():
-	var node = autoqfree(PipeNode.new())
-	var added = node.add(3)
-	assert_eq(added, 3, "应返回实际添加量")
-	assert_eq(node.capacity, 3)
-
-func test_pipe_node_add_overflow():
-	var node = autoqfree(PipeNode.new())
-	node.capacity = 4
-	var added = node.add(5)
-	assert_eq(added, 1, "超出 max_capacity 应截断")
-	assert_eq(node.capacity, 5)
-
-func test_pipe_node_remove():
-	var node = autoqfree(PipeNode.new())
-	node.capacity = 4
-	var removed = node.remove(2)
-	assert_eq(removed, 2)
-	assert_eq(node.capacity, 2)
-
-func test_pipe_node_remove_underflow():
-	var node = autoqfree(PipeNode.new())
-	node.capacity = 2
-	var removed = node.remove(5)
-	assert_eq(removed, 2)
-	assert_eq(node.capacity, 0)
+	assert_null(node.get("capacity"), "管道不应有 capacity 属性")
+	assert_null(node.get("max_capacity"), "管道不应有 max_capacity 属性")
 
 func test_pipe_node_building_name():
 	var node = autoqfree(PipeNode.new())
 	assert_eq(node.get_building_name(), "管道", "建筑名称应为 管道")
 
-func test_pipe_node_tooltip_summary():
+func test_pipe_node_tooltip_summary_no_connection():
 	var node = autoqfree(PipeNode.new())
-	node.capacity = 2
+	node.network_state = 0
 	var summary = node.get_tooltip_summary()
-	assert_true(summary.has("容量"), "摘要应包含 容量")
+	assert_true(summary.has("网络状态"), "摘要应包含 网络状态")
+	assert_eq(summary["网络状态"], "未连通")
+
+func test_pipe_node_tooltip_summary_active():
+	var node = autoqfree(PipeNode.new())
+	node.network_state = 1
+	var summary = node.get_tooltip_summary()
+	assert_eq(summary["网络状态"], "输送中")
+
+func test_pipe_node_tooltip_summary_full():
+	var node = autoqfree(PipeNode.new())
+	node.network_state = 2
+	var summary = node.get_tooltip_summary()
+	assert_eq(summary["网络状态"], "已满载")
 
 func test_pipe_node_tooltip_details():
 	var node = autoqfree(PipeNode.new())
@@ -148,12 +131,31 @@ func test_pipe_node_tooltip_details():
 	assert_true(details.has("连接方向"), "详情应包含 连接方向")
 	assert_eq(details["连接方向"], "无", "无连接时应显示 无")
 
-func test_pipe_node_max_capacity():
+func test_pipe_node_tooltip_details_with_connections():
 	var node = autoqfree(PipeNode.new())
-	node.max_capacity = 10
-	assert_eq(node.max_capacity, 10)
-	node.max_capacity = 0
-	assert_eq(node.max_capacity, 1, "最小应为 1")
+	node.connection_mask = PipeNode.ConnectionDir.TOP | PipeNode.ConnectionDir.RIGHT
+	var details = node.get_tooltip_details()
+	assert_true(details["连接方向"].contains("上"), "应包含 上")
+	assert_true(details["连接方向"].contains("右"), "应包含 右")
+
+func test_pipe_node_group():
+	var node = autoqfree(PipeNode.new())
+	add_child_autoqfree(node)
+	assert_true(node.is_in_group("pipe"), "管道应加入 pipe 组")
+
+func test_pipe_node_network_state_triggers_redraw():
+	var node = autoqfree(PipeNode.new())
+	node.network_state = 1
+	assert_eq(node.network_state, 1)
+	node.network_state = 2
+	assert_eq(node.network_state, 2)
+	node.network_state = 0
+	assert_eq(node.network_state, 0)
+
+func test_pipe_node_connection_mask_triggers_redraw():
+	var node = autoqfree(PipeNode.new())
+	node.connection_mask = PipeNode.ConnectionDir.TOP
+	assert_eq(node.connection_mask, PipeNode.ConnectionDir.TOP)
 
 # ===== WaterSourceNode 测试 =====
 
@@ -181,3 +183,13 @@ func test_water_source_node_tooltip_details():
 	var details = node.get_tooltip_details()
 	assert_true(details.has("压力"), "详情应包含 压力")
 	assert_true(details.has("剩余待输出"), "详情应包含 剩余待输出")
+
+func test_water_source_node_group():
+	var node = autoqfree(WaterSourceNode.new())
+	add_child_autoqfree(node)
+	assert_true(node.is_in_group("water_source"), "水源应加入 water_source 组")
+
+func test_water_source_node_has_capacity_props():
+	var node = autoqfree(WaterSourceNode.new())
+	assert_eq(node.capacity, 0, "水源 capacity 应为 0")
+	assert_eq(node.max_capacity, 0, "水源 max_capacity 应为 0")

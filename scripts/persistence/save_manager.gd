@@ -61,6 +61,7 @@ func save_buildings() -> void:
 
 func load_buildings() -> void:
 	if not FileAccess.file_exists(GameConfig.save_file_path):
+		EventBus.buildings_loaded.emit()
 		return
 
 	var file := FileAccess.open(GameConfig.save_file_path, FileAccess.READ)
