@@ -94,8 +94,7 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 	if not _is_dragging and not _is_removing and not _is_selecting and not _is_deselecting:
 		if grid_pos != _last_hovered_grid:
 			if building_manager.has_building(grid_pos):
-				var node_name := "Building_%d_%d" % [grid_pos.x, grid_pos.y]
-				var node := building_manager.get_node_or_null(node_name)
+				var node := building_manager.get_building_node(grid_pos)
 				if node:
 					EventBus.building_hovered.emit(grid_pos, node)
 				else:
@@ -211,8 +210,8 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		for cell in cells:
 			if building_manager.has_building(cell):
 				var entry := {"type": building_manager.buildings[cell].building_type}
-				var node := building_manager.get_node_or_null("Building_%d_%d" % [cell.x, cell.y])
-				if node is ContainerNode or node is PipeNode:
+				var node := building_manager.get_building_node(cell)
+				if BuildingData.is_fluid_storage_building(node):
 					entry["capacity"] = node.capacity
 					entry["max_capacity"] = node.max_capacity
 				removed[cell] = entry
