@@ -16,6 +16,13 @@ var _is_expanded: bool = false
 
 var _panel_style: StyleBoxFlat = null
 
+func _on_building_removed(_grid_pos: Vector2i) -> void:
+	if _target_node == null:
+		return
+	_target_node = null
+	_is_expanded = false
+	hide()
+
 func _ready() -> void:
 	hide()
 	_create_styles()
@@ -23,10 +30,12 @@ func _ready() -> void:
 	_expand_button.pressed.connect(_on_expand_pressed)
 	EventBus.building_hovered.connect(_on_building_hovered)
 	EventBus.building_hover_exited.connect(_on_building_hover_exited)
+	EventBus.building_removed.connect(_on_building_removed)
 
 func _exit_tree() -> void:
 	EventBus.building_hovered.disconnect(_on_building_hovered)
 	EventBus.building_hover_exited.disconnect(_on_building_hover_exited)
+	EventBus.building_removed.disconnect(_on_building_removed)
 
 func _create_styles() -> void:
 	_panel_style = StyleBoxFlat.new()
@@ -128,6 +137,11 @@ func _update_details() -> void:
 			_details_container.add_child(label)
 
 func _get_fallback_name(_node: Node) -> String:
+	if _node.has_meta("building_type"):
+		var bt: String = _node.get_meta("building_type")
+		if bt.begins_with("type_"):
+			var idx := bt.substr(5).to_int()
+			return "占位-%d" % idx
 	return "建筑"
 
 func _process(_delta: float) -> void:
