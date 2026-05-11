@@ -10,8 +10,6 @@ var paste_ghost_types: Dictionary = {}
 var select_ghost_cells: Array[Vector2i] = []
 var deselect_ghost_cells: Array[Vector2i] = []
 
-@onready var building_texture: Texture2D = preload("res://resources/building_default.svg")
-
 const _WaterSourceScript = preload("res://scripts/building/water_source_node.gd")
 
 func _ready() -> void:
@@ -28,15 +26,6 @@ func _on_selection_changed(cells: Array[Vector2i]) -> void:
 
 func has_building(grid_pos: Vector2i) -> bool:
 	return buildings.has(grid_pos)
-
-func _get_building_texture(building_type: String) -> Texture2D:
-	if building_type == "default":
-		return building_texture
-	if building_type.begins_with("type_"):
-		var tex_path := "res://resources/buildings/building_%s.svg" % building_type.substr(5)
-		if ResourceLoader.exists(tex_path):
-			return load(tex_path)
-	return building_texture
 
 func place_building(grid_pos: Vector2i, building_type: String = "default", capacity: int = 0, max_capacity: int = -1) -> bool:
 	if has_building(grid_pos):
@@ -70,17 +59,33 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 		source.grid_position = grid_pos
 		add_child(source)
 	else:
-		var visual := Sprite2D.new()
-		var type_texture := _get_building_texture(building_type)
-		visual.texture = type_texture
-		visual.name = node_name
-		var tex_width := type_texture.get_width()
-		if tex_width > 0:
-			visual.scale = Vector2.ONE * (float(GameConfig.building_size) / tex_width)
-		else:
-			visual.scale = Vector2.ONE
-		visual.global_position = world_pos
-		add_child(visual)
+		var idx := 0
+		if building_type.begins_with("type_"):
+			idx = building_type.substr(5).to_int()
+		var placeholder := Node2D.new()
+		placeholder.name = node_name
+		placeholder.global_position = world_pos
+		placeholder.set_meta("building_type", building_type)
+		var half_size := GameConfig.building_size / 2.0
+		var box := ColorRect.new()
+		box.size = Vector2(GameConfig.building_size, GameConfig.building_size)
+		box.position = Vector2(-half_size, -half_size)
+		var bg_color := _get_building_color(building_type)
+		bg_color.a = 0.3
+		box.color = bg_color
+		placeholder.add_child(box)
+		var label := Label.new()
+		label.text = "占位-%d" % idx if idx > 0 else "占位"
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.size = Vector2(GameConfig.building_size, GameConfig.building_size)
+		label.position = Vector2(-half_size, -half_size)
+		var ls := LabelSettings.new()
+		ls.font_size = 12
+		ls.font_color = Color.WHITE
+		label.label_settings = ls
+		placeholder.add_child(label)
+		add_child(placeholder)
 
 	if capacity > 0 or max_capacity >= 0:
 		data.capacity = capacity

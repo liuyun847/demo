@@ -44,8 +44,10 @@ func _sync_container_data() -> void:
 	if not building_manager:
 		return
 	for grid_pos in building_manager.buildings.keys():
-		var node := building_manager.get_building_node(grid_pos)
 		var data: BuildingData = building_manager.buildings[grid_pos]
+		if not BuildingData.has_capacity(data.building_type):
+			continue
+		var node := building_manager.get_building_node(grid_pos)
 		if "capacity" in node:
 			data.capacity = node.capacity
 		if "max_capacity" in node:

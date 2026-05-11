@@ -92,10 +92,7 @@ func _init_default_types() -> void:
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
 		else:
-			data.display_name = "建筑 %d" % i
-			var tex_path := "res://resources/buildings/building_%02d.svg" % i
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
+			data.display_name = "占位-%d" % i
 		building_types.append(data)
 
 func _setup_slots() -> void:

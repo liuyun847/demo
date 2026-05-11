@@ -90,10 +90,10 @@ func _draw() -> void:
 			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x, block_offset.y + block_pixel_size), GameConfig.line_color, adjusted_thick_width)
 			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), GameConfig.line_color, adjusted_thick_width)
 	
-	var center_box_size = GameConfig.cell_size * 0.8
-	var center_box_offset = GameConfig.cell_size * 0.1
-	var center_box_rect = Rect2(Vector2(center_box_offset, center_box_offset), Vector2(center_box_size, center_box_size))
-	draw_rect(center_box_rect, Color.BLACK, false, 2.0 / current_zoom)
+	var marker_size = GameConfig.cell_size * 2
+	var marker_half = marker_size / 2.0
+	var marker_rect = Rect2(Vector2(-marker_half, -marker_half), Vector2(marker_size, marker_size))
+	draw_rect(marker_rect, Color.BLACK, true)
 
 func load_block(block_coord: Vector2i) -> void:
 	loaded_blocks[block_coord] = true

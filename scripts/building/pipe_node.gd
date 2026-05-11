@@ -48,7 +48,7 @@ func _is_connectable_at(bm: Node, grid_pos: Vector2i) -> bool:
 	var building_data: BuildingData = building_manager.buildings[grid_pos] as BuildingData
 	if not building_data:
 		return false
-	return BuildingData.has_capacity(building_data.building_type)
+	return BuildingData.is_fluid_building(building_data.building_type)
 
 func get_building_name() -> String:
 	return "管道"
