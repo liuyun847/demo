@@ -45,8 +45,11 @@ func _sync_container_data() -> void:
 		return
 	for grid_pos in building_manager.buildings.keys():
 		var node := building_manager.get_building_node(grid_pos)
-		if node is ContainerNode:
-			building_manager.buildings[grid_pos].capacity = node.capacity
+		var data: BuildingData = building_manager.buildings[grid_pos]
+		if "capacity" in node:
+			data.capacity = node.capacity
+		if "max_capacity" in node:
+			data.max_capacity = node.max_capacity
 
 func save_buildings() -> void:
 	if not building_manager:
@@ -133,8 +136,9 @@ func load_buildings() -> void:
 					data.capacity = b_data.get("capacity", 0)
 					data.max_capacity = b_data.get("max_capacity", data.max_capacity)
 					var node := building_manager.get_building_node(grid_pos)
-					if BuildingData.is_fluid_storage_building(node):
+					if "capacity" in node:
 						node.capacity = data.capacity
+					if "max_capacity" in node:
 						node.max_capacity = data.max_capacity
 
 	for grid_pos in building_manager.buildings.keys():
