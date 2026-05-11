@@ -5,10 +5,29 @@ extends Node
 var _is_loading: bool = false
 var _save_pending: bool = false
 
+var _fluid_autosave_timer: Timer = null
+const FLUID_AUTOSAVE_DELAY: float = 3.0
+
 func _ready() -> void:
 	EventBus.building_placed.connect(_on_building_changed)
 	EventBus.building_removed.connect(_on_building_changed)
+	EventBus.fluid_updated.connect(_on_fluid_updated)
+	_init_fluid_autosave_timer()
 	load_buildings()
+
+func _init_fluid_autosave_timer() -> void:
+	_fluid_autosave_timer = Timer.new()
+	_fluid_autosave_timer.one_shot = true
+	_fluid_autosave_timer.timeout.connect(_on_fluid_autosave_timeout)
+	add_child(_fluid_autosave_timer)
+
+func _on_fluid_updated() -> void:
+	if _is_loading:
+		return
+	_fluid_autosave_timer.start(FLUID_AUTOSAVE_DELAY)
+
+func _on_fluid_autosave_timeout() -> void:
+	_do_save()
 
 func _on_building_changed(_grid_pos: Vector2i) -> void:
 	if _is_loading:
@@ -21,10 +40,20 @@ func _do_save() -> void:
 	_save_pending = false
 	save_buildings()
 
+func _sync_container_data() -> void:
+	if not building_manager:
+		return
+	for grid_pos in building_manager.buildings.keys():
+		var node := building_manager.get_building_node(grid_pos)
+		if node is ContainerNode:
+			building_manager.buildings[grid_pos].capacity = node.capacity
+
 func save_buildings() -> void:
 	if not building_manager:
 		push_error("SaveManager: 找不到 BuildingManager 节点")
 		return
+
+	_sync_container_data()
 
 	var buildings_data: Dictionary = building_manager.get_all_buildings_data()
 	var save_dict := {
