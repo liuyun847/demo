@@ -138,10 +138,10 @@ func load_buildings() -> void:
 					data.capacity = b_data.get("capacity", 0)
 					data.max_capacity = b_data.get("max_capacity", data.max_capacity)
 					var node := building_manager.get_building_node(grid_pos)
-					if "capacity" in node:
-						node.capacity = data.capacity
 					if "max_capacity" in node:
 						node.max_capacity = data.max_capacity
+					if "capacity" in node:
+						node.capacity = data.capacity
 
 	for grid_pos in building_manager.buildings.keys():
 		var node := building_manager.get_building_node(grid_pos)

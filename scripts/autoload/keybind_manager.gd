@@ -144,11 +144,8 @@ func save_keybindings() -> void:
 		if not InputMap.has_action(action):
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
-		var event_array: Array[Dictionary] = []
-		for ev in events:
-			event_array.append(_serialize_event(ev))
-		if event_array.size() > 0:
-			keybind_data.keybindings[action] = event_array
+		if events.size() > 0:
+			keybind_data.keybindings[action] = [_serialize_event(events[0])]
 
 	var dir_path := GameConfig.keybind_file_path.get_base_dir()
 	DirAccess.make_dir_recursive_absolute(dir_path)
@@ -219,6 +216,16 @@ func _apply_default_keybindings() -> void:
 		"zoom_out": _create_mouse_event(MOUSE_BUTTON_WHEEL_DOWN),
 		"place_building": _create_mouse_event(MOUSE_BUTTON_LEFT),
 		"remove_building": _create_mouse_event(MOUSE_BUTTON_RIGHT),
+		"slot_1": _create_key_event(KEY_1),
+		"slot_2": _create_key_event(KEY_2),
+		"slot_3": _create_key_event(KEY_3),
+		"slot_4": _create_key_event(KEY_4),
+		"slot_5": _create_key_event(KEY_5),
+		"slot_6": _create_key_event(KEY_6),
+		"slot_7": _create_key_event(KEY_7),
+		"slot_8": _create_key_event(KEY_8),
+		"slot_9": _create_key_event(KEY_9),
+		"slot_0": _create_key_event(KEY_0),
 	}
 
 	for action in defaults.keys():

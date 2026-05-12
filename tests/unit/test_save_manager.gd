@@ -48,7 +48,7 @@ func test_save_with_capacity_data():
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	var container = _bm.get_node("Building_0_0")
 	container.capacity = 50
-	_bm.buildings[Vector2i(0, 0)].capacity = container.capacity
+	_sm._sync_container_data()
 	_sm.save_buildings()
 	var content = _read_save_file()
 	var key = "0,0"
@@ -64,8 +64,9 @@ func test_save_atomic_write():
 func test_load_file_not_exists_does_not_crash():
 	_bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	DirAccess.remove_absolute(GameConfig.save_file_path)
+	var build_count_before = _bm.buildings.size()
 	_sm.load_buildings()
-	assert_true(true, "文件不存在时 load 不应崩溃")
+	assert_eq(_bm.buildings.size(), build_count_before, "文件不存在时加载后建筑数量应不变")
 
 func test_load_restores_buildings():
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
@@ -82,8 +83,7 @@ func test_load_restores_capacity():
 	var container = _bm.get_node("Building_0_0")
 	container.capacity = 75
 	container.max_capacity = 150
-	_bm.buildings[Vector2i(0, 0)].capacity = container.capacity
-	_bm.buildings[Vector2i(0, 0)].max_capacity = container.max_capacity
+	_sm._sync_container_data()
 	_sm.save_buildings()
 	_bm.clear_all_buildings()
 	_sm.load_buildings()
@@ -102,6 +102,9 @@ func test_save_load_roundtrip():
 	_sm.load_buildings()
 	var data_after = _bm.get_all_buildings_data()
 	assert_eq(data_before.size(), data_after.size(), "往返后建筑数量应一致")
+	for grid_pos in data_before:
+		assert_true(data_after.has(grid_pos), "往返后应包含建筑 (%d, %d)" % [grid_pos.x, grid_pos.y])
+		assert_eq(data_after[grid_pos].building_type, data_before[grid_pos].building_type, "往返后建筑类型应一致")
 
 func test_loading_does_not_trigger_save():
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)

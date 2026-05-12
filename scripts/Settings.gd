@@ -180,4 +180,5 @@ func _on_reset_pressed() -> void:
 	_refresh_game_options()
 
 func _on_back_pressed() -> void:
+	_cancel_listening()
 	EventBus.show_start_menu_requested.emit()

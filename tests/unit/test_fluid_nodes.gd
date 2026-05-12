@@ -189,7 +189,7 @@ func test_water_source_node_group():
 	add_child_autoqfree(node)
 	assert_true(node.is_in_group("water_source"), "水源应加入 water_source 组")
 
-func test_water_source_node_has_capacity_props():
+func test_water_source_node_no_capacity_props():
 	var node = autoqfree(WaterSourceNode.new())
-	assert_eq(node.capacity, 0, "水源 capacity 应为 0")
-	assert_eq(node.max_capacity, 0, "水源 max_capacity 应为 0")
+	assert_null(node.get("capacity"), "水源不应有 capacity 属性")
+	assert_null(node.get("max_capacity"), "水源不应有 max_capacity 属性")

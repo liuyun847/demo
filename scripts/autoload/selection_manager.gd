@@ -12,7 +12,7 @@ var _building_manager: BuildingManager = null
 
 func _get_building_manager() -> BuildingManager:
 	if _building_manager == null:
-		var main := get_node_or_null("/root/Root")
+		var main := get_tree().current_scene
 		if main:
 			_building_manager = main.get_node_or_null("BuildingManager") as BuildingManager
 	return _building_manager
@@ -96,7 +96,7 @@ func _build_clipboard(cut: bool) -> Dictionary:
 				entry["max_capacity"] = node.max_capacity
 			undo_buildings[grid_pos] = entry
 		cmd.buildings = undo_buildings
-		undo_stack.append(cmd)
+		push_undo_command(cmd)
 
 		for grid_pos in buildings_data.keys():
 			building_manager.remove_building(grid_pos)
@@ -133,18 +133,25 @@ func perform_paste(anchor: Vector2i) -> void:
 
 	var paste_buildings: Array[Dictionary] = clipboard["buildings"]
 
+	# 第一阶段：检查所有目标位置是否可用
+	for item in paste_buildings:
+		var grid_pos: Vector2i = anchor + item["offset"]
+		if building_manager.has_building(grid_pos):
+			return
+
+	# 第二阶段：全部可用，统一放置
 	var placed_cells := {}
 	for item in paste_buildings:
 		var grid_pos: Vector2i = anchor + item["offset"]
 		var building_type: String = item["type"]
-		if building_manager.place_building(grid_pos, building_type):
-			placed_cells[grid_pos] = building_type
+		building_manager.place_building(grid_pos, building_type)
+		placed_cells[grid_pos] = building_type
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()
 		cmd.type = UndoCommand.Type.PASTE
 		cmd.buildings = placed_cells
-		undo_stack.append(cmd)
+		push_undo_command(cmd)
 
 	is_paste_mode = false
 	EventBus.paste_mode_changed.emit(false)

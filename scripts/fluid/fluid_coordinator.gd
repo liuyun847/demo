@@ -1,8 +1,10 @@
 extends Node
 
 var _timer: Timer
+var _building_manager: BuildingManager = null
 
 func _ready() -> void:
+	_building_manager = get_parent() as BuildingManager
 	_timer = Timer.new()
 	_timer.wait_time = GameConfig.fluid_tick_interval
 	_timer.autostart = true
@@ -11,9 +13,11 @@ func _ready() -> void:
 
 
 func _on_tick() -> void:
-	var all_pipes := get_tree().get_nodes_in_group("pipe")
-	var all_sources := get_tree().get_nodes_in_group("water_source")
-	var all_network_nodes: Array[Node] = []
+	if not _building_manager:
+		return
+	var all_pipes: Array = _building_manager.fluid_pipes
+	var all_sources: Array = _building_manager.fluid_sources
+	var all_network_nodes: Array = []
 	all_network_nodes.append_array(all_pipes)
 	all_network_nodes.append_array(all_sources)
 
@@ -53,17 +57,18 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 	var containers: Array[Node] = []
 
 	var queue: Array[Node] = [start_node]
+	var head: int = 0
 	visited[start_node.get_instance_id()] = true
 
-	while queue.size() > 0:
-		var node: Node = queue.pop_front()
+	while head < queue.size():
+		var node: Node = queue[head]
+		head += 1
 
 		if node is WaterSourceNode:
 			sources.append(node)
 		elif node is PipeNode:
 			pipes.append(node)
 
-		var bm := get_parent()
 		var dirs = GridCoordinate.DIR_4
 
 		for dir_idx in 4:
@@ -74,10 +79,10 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 
 			var neighbor_pos: Vector2i = node.grid_position + dirs[dir_idx]
 
-			if not bm.has_building(neighbor_pos):
+			if not _building_manager.has_building(neighbor_pos):
 				continue
 
-			var neighbor: Node = bm.get_building_node(neighbor_pos)
+			var neighbor: Node = _building_manager.get_building_node(neighbor_pos)
 			if neighbor == null:
 				continue
 
@@ -105,7 +110,7 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 	}
 
 
-func _container_in_array(arr: Array[Node], target: Node) -> bool:
+func _container_in_array(arr: Array, target: Node) -> bool:
 	for c in arr:
 		if c.get_instance_id() == target.get_instance_id():
 			return true
@@ -136,7 +141,7 @@ func _process_network(network: Dictionary) -> bool:
 				pipe.network_state = 0
 		return false
 
-	var candidates: Array[Node] = []
+	var candidates: Array = []
 	var total_space: int = 0
 	for container in containers:
 		var space: int = container.max_capacity - container.capacity
@@ -160,7 +165,6 @@ func _process_network(network: Dictionary) -> bool:
 	var per := to_distribute / candidates.size()
 	var extra := to_distribute % candidates.size()
 
-	var bm := get_parent()
 	for i in range(candidates.size()):
 		var container := candidates[i] as ContainerNode
 		var amount := per
@@ -191,6 +195,5 @@ func _process_network(network: Dictionary) -> bool:
 
 
 func _sync_building_data(node: Node) -> void:
-	var bm = get_parent()
-	if bm != null and bm.has_method("has_building") and bm.buildings.has(node.grid_position):
-		bm.buildings[node.grid_position].capacity = node.capacity
+	if _building_manager != null and _building_manager.buildings.has(node.grid_position):
+		_building_manager.buildings[node.grid_position].capacity = node.capacity

@@ -2,6 +2,9 @@ class_name BuildingManager
 extends Node2D
 
 var buildings: Dictionary = {} # key: Vector2i, value: BuildingData
+var _building_nodes: Dictionary = {} # key: Vector2i, value: Node2D
+var fluid_pipes: Array = [] # Array[PipeNode]
+var fluid_sources: Array = [] # Array[WaterSourceNode]
 var ghost_cells: Array[Vector2i] = []
 var remove_ghost_cells: Array[Vector2i] = []
 var selected_cells: Array[Vector2i] = []
@@ -10,7 +13,7 @@ var paste_ghost_types: Dictionary = {}
 var select_ghost_cells: Array[Vector2i] = []
 var deselect_ghost_cells: Array[Vector2i] = []
 
-const _WaterSourceScript = preload("res://scripts/building/water_source_node.gd")
+
 
 func _ready() -> void:
 	EventBus.selection_changed.connect(_on_selection_changed)
@@ -38,12 +41,15 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 	var node_name := get_building_node_name(grid_pos)
 	var world_pos := GridCoordinate.grid_to_world(grid_pos)
 
+	var building_node: Node2D
+
 	if building_type == GameConfig.container_type_id:
 		var container := ContainerNode.new()
 		container.name = node_name
 		container.global_position = world_pos
 		container.grid_position = grid_pos
 		add_child(container)
+		building_node = container
 		data.capacity = container.capacity
 		data.max_capacity = container.max_capacity
 	elif building_type == GameConfig.pipe_type_id:
@@ -52,12 +58,14 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 		pipe.global_position = world_pos
 		pipe.grid_position = grid_pos
 		add_child(pipe)
+		building_node = pipe
 	elif building_type == GameConfig.water_source_type_id:
-		var source = _WaterSourceScript.new()
+		var source := WaterSourceNode.new()
 		source.name = node_name
 		source.global_position = world_pos
 		source.grid_position = grid_pos
 		add_child(source)
+		building_node = source
 	else:
 		var idx := 0
 		if building_type.begins_with("type_"):
@@ -66,6 +74,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 		placeholder.name = node_name
 		placeholder.global_position = world_pos
 		placeholder.set_meta("building_type", building_type)
+		building_node = placeholder
 		var half_size := GameConfig.building_size / 2.0
 		var box := ColorRect.new()
 		box.size = Vector2(GameConfig.building_size, GameConfig.building_size)
@@ -91,11 +100,15 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 		data.capacity = capacity
 		if max_capacity >= 0:
 			data.max_capacity = max_capacity
-		var node := get_node_or_null(node_name)
-		if BuildingData.is_fluid_storage_building(node):
-			node.capacity = data.capacity
-			node.max_capacity = data.max_capacity
+		if BuildingData.is_fluid_storage_building(building_node):
+			building_node.max_capacity = data.max_capacity
+			building_node.capacity = data.capacity
 
+	_building_nodes[grid_pos] = building_node
+	if building_node is PipeNode:
+		fluid_pipes.append(building_node)
+	elif building_node is WaterSourceNode:
+		fluid_sources.append(building_node)
 	buildings[grid_pos] = data
 	EventBus.building_placed.emit(grid_pos)
 	_refresh_pipe_connections(grid_pos)
@@ -114,6 +127,12 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	elif node:
 		node.queue_free()
 
+	var node_to_remove = _building_nodes.get(grid_pos)
+	if node_to_remove is PipeNode:
+		fluid_pipes.erase(node_to_remove)
+	elif node_to_remove is WaterSourceNode:
+		fluid_sources.erase(node_to_remove)
+	_building_nodes.erase(grid_pos)
 	buildings.erase(grid_pos)
 	EventBus.building_removed.emit(grid_pos)
 	_refresh_pipe_connections(grid_pos)
@@ -198,86 +217,51 @@ func _get_building_color(building_type: String) -> Color:
 			return Color.from_hsv(float(idx - 1) / 10.0, 0.7, 0.9)
 	return GameConfig.building_default_color
 
+func _draw_cell_highlight(cells: Array[Vector2i], fill_color: Color, border_color: Color, use_building_size: bool = false, border_width: float = 2.0) -> void:
+	var cell_size := GameConfig.building_size if use_building_size else GameConfig.cell_size
+	var half_size := cell_size / 2.0
+	for grid_pos in cells:
+		var world_pos := GridCoordinate.grid_to_world(grid_pos)
+		var rect := Rect2(world_pos - Vector2(half_size, half_size), Vector2(cell_size, cell_size))
+		draw_rect(rect, fill_color, true)
+		draw_rect(rect, border_color, false, border_width)
+
 func _draw() -> void:
 	if not ghost_cells.is_empty():
-		var building_size := GameConfig.building_size
-		var half_size := building_size / 2.0
 		var ghost_fill := Color(1, 1, 1, GameConfig.ghost_alpha)
-		var ghost_border := Color.WHITE
-
+		var filtered_cells: Array[Vector2i] = []
 		for grid_pos in ghost_cells:
-			if has_building(grid_pos):
-				continue
-			var world_pos := GridCoordinate.grid_to_world(grid_pos)
-			var rect := Rect2(world_pos - Vector2(half_size, half_size), Vector2(building_size, building_size))
-			draw_rect(rect, ghost_fill, true)
-			draw_rect(rect, ghost_border, false, 2.0)
+			if not has_building(grid_pos):
+				filtered_cells.append(grid_pos)
+		_draw_cell_highlight(filtered_cells, ghost_fill, Color.WHITE, true, 2.0)
 
 	if not remove_ghost_cells.is_empty():
-		var cell_size := GameConfig.cell_size
-		var half_cell := cell_size / 2.0
-		var remove_fill := Color(1, 0, 0, GameConfig.remove_ghost_alpha)
-		var remove_border := Color.RED
-
-		for grid_pos in remove_ghost_cells:
-			var world_pos := GridCoordinate.grid_to_world(grid_pos)
-			var rect := Rect2(world_pos - Vector2(half_cell, half_cell), Vector2(cell_size, cell_size))
-			draw_rect(rect, remove_fill, true)
-			draw_rect(rect, remove_border, false, 2.0)
+		_draw_cell_highlight(remove_ghost_cells, Color(1, 0, 0, GameConfig.remove_ghost_alpha), Color.RED, false, 2.0)
 
 	if not select_ghost_cells.is_empty():
-		var cell_size := GameConfig.cell_size
-		var half_cell := cell_size / 2.0
-		var fill := GameConfig.selection_highlight_color
-		var border := GameConfig.selection_border_color
-		for grid_pos in select_ghost_cells:
-			var world_pos := GridCoordinate.grid_to_world(grid_pos)
-			var rect := Rect2(world_pos - Vector2(half_cell, half_cell), Vector2(cell_size, cell_size))
-			draw_rect(rect, fill, true)
-			draw_rect(rect, border, false, 2.0)
+		_draw_cell_highlight(select_ghost_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
 
 	if not deselect_ghost_cells.is_empty():
-		var cell_size := GameConfig.cell_size
-		var half_cell := cell_size / 2.0
-		var fill := Color(0.6, 0.2, 0.2, 0.3)
-		var border := Color(0.6, 0.2, 0.2, 0.8)
-		for grid_pos in deselect_ghost_cells:
-			var world_pos := GridCoordinate.grid_to_world(grid_pos)
-			var rect := Rect2(world_pos - Vector2(half_cell, half_cell), Vector2(cell_size, cell_size))
-			draw_rect(rect, fill, true)
-			draw_rect(rect, border, false, 2.0)
+		_draw_cell_highlight(deselect_ghost_cells, Color(0.6, 0.2, 0.2, 0.3), Color(0.6, 0.2, 0.2, 0.8), false, 2.0)
 
 	if not selected_cells.is_empty():
-		var cell_size := GameConfig.cell_size
-		var half_cell := cell_size / 2.0
-		var fill := GameConfig.selection_highlight_color
-		var border := GameConfig.selection_border_color
-		for grid_pos in selected_cells:
-			var world_pos := GridCoordinate.grid_to_world(grid_pos)
-			var rect := Rect2(world_pos - Vector2(half_cell, half_cell), Vector2(cell_size, cell_size))
-			draw_rect(rect, fill, true)
-			draw_rect(rect, border, false, 2.0)
+		_draw_cell_highlight(selected_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
 
 	if not paste_ghost_cells.is_empty():
-		var building_size := GameConfig.building_size
-		var half_size := building_size / 2.0
 		var alpha := GameConfig.paste_ghost_alpha
 		for grid_pos in paste_ghost_cells:
-			var world_pos := GridCoordinate.grid_to_world(grid_pos)
-			var rect := Rect2(world_pos - Vector2(half_size, half_size), Vector2(building_size, building_size))
 			var building_type: String = paste_ghost_types.get(grid_pos, "default")
 			var color := _get_building_color(building_type)
 			color.a = alpha
-			draw_rect(rect, color, true)
 			var border_color := color
 			border_color.a = minf(alpha + 0.35, 1.0)
-			draw_rect(rect, border_color, false, 2.0)
+			_draw_cell_highlight([grid_pos], color, border_color, true, 2.0)
 
 static func get_building_node_name(grid_pos: Vector2i) -> String:
 	return "Building_%d_%d" % [grid_pos.x, grid_pos.y]
 
 func get_building_node(grid_pos: Vector2i) -> Node:
-	return get_node_or_null(get_building_node_name(grid_pos))
+	return _building_nodes.get(grid_pos) as Node
 
 static func get_line_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []

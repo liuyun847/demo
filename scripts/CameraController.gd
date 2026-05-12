@@ -3,8 +3,6 @@ extends Camera2D
 @export var move_speed: float = 200.0 # 移动速度（像素/秒）
 
 func _ready() -> void:
-	set_process_input(true)
-	set_process(true)
 	# 初始化缩放
 	zoom = Vector2(1.0, 1.0)
 
@@ -20,6 +18,8 @@ func _input(event: InputEvent) -> void:
 func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
 	var view_size = get_viewport().get_visible_rect().size
 	var center = view_size / 2.0
+	if screen_pos == Vector2.ZERO:
+		screen_pos = center
 	var world_pos = (screen_pos - center) / zoom + global_position
 	zoom *= factor
 	zoom = Vector2(clamp(zoom.x, 0.01, 100.0), clamp(zoom.y, 0.01, 100.0)) # 限制最小缩放防止除以0

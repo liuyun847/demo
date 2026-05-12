@@ -23,8 +23,8 @@ func _ready() -> void:
 	add_to_group("pipe")
 
 func refresh_connections() -> void:
-	var bm := get_parent()
-	if bm == null or not bm.has_method("has_building"):
+	var bm := get_parent() as BuildingManager
+	if bm == null:
 		return
 
 	var my_pos := grid_position

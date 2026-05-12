@@ -9,7 +9,8 @@ extends FluidNodeBase
 @export var max_capacity: int = 100:
 	set(value):
 		max_capacity = maxi(value, 1)
-		capacity = mini(capacity, max_capacity)
+		if capacity > max_capacity:
+			capacity = max_capacity
 		queue_redraw()
 
 

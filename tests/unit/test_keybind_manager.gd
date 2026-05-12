@@ -144,6 +144,7 @@ func test_serialize_deserialize_joypad_button_roundtrip():
 	original.device = 0
 	var serialized = KeybindManager._serialize_event(original)
 	var deserialized = KeybindManager._deserialize_event(serialized)
+	assert_not_null(deserialized, "反序列化结果不应为 null")
 	if deserialized:
 		assert_eq(deserialized.button_index, original.button_index)
 		assert_eq(deserialized.device, original.device)
