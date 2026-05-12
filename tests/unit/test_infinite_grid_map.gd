@@ -43,3 +43,32 @@ func test_unload_block_removes_from_dictionary():
 	assert_true(_grid_map.loaded_blocks.has(Vector2i(1, 1)), "加载后应存在")
 	_grid_map.unload_block(Vector2i(1, 1))
 	assert_false(_grid_map.loaded_blocks.has(Vector2i(1, 1)), "卸载后应移除")
+
+func test_get_visible_block_range_returns_dict():
+	var result = _grid_map.get_visible_block_range()
+	assert_has(result, "start_x", "返回值应包含 start_x")
+	assert_has(result, "end_x", "返回值应包含 end_x")
+	assert_has(result, "start_y", "返回值应包含 start_y")
+	assert_has(result, "end_y", "返回值应包含 end_y")
+
+func test_visible_range_keys_have_correct_types():
+	var result = _grid_map.get_visible_block_range()
+	assert_true(result.start_x is int, "start_x 应为 int")
+	assert_true(result.end_x is int, "end_x 应为 int")
+	assert_true(result.start_y is int, "start_y 应为 int")
+	assert_true(result.end_y is int, "end_y 应为 int")
+
+func test_update_visible_blocks_loads_blocks():
+	_grid_map.loaded_blocks.clear()
+	_grid_map.update_visible_blocks()
+	assert_true(_grid_map.loaded_blocks.size() > 0, "update_visible_blocks 后 loaded_blocks 应非空")
+
+func test_get_visible_block_range_no_camera():
+	var original_camera = _grid_map.get_viewport().get_camera_2d()
+	if original_camera:
+		original_camera.enabled = false
+	var result = _grid_map.get_visible_block_range()
+	assert_eq(result.start_x, 0, "无相机时 start_x 应为 0")
+	assert_eq(result.end_x, 0, "无相机时 end_x 应为 0")
+	assert_eq(result.start_y, 0, "无相机时 start_y 应为 0")
+	assert_eq(result.end_y, 0, "无相机时 end_y 应为 0")

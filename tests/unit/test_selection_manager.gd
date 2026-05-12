@@ -44,3 +44,34 @@ func test_paste_mode_start_and_cancel():
 	assert_true(SelectionManager.is_paste_mode, "start_paste_mode 应激活粘贴模式")
 	SelectionManager.cancel_paste_mode()
 	assert_false(SelectionManager.is_paste_mode, "cancel_paste_mode 应退出粘贴模式")
+
+func test_copy_empty_selection():
+	SelectionManager.selected_cells.clear()
+	SelectionManager.clipboard = {}
+	SelectionManager.copy_selection()
+	assert_eq(SelectionManager.clipboard, {}, "空选择时 copy_selection 不应改变剪贴板")
+
+func test_cut_empty_selection():
+	var original_clipboard = SelectionManager.clipboard.duplicate(true)
+	SelectionManager.selected_cells.clear()
+	SelectionManager.cut_selection()
+	assert_eq(SelectionManager.clipboard, original_clipboard, "空选择时 cut_selection 不应改变剪贴板")
+
+func test_start_paste_empty_clipboard():
+	SelectionManager.clipboard = {}
+	SelectionManager.start_paste_mode()
+	assert_false(SelectionManager.is_paste_mode, "空剪贴板时 start_paste_mode 不应激活粘贴模式")
+
+func test_perform_paste_no_clipboard():
+	SelectionManager.clipboard = {}
+	SelectionManager.is_paste_mode = true
+	SelectionManager.perform_paste(Vector2i(0, 0))
+	assert_true(SelectionManager.is_paste_mode, "空剪贴板时 perform_paste 不应退出粘贴模式（因无 building_manager）")
+
+func test_cancel_paste_emits_signal():
+	watch_signals(EventBus)
+	SelectionManager.clipboard = {"buildings": [{"offset": Vector2i(0, 0), "type": "type_01"}]}
+	SelectionManager.start_paste_mode()
+	assert_true(SelectionManager.is_paste_mode, "应进入粘贴模式")
+	SelectionManager.cancel_paste_mode()
+	assert_signal_emitted(EventBus, "paste_mode_changed", "cancel_paste_mode 应发射 paste_mode_changed 信号")
