@@ -75,8 +75,8 @@ func test_source_to_two_containers_even_split():
 
 	_coordinator._on_tick()
 
-	assert_eq(container_a.capacity, 15, "30 应均分给两个容器，各得 15")
-	assert_eq(container_b.capacity, 15, "30 应均分给两个容器，各得 15")
+	assert_eq(container_a.capacity, 30, "水源通过管道应只给直接相邻的容器A分配全部水量")
+	assert_eq(container_b.capacity, 0, "容器B不直接相邻水源/管道，不应接收水")
 
 
 func test_three_containers_with_remainder():
@@ -94,13 +94,9 @@ func test_three_containers_with_remainder():
 	var source = _bm.get_node("Building_0_0")
 	_coordinator._on_tick()
 
-	var total = 0
-	for c in containers:
-		total += c.capacity
-	assert_eq(total, source.output_per_tick, "总分配量应等于水源产出")
-	var per: int = source.output_per_tick / containers.size()
-	for c in containers:
-		assert_true(c.capacity >= per - 1 and c.capacity <= per + 1, "各容器容量相差不应超过 1")
+	assert_eq(containers[1].capacity, 30, "只有直接相邻水源/管道的容器2应接收全部水量")
+	assert_eq(containers[0].capacity, 0, "不直接相邻水源/管道的容器不应接收水")
+	assert_eq(containers[2].capacity, 0, "不直接相邻水源/管道的容器不应接收水")
 
 
 func test_output_per_tick_constraint():
@@ -185,6 +181,7 @@ func test_pipe_network_state_full():
 	container.capacity = container.max_capacity
 
 	_coordinator._on_tick()
+
 	assert_eq(pipe.network_state, 2, "有水源且所有容器已满时 network_state 应为 2")
 
 
@@ -233,3 +230,38 @@ func test_disconnected_networks():
 
 	assert_eq(container_a.capacity, source_a.output_per_tick, "网络 A 应正常分配产出")
 	assert_eq(container_b.capacity, source_b.output_per_tick, "网络 B 应正常分配产出")
+
+
+func test_container_to_container_no_direct_transfer():
+	# 水源 → 容器 → 容器：容器不能作为中继节点
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var container_a = _bm.get_node("Building_1_0")
+	var container_b = _bm.get_node("Building_2_0")
+	var source = _bm.get_node("Building_0_0")
+
+	_coordinator._on_tick()
+
+	assert_eq(container_a.capacity, source.output_per_tick, "水源直接相邻的容器应接收水")
+	assert_eq(container_b.capacity, 0, "不能通过容器向另一个容器传输水")
+
+
+func test_container_as_relay_is_blocked():
+	# 水源 → 容器 → 管道 → 容器：容器不能作为中继节点
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(3, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var container_first = _bm.get_node("Building_1_0")
+	var container_second = _bm.get_node("Building_3_0")
+	var source = _bm.get_node("Building_0_0")
+
+	_coordinator._on_tick()
+
+	assert_eq(container_first.capacity, source.output_per_tick, "水源直接相邻的容器应接收水")
+	assert_eq(container_second.capacity, 0, "管道不能通过容器间接连通水源")

@@ -6,6 +6,6 @@
     "include_subdirs": true,
     "prefix": "test_",
     "suffix": ".gd",
-    "log_level": 3,
+    "log_level": 0,
     "compact_mode": false
 }
