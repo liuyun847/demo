@@ -46,3 +46,53 @@ func test_zoom_at_position_changes_position():
 	var world_at_mouse = (Vector2(400, 300) - center) / expected_zoom + _camera.global_position
 	var expected_pos = Vector2(100, 100) + (Vector2(400, 300) - center) * (1.0 / 0.5 - 1.0)
 	assert_ne(_camera.global_position, Vector2(100, 100), "缩放后 position 应发生调整")
+
+func test_move_right():
+	var start_pos = _camera.position.x
+	Input.action_press("move_right")
+	_camera._process(1.0)
+	Input.action_release("move_right")
+	assert_true(_camera.position.x > start_pos, "按下 move_right 后 position.x 应增大")
+
+func test_move_left():
+	var start_pos = _camera.position.x
+	Input.action_press("move_left")
+	_camera._process(1.0)
+	Input.action_release("move_left")
+	assert_true(_camera.position.x < start_pos, "按下 move_left 后 position.x 应减小")
+
+func test_move_down():
+	var start_pos = _camera.position.y
+	Input.action_press("move_down")
+	_camera._process(1.0)
+	Input.action_release("move_down")
+	assert_true(_camera.position.y > start_pos, "按下 move_down 后 position.y 应增大")
+
+func test_move_up():
+	var start_pos = _camera.position.y
+	Input.action_press("move_up")
+	_camera._process(1.0)
+	Input.action_release("move_up")
+	assert_true(_camera.position.y < start_pos, "按下 move_up 后 position.y 应减小")
+
+func test_move_with_speed_up():
+	_camera.position = Vector2.ZERO
+	var original_mult = GameConfig.shift_speed_multiplier
+	GameConfig.shift_speed_multiplier = 3.0
+	Input.action_press("move_right")
+	Input.action_press("speed_up")
+	_camera._process(1.0)
+	Input.action_release("speed_up")
+	Input.action_release("move_right")
+	assert_gt(_camera.position.x, _camera.move_speed * 0.5, "加速后移动距离应大于普通速度的一半")
+	GameConfig.shift_speed_multiplier = original_mult
+
+func test_move_zoomed_in():
+	_camera.position = Vector2.ZERO
+	_camera.zoom = Vector2(0.5, 0.5)
+	var move_speed = _camera.move_speed
+	Input.action_press("move_right")
+	_camera._process(1.0)
+	Input.action_release("move_right")
+	var expected_speed = move_speed / 0.5
+	assert_gt(_camera.position.x, move_speed * 0.5, "缩放 0.5 倍时移动速度应更快")
