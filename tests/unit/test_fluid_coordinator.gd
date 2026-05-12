@@ -249,8 +249,8 @@ func test_container_to_container_no_direct_transfer():
 	assert_eq(container_b.capacity, 0, "不能通过容器向另一个容器传输水")
 
 
-func test_container_as_relay_is_blocked():
-	# 水源 → 容器 → 管道 → 容器：容器不能作为中继节点
+func test_container_pipe_continues_to_downstream_container():
+	# 水源 → 容器 → 管道 → 容器：容器不阻断传播，管道可从容器继续传输
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
@@ -263,5 +263,5 @@ func test_container_as_relay_is_blocked():
 
 	_coordinator._on_tick()
 
-	assert_eq(container_first.capacity, source.output_per_tick, "水源直接相邻的容器应接收水")
-	assert_eq(container_second.capacity, 0, "管道不能通过容器间接连通水源")
+	assert_eq(container_first.capacity, source.output_per_tick / 2, "水源直接相邻的容器应接收水")
+	assert_eq(container_second.capacity, source.output_per_tick / 2, "管道可从容器继续传输，下游容器应接收均分的水")

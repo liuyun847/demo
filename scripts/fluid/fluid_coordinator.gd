@@ -68,9 +68,13 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 			sources.append(node)
 		elif node is PipeNode:
 			pipes.append(node)
+		elif node is ContainerNode:
+			if not _container_in_array(containers, node):
+				containers.append(node)
 
-		# 只有水源和管道节点才进行邻居扩展，容器不作为传播节点
-		if not (node is WaterSourceNode or node is PipeNode):
+		# 容器、水源和管道都可以扩展邻居，容器可以穿过发现下游管道/水源
+		# 但容器扩展时只发现管道/水源，不发现其他容器（防止相邻容器直接传输）
+		if not (node is WaterSourceNode or node is PipeNode or node is ContainerNode):
 			continue
 
 		var dirs = GridCoordinate.DIR_4
@@ -90,6 +94,10 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 			if neighbor == null:
 				continue
 
+			# 容器只发现管道/水源，不发现其他容器（防止相邻容器直接传输）
+			if node is ContainerNode and neighbor is ContainerNode:
+				continue
+
 			if neighbor is WaterSourceNode or neighbor is PipeNode:
 				if neighbor is PipeNode:
 					var neighbor_pipe := neighbor as PipeNode
@@ -100,12 +108,16 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 				if not visited.has(neighbor.get_instance_id()):
 					visited[neighbor.get_instance_id()] = true
 					queue.append(neighbor)
+			elif neighbor is ContainerNode and node is ContainerNode:
+				# 容器扩展时不允许发现其他容器（防止相邻容器直接传输）
+				pass
 			elif neighbor is ContainerNode:
+				# 水源/管道发现容器：记录并加入队列（容器入队后可扩展发现下游管道/水源）
 				if not _container_in_array(containers, neighbor):
 					containers.append(neighbor)
-					if not visited.has(neighbor.get_instance_id()):
-						visited[neighbor.get_instance_id()] = true
-						queue.append(neighbor)
+				if not visited.has(neighbor.get_instance_id()):
+					visited[neighbor.get_instance_id()] = true
+					queue.append(neighbor)
 
 	return {
 		"sources": sources,
@@ -176,7 +188,7 @@ func _process_network(network: Dictionary) -> bool:
 		return false
 
 	# 构建 fluid_positions：只包含 BFS 发现的网络节点
-	var fluid_positions: Dictionary = {}  # Vector2i -> Node
+	var fluid_positions: Dictionary = {} # Vector2i -> Node
 	for src in sources:
 		if src is WaterSourceNode:
 			fluid_positions[src.grid_position] = src
