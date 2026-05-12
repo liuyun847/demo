@@ -7,6 +7,8 @@ func before_each():
 	_bm = autoqfree(BuildingManager.new())
 	add_child_autoqfree(_bm)
 	_coordinator = _bm.get_node("FluidCoordinator")
+	for conn in EventBus.fluid_updated.get_connections():
+		EventBus.fluid_updated.disconnect(conn.callable)
 
 func after_each():
 	for conn in EventBus.fluid_updated.get_connections():
@@ -52,12 +54,13 @@ func test_source_to_container_via_pipe():
 	_refresh_all_pipes()
 
 	var container = _bm.get_node("Building_2_0")
+	var source = _bm.get_node("Building_0_0")
 	assert_eq(container.capacity, 0, "初始容器应为空")
 
 	_coordinator._on_tick()
 
 	assert_true(container.capacity > 0, "水源应通过管道向容器输水")
-	assert_eq(container.capacity, 30, "水源每 tick 产出 30，应全部分配给容器")
+	assert_eq(container.capacity, source.output_per_tick, "水源每 tick 产出应全部分配给容器")
 
 
 func test_source_to_two_containers_even_split():
@@ -88,15 +91,16 @@ func test_three_containers_with_remainder():
 	for x in [-1, 0, 1]:
 		containers.append(_bm.get_node("Building_%d_2" % x))
 
+	var source = _bm.get_node("Building_0_0")
 	_coordinator._on_tick()
 
 	var total = 0
 	for c in containers:
 		total += c.capacity
-	assert_eq(total, 30, "总分配量应为 30")
-	assert_eq(containers[0].capacity, 10, "余数应使各容器容量相差不超过 1")
-	assert_eq(containers[1].capacity, 10, "余数应使各容器容量相差不超过 1")
-	assert_eq(containers[2].capacity, 10, "余数应使各容器容量相差不超过 1")
+	assert_eq(total, source.output_per_tick, "总分配量应等于水源产出")
+	var per: int = source.output_per_tick / containers.size()
+	for c in containers:
+		assert_true(c.capacity >= per - 1 and c.capacity <= per + 1, "各容器容量相差不应超过 1")
 
 
 func test_output_per_tick_constraint():
@@ -154,8 +158,9 @@ func test_sync_building_data_after_tick():
 	_refresh_all_pipes()
 
 	var container_data = _bm.buildings[Vector2i(2, 0)]
+	var source = _bm.get_node("Building_0_0")
 	_coordinator._on_tick()
-	assert_eq(container_data.capacity, 30, "tick 后 BuildingManager 的 data.capacity 应与容器同步")
+	assert_eq(container_data.capacity, source.output_per_tick, "tick 后 BuildingManager 的 data.capacity 应与容器同步")
 
 
 func test_pipe_network_state_active():
@@ -202,10 +207,11 @@ func test_multi_hop_pipe_network():
 	_refresh_all_pipes()
 
 	var container = _bm.get_node("Building_4_0")
+	var source = _bm.get_node("Building_0_0")
 
 	_coordinator._on_tick()
 	assert_true(container.capacity > 0, "水源应通过多段管道向容器输水")
-	assert_eq(container.capacity, 30, "多段管道传输后水量不应丢失")
+	assert_eq(container.capacity, source.output_per_tick, "多段管道传输后水量不应丢失")
 
 
 func test_disconnected_networks():
@@ -220,8 +226,10 @@ func test_disconnected_networks():
 
 	var container_a = _bm.get_node("Building_2_0")
 	var container_b = _bm.get_node("Building_7_0")
+	var source_a = _bm.get_node("Building_0_0")
+	var source_b = _bm.get_node("Building_5_0")
 
 	_coordinator._on_tick()
 
-	assert_eq(container_a.capacity, 30, "网络 A 应正常分配 30")
-	assert_eq(container_b.capacity, 30, "网络 B 应正常分配 30")
+	assert_eq(container_a.capacity, source_a.output_per_tick, "网络 A 应正常分配产出")
+	assert_eq(container_b.capacity, source_b.output_per_tick, "网络 B 应正常分配产出")

@@ -32,7 +32,7 @@ func test_undo_stack_max_size():
 		cmd.type = UndoCommand.Type.PLACE
 		cmd.buildings = {Vector2i(i, 0): "type_01"}
 		SelectionManager.push_undo_command(cmd)
-	assert_true(SelectionManager.undo_stack.size() <= 100, "撤销栈不应超过 100 个")
+	assert_eq(SelectionManager.undo_stack.size(), 100, "撤销栈大小应被限制为 100")
 
 func test_paste_mode_default():
 	assert_false(SelectionManager.is_paste_mode, "默认不应处于粘贴模式")

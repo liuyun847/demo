@@ -145,7 +145,8 @@ func _get_fallback_name(_node: Node) -> String:
 	return "建筑"
 
 func _process(_delta: float) -> void:
-	if _target_node == null or not is_visible_in_tree():
+	if not is_instance_valid(_target_node) or not is_visible_in_tree():
+		_target_node = null
 		return
 
 	var viewport := get_viewport()

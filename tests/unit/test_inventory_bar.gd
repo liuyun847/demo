@@ -63,4 +63,8 @@ func test_deselect_signal_emitted():
 	assert_signal_emitted(_bar, "slot_selected", "取消选中时应发射 slot_selected 信号")
 
 func test_slots_created_in_ready():
-	assert_eq(_bar.get_child_count(), 11, "_ready 后应有 11 个子节点（10 个槽位 + 1 个 ModeIndicator）")
+	var slot_count := 0
+	for child in _bar.get_children():
+		if child is InventorySlot:
+			slot_count += 1
+	assert_eq(slot_count, 10, "_ready 后应有 10 个 InventorySlot 子节点")

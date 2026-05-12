@@ -5,7 +5,6 @@ var block_pixel_size: int = 0
 
 func _ready() -> void:
 	block_pixel_size = GameConfig.cell_size * GameConfig.big_cell_size
-	set_process(true)
 	update_visible_blocks()
 	queue_redraw()
 
@@ -83,12 +82,8 @@ func _draw() -> void:
 				var line_y = block_offset.y + y * GameConfig.cell_size
 				draw_line(Vector2(block_offset.x, line_y), Vector2(block_offset.x + block_pixel_size, line_y), GameConfig.line_color, adjusted_thin_width)
 		
-		draw_line(Vector2(block_offset.x + block_pixel_size, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y + block_pixel_size), GameConfig.line_color, adjusted_thick_width)
-		draw_line(Vector2(block_offset.x, block_offset.y + block_pixel_size), Vector2(block_offset.x + block_pixel_size, block_offset.y + block_pixel_size), GameConfig.line_color, adjusted_thick_width)
-		
-		if block_x == 0 and block_y == 0:
-			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x, block_offset.y + block_pixel_size), GameConfig.line_color, adjusted_thick_width)
-			draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), GameConfig.line_color, adjusted_thick_width)
+		draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x, block_offset.y + block_pixel_size), GameConfig.line_color, adjusted_thick_width)
+		draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), GameConfig.line_color, adjusted_thick_width)
 	
 	var marker_size = GameConfig.cell_size * 2
 	var marker_half = marker_size / 2.0

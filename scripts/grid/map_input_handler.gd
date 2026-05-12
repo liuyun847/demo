@@ -1,7 +1,7 @@
 extends Node
 
-@onready var building_manager: BuildingManager = get_node("../BuildingManager")
-@onready var inventory_bar: InventoryBar = get_node("../UIOverlay/InventoryBar")
+@export var building_manager: BuildingManager = null
+@export var inventory_bar: InventoryBar = null
 
 enum InteractionMode {NONE, PLACE, REMOVE, SELECT, DESELECT, PASTE}
 var _current_mode: InteractionMode = InteractionMode.NONE

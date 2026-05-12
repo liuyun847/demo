@@ -22,7 +22,9 @@ func test_load_block():
 
 func test_unload_block():
 	_grid_map.load_block(Vector2i(10, 20))
+	var block_node = _grid_map.get_node_or_null("Block_10_20")
 	assert_true(_grid_map.loaded_blocks.has(Vector2i(10, 20)), "卸载前应包含 (10, 20)")
+	assert_true(block_node == null or block_node.is_inside_tree(), "区块节点应有效")
 	_grid_map.unload_block(Vector2i(10, 20))
 	assert_false(_grid_map.loaded_blocks.has(Vector2i(10, 20)), "卸载后不应包含 (10, 20)")
 

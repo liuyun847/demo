@@ -51,10 +51,12 @@ var save_file_path: String = ""
 var keybind_file_path: String = ""
 var game_settings_file_path: String = ""
 
-func _ready() -> void:
+func _init() -> void:
 	_update_save_path()
 	_update_keybind_path()
 	_update_game_settings_path()
+
+func _ready() -> void:
 	load_game_settings()
 
 func _get_config_file_path(file_name: String) -> String:

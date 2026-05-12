@@ -4,9 +4,6 @@ extends FluidNodeBase
 var output_per_tick: int = 30
 var remaining_output: int = 0
 
-var capacity: int = 0
-var max_capacity: int = 0
-
 func _ready() -> void:
 	add_to_group("water_source")
 

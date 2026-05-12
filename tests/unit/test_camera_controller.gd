@@ -37,9 +37,12 @@ func test_zoom_preserves_aspect_ratio():
 	assert_eq(_camera.zoom.x, _camera.zoom.y, "zoom.x 应等于 zoom.y")
 
 func test_zoom_at_position_changes_position():
-	var original_pos = _camera.global_position
+	_camera.global_position = Vector2(100, 100)
 	_camera.zoom_at_position(Vector2(400, 300), 0.5)
-	if _camera.global_position != original_pos:
-		assert_true(true, "缩放后 position 应发生调整以保持鼠标位置不变")
-	else:
-		assert_true(true, "在原点缩放时 position 可能不变")
+	var expected_zoom = Vector2(0.5, 0.5)
+	assert_eq(_camera.zoom, expected_zoom, "缩放后 zoom 应为 0.5")
+	var view_size = get_viewport().get_visible_rect().size
+	var center = view_size / 2.0
+	var world_at_mouse = (Vector2(400, 300) - center) / expected_zoom + _camera.global_position
+	var expected_pos = Vector2(100, 100) + (Vector2(400, 300) - center) * (1.0 / 0.5 - 1.0)
+	assert_ne(_camera.global_position, Vector2(100, 100), "缩放后 position 应发生调整")

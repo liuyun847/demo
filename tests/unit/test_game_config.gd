@@ -15,6 +15,10 @@ func test_block_pixel_size():
 	assert_eq(GameConfig.get_block_pixel_size(), expected, "get_block_pixel_size 应为 cell_size * big_cell_size")
 
 func test_save_and_load_settings():
+	var original_save_path = GameConfig.game_settings_file_path
+	GameConfig.game_settings_file_path = "res://save/test_game_settings.json"
+
+	_cleanup_test_settings()
 	var original_zoom = GameConfig.zoom_speed
 	var original_shift = GameConfig.shift_speed_multiplier
 
@@ -32,3 +36,10 @@ func test_save_and_load_settings():
 	GameConfig.zoom_speed = original_zoom
 	GameConfig.shift_speed_multiplier = original_shift
 	GameConfig.save_game_settings()
+
+	_cleanup_test_settings()
+	GameConfig.game_settings_file_path = original_save_path
+
+func _cleanup_test_settings() -> void:
+	if FileAccess.file_exists("res://save/test_game_settings.json"):
+		DirAccess.remove_absolute("res://save/test_game_settings.json")

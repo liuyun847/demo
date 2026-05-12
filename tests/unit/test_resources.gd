@@ -1,5 +1,12 @@
 extends GutTest
 
+const _FluidNodeBase = preload("res://scripts/building/fluid_node_base.gd")
+const _ContainerNode = preload("res://scripts/building/container_node.gd")
+const _PipeNodeScript = preload("res://scripts/building/pipe_node.gd")
+const _WaterSourceNodeScript = preload("res://scripts/building/water_source_node.gd")
+const _BuildingData = preload("res://scripts/resources/building_data.gd")
+const _BM = preload("res://scripts/building/building_manager.gd")
+
 func test_building_data_creation():
 	var data = BuildingData.new()
 	data.grid_position = Vector2i(3, 5)
@@ -75,7 +82,7 @@ func test_undo_command_reverse_adds_building():
 		Vector2i(10, 20): "type_01"
 	}
 
-	var bm = autoqfree(BuildingManager.new())
+	var bm = autoqfree(_BM.new() as BuildingManager)
 	add_child_autoqfree(bm)
 	cmd.reverse(bm)
 	assert_true(bm.has_building(Vector2i(10, 20)), "reverse 应在指定位置放置建筑")
