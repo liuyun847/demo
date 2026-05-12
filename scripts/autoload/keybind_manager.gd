@@ -144,6 +144,9 @@ func save_keybindings() -> void:
 		if not InputMap.has_action(action):
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
+		# 设计意图：每个动作只保存第一个按键绑定
+		# 整个系统采用"一个动作一个按键"的简化设计
+		# remap_action() 和 _apply_default_keybindings() 均只设置单个事件
 		if events.size() > 0:
 			keybind_data.keybindings[action] = [_serialize_event(events[0])]
 
