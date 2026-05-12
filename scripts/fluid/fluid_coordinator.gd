@@ -108,9 +108,6 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 				if not visited.has(neighbor.get_instance_id()):
 					visited[neighbor.get_instance_id()] = true
 					queue.append(neighbor)
-			elif neighbor is ContainerNode and node is ContainerNode:
-				# 容器扩展时不允许发现其他容器（防止相邻容器直接传输）
-				pass
 			elif neighbor is ContainerNode:
 				# 水源/管道发现容器：记录并加入队列（容器入队后可扩展发现下游管道/水源）
 				if not _container_in_array(containers, neighbor):
