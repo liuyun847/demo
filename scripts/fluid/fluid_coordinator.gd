@@ -69,6 +69,10 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 		elif node is PipeNode:
 			pipes.append(node)
 
+		# 只有水源和管道节点才进行邻居扩展，容器不作为传播节点
+		if not (node is WaterSourceNode or node is PipeNode):
+			continue
+
 		var dirs = GridCoordinate.DIR_4
 
 		for dir_idx in 4:
@@ -117,14 +121,44 @@ func _container_in_array(arr: Array, target: Node) -> bool:
 	return false
 
 
+func _collect_direct_containers(all_containers: Array[Node], fluid_positions: Dictionary) -> Array[Node]:
+	"""
+	仅基于 BFS 发现的网络节点识别"直接相邻"容器：
+	- 遍历 all_containers，检查每个容器的邻居是否在 fluid_positions 中
+	- 邻居是水源 → 直接有效（水源不需要 connection_mask）
+	- 邻居是管道 → 需要 pipe.connection_mask 朝容器方向有连接
+	"""
+	var result: Array[Node] = []
+	var dirs = GridCoordinate.DIR_4
+
+	for container in all_containers:
+		var container_pos: Vector2i = container.grid_position
+		for dir_idx in 4:
+			var neighbor_pos: Vector2i = container_pos + dirs[dir_idx]
+			if not fluid_positions.has(neighbor_pos):
+				continue
+			var fluid_node: Node = fluid_positions[neighbor_pos]
+			if fluid_node is WaterSourceNode:
+				result.append(container)
+				break
+			if fluid_node is PipeNode:
+				var pipe_node: PipeNode = fluid_node as PipeNode
+				var opposite_dir: int = dir_idx ^ 2
+				if (pipe_node.connection_mask & (1 << opposite_dir)) != 0:
+					result.append(container)
+					break
+
+	return result
+
+
 func _process_network(network: Dictionary) -> bool:
 	var sources: Array[Node] = network.sources
 	var pipes: Array[Node] = network.pipes
-	var containers: Array[Node] = network.containers
+	var all_containers: Array[Node] = network.containers
 
 	var has_flow := false
 
-	if sources.is_empty() or containers.is_empty():
+	if sources.is_empty() or all_containers.is_empty():
 		for pipe in pipes:
 			if pipe is PipeNode:
 				pipe.network_state = 0
@@ -141,9 +175,21 @@ func _process_network(network: Dictionary) -> bool:
 				pipe.network_state = 0
 		return false
 
+	# 构建 fluid_positions：只包含 BFS 发现的网络节点
+	var fluid_positions: Dictionary = {}  # Vector2i -> Node
+	for src in sources:
+		if src is WaterSourceNode:
+			fluid_positions[src.grid_position] = src
+	for pipe in pipes:
+		if pipe is PipeNode:
+			fluid_positions[pipe.grid_position] = pipe
+
+	# 基于 BFS 网络节点识别直接相邻容器
+	var direct_containers: Array[Node] = _collect_direct_containers(all_containers, fluid_positions)
+
 	var candidates: Array = []
 	var total_space: int = 0
-	for container in containers:
+	for container in direct_containers:
 		var space: int = container.max_capacity - container.capacity
 		if space > 0:
 			candidates.append(container)
@@ -182,7 +228,7 @@ func _process_network(network: Dictionary) -> bool:
 			remaining -= deduct
 
 	var all_full := true
-	for container in containers:
+	for container in all_containers:
 		if container.capacity < container.max_capacity:
 			all_full = false
 			break

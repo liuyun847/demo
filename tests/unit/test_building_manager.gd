@@ -129,13 +129,13 @@ func test_remove_buildings_in_rect():
 	assert_eq(removed, 9, "应成功删除 9 个建筑")
 
 func test_ghost_show_and_hide():
-	_bm.show_ghost(Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 1)]))
+	_bm.show_ghost([Vector2i(0, 0), Vector2i(1, 1)] as Array[Vector2i])
 	assert_eq(_bm.ghost_cells.size(), 2, "ghost_cells 应有 2 个格子")
 	_bm.hide_ghost()
 	assert_true(_bm.ghost_cells.is_empty(), "隐藏后应为空")
 
 func test_remove_ghost_show_and_hide():
-	_bm.show_remove_ghost(Array[Vector2i]([Vector2i(2, 2), Vector2i(3, 3)]))
+	_bm.show_remove_ghost([Vector2i(2, 2), Vector2i(3, 3)] as Array[Vector2i])
 	assert_eq(_bm.remove_ghost_cells.size(), 2)
 	_bm.hide_remove_ghost()
 	assert_true(_bm.remove_ghost_cells.is_empty())
@@ -143,5 +143,5 @@ func test_remove_ghost_show_and_hide():
 func test_get_buildings_in_cells():
 	_bm.place_building(Vector2i(0, 0), "type_01")
 	_bm.place_building(Vector2i(0, 1), "type_02")
-	var result = _bm.get_buildings_in_cells(Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)]))
+	var result = _bm.get_buildings_in_cells([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)] as Array[Vector2i])
 	assert_eq(result.size(), 2, "应在 3 个格子中找到 2 个建筑")
