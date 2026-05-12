@@ -19,6 +19,10 @@ var _is_deselecting: bool = false
 var _last_hovered_grid: Vector2i = Vector2i(-99999, -99999)
 
 func _ready() -> void:
+	if not building_manager:
+		building_manager = %BuildingManager
+	if not inventory_bar:
+		inventory_bar = $"../UIOverlay/InventoryBar"
 	if inventory_bar:
 		inventory_bar.slot_selected.connect(_on_slot_selected)
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
