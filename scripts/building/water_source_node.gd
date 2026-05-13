@@ -11,6 +11,16 @@ func get_pressure() -> float:
 	return 1.0
 
 
+func reset_output() -> void:
+	remaining_output = output_per_tick
+
+
+func consume_output(amount: int) -> int:
+	var actual := mini(amount, remaining_output)
+	remaining_output -= actual
+	return actual
+
+
 func get_building_name() -> String:
 	return "水源"
 

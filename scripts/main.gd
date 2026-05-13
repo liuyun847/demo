@@ -16,6 +16,7 @@ func _enter_tree() -> void:
 	EventBus.show_settings_requested.connect(_on_show_settings_requested)
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	start_menu.hide()
 	settings_panel.hide()
 	inventory_bar.hide()
@@ -29,7 +30,12 @@ func _exit_tree() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		show_start_menu()
+		if settings_panel.visible:
+			show_start_menu()
+		elif start_menu.visible:
+			hide_start_menu()
+		else:
+			show_start_menu()
 		return
 	for i in SLOT_KEYS.size():
 		if event.is_action_pressed(SLOT_KEYS[i]):
@@ -49,7 +55,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 func _on_buildings_loaded() -> void:
-	show_start_menu.call_deferred()
+	if is_inside_tree():
+		show_start_menu.call_deferred()
 
 func _on_start_game_requested() -> void:
 	hide_start_menu()

@@ -15,8 +15,8 @@ func _ready() -> void:
 func _on_tick() -> void:
 	if not _building_manager:
 		return
-	var all_pipes: Array = _building_manager.fluid_pipes
-	var all_sources: Array = _building_manager.fluid_sources
+	var all_pipes: Array[PipeNode] = _building_manager.fluid_pipes
+	var all_sources: Array[WaterSourceNode] = _building_manager.fluid_sources
 	var all_network_nodes: Array = []
 	all_network_nodes.append_array(all_pipes)
 	all_network_nodes.append_array(all_sources)
@@ -52,9 +52,12 @@ func _on_tick() -> void:
 
 
 func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
+	if _building_manager == null:
+		return {"sources": [], "pipes": [], "containers": []}
 	var sources: Array[Node] = []
 	var pipes: Array[Node] = []
 	var containers: Array[Node] = []
+	var container_dict: Dictionary = {} # instance_id -> true，O(1)查找
 
 	var queue: Array[Node] = [start_node]
 	var head: int = 0
@@ -69,11 +72,15 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 		elif node is PipeNode:
 			pipes.append(node)
 		elif node is ContainerNode:
-			if not _container_in_array(containers, node):
+			if not container_dict.has(node.get_instance_id()):
+				container_dict[node.get_instance_id()] = true
 				containers.append(node)
 
 		# 容器、水源和管道都可以扩展邻居，容器可以穿过发现下游管道/水源
 		# 但容器扩展时只发现管道/水源，不发现其他容器（防止相邻容器直接传输）
+		# 满容器阻断传导，不扩展其邻居
+		if node is ContainerNode and node.capacity >= node.max_capacity:
+			continue
 		if not (node is WaterSourceNode or node is PipeNode or node is ContainerNode):
 			continue
 
@@ -110,7 +117,8 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 					queue.append(neighbor)
 			elif neighbor is ContainerNode:
 				# 水源/管道发现容器：记录并加入队列（容器入队后可扩展发现下游管道/水源）
-				if not _container_in_array(containers, neighbor):
+				if not container_dict.has(neighbor.get_instance_id()):
+					container_dict[neighbor.get_instance_id()] = true
 					containers.append(neighbor)
 				if not visited.has(neighbor.get_instance_id()):
 					visited[neighbor.get_instance_id()] = true
@@ -123,14 +131,9 @@ func _bfs_network(start_node: Node, visited: Dictionary) -> Dictionary:
 	}
 
 
-func _container_in_array(arr: Array, target: Node) -> bool:
-	for c in arr:
-		if c.get_instance_id() == target.get_instance_id():
-			return true
-	return false
-
-
 func _collect_direct_containers(all_containers: Array[Node], fluid_positions: Dictionary) -> Array[Node]:
+	if _building_manager == null:
+		return []
 	"""
 	仅基于 BFS 发现的网络节点识别"直接相邻"容器：
 	- 遍历 all_containers，检查每个容器的邻居是否在 fluid_positions 中
@@ -161,6 +164,8 @@ func _collect_direct_containers(all_containers: Array[Node], fluid_positions: Di
 
 
 func _process_network(network: Dictionary) -> bool:
+	if _building_manager == null:
+		return false
 	var sources: Array[Node] = network.sources
 	var pipes: Array[Node] = network.pipes
 	var all_containers: Array[Node] = network.containers
@@ -236,19 +241,19 @@ func _process_network(network: Dictionary) -> bool:
 			src.remaining_output -= deduct
 			remaining -= deduct
 
-	var all_full := true
-	for container in all_containers:
-		if container.capacity < container.max_capacity:
-			all_full = false
-			break
-
 	for pipe in pipes:
 		if pipe is PipeNode:
-			pipe.network_state = 2 if all_full else 1
+			pipe.network_state = 2 if candidates.is_empty() else 1
 
 	return has_flow
 
 
 func _sync_building_data(node: Node) -> void:
-	if _building_manager != null and _building_manager.buildings.has(node.grid_position):
-		_building_manager.buildings[node.grid_position].capacity = node.capacity
+	if _building_manager == null:
+		return
+	var data: BuildingData = _building_manager.get_building_data(node.grid_position)
+	if data == null:
+		return
+	data.capacity = node.capacity
+	if "max_capacity" in node:
+		data.max_capacity = node.max_capacity

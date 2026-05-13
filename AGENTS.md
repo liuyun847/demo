@@ -114,6 +114,12 @@ demo/
 | SelectionManager | res\://scripts/autoload/selection\_manager.gd | 选中状态/剪贴板/撤销栈管理 |
 | MCPRuntime     | res\://addons/godot\_mcp/runtime/mcp\_runtime.gd | MCP调试运行时辅助（编辑器插件） |
 
+## Autoload 初始化顺序依赖
+
+```
+GameConfig (无依赖) → EventBus (无依赖) → KeybindManager (依赖 GameConfig) → SelectionManager (依赖 BuildingManager，运行时获取)
+```
+
 ## EventBus 信号列表
 
 | 信号名称                     | 参数                  | 触发时机          |

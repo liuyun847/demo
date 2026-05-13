@@ -1,23 +1,38 @@
 class_name ContainerNode
 extends FluidNodeBase
 
+var _redraw_pending: bool = false
+
 @export var capacity: int = 0:
 	set(value):
 		capacity = clampi(value, 0, max_capacity)
-		queue_redraw()
+		_mark_redraw()
 
 @export var max_capacity: int = 100:
 	set(value):
 		max_capacity = maxi(value, 1)
 		if capacity > max_capacity:
 			capacity = max_capacity
-		queue_redraw()
+		_mark_redraw()
+
+
+func _mark_redraw() -> void:
+	if not _redraw_pending:
+		_redraw_pending = true
+		call_deferred("_do_redraw")
+
+
+func _do_redraw() -> void:
+	_redraw_pending = false
+	queue_redraw()
 
 
 func _ready() -> void:
 	add_to_group("container")
 
 func get_fill_ratio() -> float:
+	if max_capacity <= 0:
+		return 0.0
 	return float(capacity) / float(max_capacity)
 
 

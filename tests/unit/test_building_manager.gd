@@ -18,30 +18,30 @@ func test_has_building_empty():
 	assert_false(_bm.has_building(Vector2i(0, 0)), "刚创建时不应有建筑")
 
 func test_place_building():
-	var result = _bm.place_building(Vector2i(0, 0), "type_01")
+	var result = _bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	assert_true(result, "放置应成功")
 	assert_true(_bm.has_building(Vector2i(0, 0)), "放置后该位置应有建筑")
 
 func test_place_building_on_occupied():
-	_bm.place_building(Vector2i(5, 5), "type_01")
-	var result = _bm.place_building(Vector2i(5, 5), "type_02")
+	_bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
+	var result = _bm.place_building(Vector2i(5, 5), GameConfig.pipe_type_id)
 	assert_false(result, "已占用位置不应能重复放置")
 
 func test_place_building_returns_false_when_occupied():
-	_bm.place_building(Vector2i(3, 3), "type_01")
-	assert_false(_bm.place_building(Vector2i(3, 3), "type_01"))
+	_bm.place_building(Vector2i(3, 3), GameConfig.container_type_id)
+	assert_false(_bm.place_building(Vector2i(3, 3), GameConfig.container_type_id))
 
 func test_place_building_container_type():
-	var result = _bm.place_building(Vector2i(1, 2), "type_01")
+	var result = _bm.place_building(Vector2i(1, 2), GameConfig.container_type_id)
 	assert_true(result)
 	assert_true(_bm.has_building(Vector2i(1, 2)))
 
 func test_place_building_pipe_type():
-	var result = _bm.place_building(Vector2i(4, 1), "type_02")
+	var result = _bm.place_building(Vector2i(4, 1), GameConfig.pipe_type_id)
 	assert_true(result)
 
 func test_place_building_water_source_type():
-	var result = _bm.place_building(Vector2i(0, 3), "type_03")
+	var result = _bm.place_building(Vector2i(0, 3), GameConfig.water_source_type_id)
 	assert_true(result)
 
 func test_place_building_default_type():
@@ -50,7 +50,7 @@ func test_place_building_default_type():
 	assert_true(_bm.has_building(Vector2i(7, 7)))
 
 func test_remove_building():
-	_bm.place_building(Vector2i(2, 2), "type_01")
+	_bm.place_building(Vector2i(2, 2), GameConfig.container_type_id)
 	var removed = _bm.remove_building(Vector2i(2, 2))
 	assert_true(removed, "删除应成功")
 	assert_false(_bm.has_building(Vector2i(2, 2)), "删除后该位置不应有建筑")
@@ -60,23 +60,23 @@ func test_remove_nonexistent_building():
 	assert_false(removed, "删除不存在的建筑应返回 false")
 
 func test_get_all_buildings_data():
-	_bm.place_building(Vector2i(0, 0), "type_01")
-	_bm.place_building(Vector2i(1, 0), "type_02")
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
 	var data = _bm.get_all_buildings_data()
 	assert_eq(data.size(), 2, "应有 2 个建筑记录")
 	assert_true(data.has(Vector2i(0, 0)), "应包含 (0, 0)")
 	assert_true(data.has(Vector2i(1, 0)), "应包含 (1, 0)")
 
 func test_get_all_buildings_data_isolation():
-	_bm.place_building(Vector2i(0, 0), "type_01")
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	var data = _bm.get_all_buildings_data()
 	data.erase(Vector2i(0, 0))
 	assert_true(_bm.has_building(Vector2i(0, 0)), "副本的修改不应影响原数据")
 
 func test_clear_all_buildings():
-	_bm.place_building(Vector2i(0, 0), "type_01")
-	_bm.place_building(Vector2i(1, 1), "type_02")
-	_bm.place_building(Vector2i(2, 2), "type_03")
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(1, 1), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 2), GameConfig.water_source_type_id)
 	_bm.clear_all_buildings()
 	assert_eq(_bm.get_all_buildings_data().size(), 0, "清除后应无建筑")
 
@@ -115,7 +115,7 @@ func test_get_rect_cells_reverse():
 
 func test_place_buildings_in_line():
 	var cells = _bm.get_line_cells(Vector2i(0, 0), Vector2i(4, 0))
-	var placed = _bm.place_buildings_in_line(cells, "type_02")
+	var placed = _bm.place_buildings_in_line(cells, GameConfig.pipe_type_id)
 	assert_eq(placed, 5, "应成功放置 5 个建筑")
 	for i in range(5):
 		assert_true(_bm.has_building(Vector2i(i, 0)))
@@ -123,25 +123,41 @@ func test_place_buildings_in_line():
 func test_remove_buildings_in_rect():
 	for x in range(3):
 		for y in range(3):
-			_bm.place_building(Vector2i(x, y), "type_01")
+			_bm.place_building(Vector2i(x, y), GameConfig.container_type_id)
 	var cells = _bm.get_rect_cells(Vector2i(0, 0), Vector2i(2, 2))
 	var removed = _bm.remove_buildings_in_rect(cells)
 	assert_eq(removed, 9, "应成功删除 9 个建筑")
 
 func test_ghost_show_and_hide():
-	_bm.show_ghost([Vector2i(0, 0), Vector2i(1, 1)] as Array[Vector2i])
+	var cells: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 1)]
+	_bm.show_ghost(cells)
 	assert_eq(_bm.ghost_cells.size(), 2, "ghost_cells 应有 2 个格子")
 	_bm.hide_ghost()
 	assert_true(_bm.ghost_cells.is_empty(), "隐藏后应为空")
 
 func test_remove_ghost_show_and_hide():
-	_bm.show_remove_ghost([Vector2i(2, 2), Vector2i(3, 3)] as Array[Vector2i])
+	var cells: Array[Vector2i] = [Vector2i(2, 2), Vector2i(3, 3)]
+	_bm.show_remove_ghost(cells)
 	assert_eq(_bm.remove_ghost_cells.size(), 2)
 	_bm.hide_remove_ghost()
 	assert_true(_bm.remove_ghost_cells.is_empty())
 
 func test_get_buildings_in_cells():
-	_bm.place_building(Vector2i(0, 0), "type_01")
-	_bm.place_building(Vector2i(0, 1), "type_02")
-	var result = _bm.get_buildings_in_cells([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)] as Array[Vector2i])
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(0, 1), GameConfig.pipe_type_id)
+	var cells: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)]
+	var result = _bm.get_buildings_in_cells(cells)
 	assert_eq(result.size(), 2, "应在 3 个格子中找到 2 个建筑")
+
+func test_get_building_type():
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	assert_eq(_bm.get_building_type(Vector2i(0, 0)), GameConfig.container_type_id, "应返回正确的建筑类型")
+	assert_eq(_bm.get_building_type(Vector2i(99, 99)), "", "不存在的位置应返回空字符串")
+
+func test_get_building_data():
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	var data = _bm.get_building_data(Vector2i(0, 0))
+	assert_not_null(data, "存在的位置应返回 BuildingData")
+	if data:
+		assert_eq(data.building_type, GameConfig.container_type_id, "building_type 应正确")
+	assert_null(_bm.get_building_data(Vector2i(99, 99)), "不存在的位置应返回 null")

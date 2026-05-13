@@ -1,3 +1,4 @@
+class_name InfiniteGridMap
 extends Node2D
 
 var loaded_blocks: Dictionary = {}

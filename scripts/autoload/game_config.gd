@@ -40,9 +40,6 @@ const water_source_type_id: String = "type_03"
 
 # 流体系统配置
 const fluid_tick_interval: float = 0.3 # 流体系统每 tick 间隔（秒）
-const fluid_flow_rate: float = 0.3 # 每次迭代压力差转移比例 (0.0~1.0)
-const fluid_sub_iterations: int = 5 # 每 tick 子迭代次数
-const fluid_pressure_threshold: float = 0.02 # 压力差阈值，低于此不推水（防抖动）
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"
@@ -95,9 +92,10 @@ func load_game_settings() -> void:
 		shift_speed_multiplier = DEFAULT_SHIFT_SPEED_MULTIPLIER
 		return
 
-	zoom_speed = data.get("zoom_speed", DEFAULT_ZOOM_SPEED)
-	shift_speed_multiplier = data.get("shift_speed_multiplier", DEFAULT_SHIFT_SPEED_MULTIPLIER)
-	EventBus.game_settings_changed.emit()
+	var zoom_val = data.get("zoom_speed", DEFAULT_ZOOM_SPEED)
+	var shift_val = data.get("shift_speed_multiplier", DEFAULT_SHIFT_SPEED_MULTIPLIER)
+	zoom_speed = zoom_val if zoom_val is float or zoom_val is int else DEFAULT_ZOOM_SPEED
+	shift_speed_multiplier = shift_val if shift_val is float or shift_val is int else DEFAULT_SHIFT_SPEED_MULTIPLIER
 
 func save_game_settings() -> void:
 	var settings_data := {
@@ -108,7 +106,10 @@ func save_game_settings() -> void:
 	}
 
 	var dir_path := game_settings_file_path.get_base_dir()
-	DirAccess.make_dir_recursive_absolute(dir_path)
+	var dir_result := DirAccess.make_dir_recursive_absolute(dir_path)
+	if dir_result != OK:
+		push_error("GameConfig: 无法创建设置目录: %s (错误码: %d)" % [dir_path, dir_result])
+		return
 
 	var file := FileAccess.open(game_settings_file_path, FileAccess.WRITE)
 	if file:

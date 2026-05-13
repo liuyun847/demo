@@ -1,11 +1,18 @@
 class_name GridCoordinate
 
 const DIR_4 := [
-	Vector2i(0, -1),
-	Vector2i(1, 0),
-	Vector2i(0, 1),
-	Vector2i(-1, 0),
+	Vector2i(0, -1),  # UP (index 0)
+	Vector2i(1, 0),   # RIGHT (index 1)
+	Vector2i(0, 1),   # DOWN (index 2)
+	Vector2i(-1, 0),  # LEFT (index 3)
 ]
+
+enum DirFlag {
+	UP = 1 << 0,    # 1
+	RIGHT = 1 << 1, # 2
+	DOWN = 1 << 2,  # 4
+	LEFT = 1 << 3,  # 8
+}
 
 static func screen_to_world(camera: Camera2D, screen_pos: Vector2) -> Vector2:
 	var viewport := camera.get_viewport()

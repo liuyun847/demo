@@ -1,3 +1,4 @@
+class_name CameraController
 extends Camera2D
 
 @export var move_speed: float = 200.0 # 移动速度（像素/秒）
@@ -6,7 +7,7 @@ func _ready() -> void:
 	# 初始化缩放
 	zoom = Vector2(1.0, 1.0)
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if get_tree().paused:
 		return
 	if event.is_action_pressed("zoom_in"):
@@ -22,7 +23,7 @@ func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
 		screen_pos = center
 	var world_pos = (screen_pos - center) / zoom + global_position
 	zoom *= factor
-	zoom = Vector2(clamp(zoom.x, 0.01, 100.0), clamp(zoom.y, 0.01, 100.0)) # 限制最小缩放防止除以0
+	zoom = Vector2(clamp(zoom.x, 0.1, 10.0), clamp(zoom.y, 0.1, 10.0))
 
 	# 调整位置保持鼠标指向的位置不变
 	var new_world_pos = (screen_pos - center) / zoom + global_position

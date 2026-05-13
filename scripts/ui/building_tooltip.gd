@@ -6,6 +6,7 @@ const MIN_WIDTH: float = 140.0
 
 var _target_node: Node2D = null
 var _is_expanded: bool = false
+var _hovered_grid_pos: Vector2i = Vector2i.MIN
 
 @onready var _panel: Panel = $Panel
 @onready var _name_label: Label = $Panel/MarginContainer/VBoxContainer/NameLabel
@@ -16,9 +17,12 @@ var _is_expanded: bool = false
 
 var _panel_style: StyleBoxFlat = null
 
-func _on_building_removed(_grid_pos: Vector2i) -> void:
+func _on_building_removed(grid_pos: Vector2i) -> void:
 	if _target_node == null:
 		return
+	if grid_pos != _hovered_grid_pos:
+		return
+	_hovered_grid_pos = Vector2i.MIN
 	_target_node = null
 	_is_expanded = false
 	hide()
@@ -54,7 +58,8 @@ func _create_styles() -> void:
 func _apply_styles() -> void:
 	_panel.add_theme_stylebox_override("panel", _panel_style)
 
-func _on_building_hovered(_grid_pos: Vector2i, node: Node2D) -> void:
+func _on_building_hovered(grid_pos: Vector2i, node: Node2D) -> void:
+	_hovered_grid_pos = grid_pos
 	_target_node = node
 	_is_expanded = false
 	_expand_button.text = "展开详情 ▼"
@@ -63,6 +68,7 @@ func _on_building_hovered(_grid_pos: Vector2i, node: Node2D) -> void:
 	show()
 
 func _on_building_hover_exited(_grid_pos: Vector2i) -> void:
+	_hovered_grid_pos = Vector2i.MIN
 	_target_node = null
 	hide()
 
