@@ -1,7 +1,7 @@
 class_name SaveManager
 extends Node
 
-@onready var building_manager: BuildingManager = get_node("../BuildingManager")
+@onready var building_manager: BuildingManager = get_node("../BuildingManager") as BuildingManager
 
 var _is_loading: bool = false
 var _save_pending: bool = false
@@ -114,7 +114,7 @@ func load_buildings() -> void:
 	var content := file.get_as_text()
 	file.close()
 
-	var save_data = JSON.parse_string(content)
+	var save_data: Dictionary = JSON.parse_string(content) as Dictionary
 	if save_data == null or not save_data is Dictionary:
 		push_error("SaveManager: 存档格式无效")
 		return
@@ -134,10 +134,10 @@ func load_buildings() -> void:
 	building_manager.clear_all_buildings()
 
 	if save_data.has("buildings") and save_data.buildings is Dictionary:
-		for key in save_data.buildings.keys():
+		for key: String in save_data.buildings.keys():
 			var parts: PackedStringArray = key.split(",")
 			if parts.size() == 2:
-				var grid_pos := Vector2i(int(parts[0]), int(parts[1]))
+				var grid_pos: Vector2i = Vector2i(int(parts[0]), int(parts[1]))
 				var b_data: Dictionary = save_data.buildings[key]
 				var b_type: String = b_data.get("type", "default")
 				var restore_data: Dictionary = {}

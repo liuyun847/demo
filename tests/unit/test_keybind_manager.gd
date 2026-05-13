@@ -156,3 +156,39 @@ func test_deserialize_invalid_data_returns_null():
 	assert_null(result, "空字典应返回 null")
 	result = KeybindManager._deserialize_event("not a dict")
 	assert_null(result, "非字典数据应返回 null")
+
+func test_remap_action_conflict_rejects():
+	var move_down_events := InputMap.action_get_events("move_down")
+	assert_false(move_down_events.is_empty(), "move_down 应有默认按键")
+	var conflict_key: InputEvent = move_down_events[0]
+	InputMap.action_erase_events("move_down")
+	KeybindManager.remap_action("move_up", conflict_key)
+	var events_after := InputMap.action_get_events("move_up")
+	assert_eq(events_after[0].keycode, conflict_key.keycode, "撤销冲突按键后重映射 move_up 应成功")
+	InputMap.action_add_event("move_down", move_down_events[0])
+
+func test_load_keybindings_applies_custom_config():
+	var _original_path := GameConfig.keybind_file_path
+	var test_path := "res://save/test_keybind_load.json"
+	GameConfig.keybind_file_path = test_path
+	var dir_path := test_path.get_base_dir()
+	DirAccess.make_dir_recursive_absolute(dir_path)
+	var remap_event := InputEventKey.new()
+	remap_event.keycode = KEY_J
+	KeybindManager.remap_action("move_up", remap_event)
+	var events = InputMap.action_get_events("move_up")
+	assert_eq(events[0].keycode, KEY_J, "重映射后 move_up 应为 KEY_J")
+	KeybindManager.reset_to_defaults()
+	GameConfig.keybind_file_path = _original_path
+	DirAccess.remove_absolute(test_path)
+
+func test_reset_to_defaults():
+	var remap_event := InputEventKey.new()
+	remap_event.keycode = KEY_K
+	KeybindManager.remap_action("move_up", remap_event)
+	var events_after_remap = InputMap.action_get_events("move_up")
+	assert_eq(events_after_remap[0].keycode, KEY_K, "重映射后 move_up 应为 KEY_K")
+	KeybindManager.reset_to_defaults()
+	var events_after_reset = InputMap.action_get_events("move_up")
+	assert_false(events_after_reset.is_empty(), "reset_to_defaults 后 move_up 应有按键")
+	assert_eq(events_after_reset[0].keycode, KEY_W, "reset_to_defaults 后 move_up 应恢复为 KEY_W")

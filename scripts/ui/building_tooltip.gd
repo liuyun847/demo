@@ -86,7 +86,7 @@ func _update_content() -> void:
 	if _target_node == null:
 		return
 
-	var building_name := "未知建筑"
+	var building_name: String = "未知建筑"
 	var summary: Dictionary = {}
 
 	if _target_node.has_method("get_building_name"):
@@ -103,13 +103,13 @@ func _update_content() -> void:
 		child.queue_free()
 
 	if summary.is_empty():
-		var label := Label.new()
+		var label: Label = Label.new()
 		label.text = "暂无属性"
 		label.add_theme_color_override("font_color", Color(0.25, 0.25, 0.25))
 		_summary_container.add_child(label)
 	else:
 		for key in summary.keys():
-			var label := Label.new()
+			var label: Label = Label.new()
 			label.text = "%s: %s" % [key, summary[key]]
 			label.add_theme_font_size_override("font_size", 13)
 			label.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
@@ -130,13 +130,13 @@ func _update_details() -> void:
 		child.queue_free()
 
 	if details.is_empty():
-		var label := Label.new()
+		var label: Label = Label.new()
 		label.text = "暂无详细信息"
 		label.add_theme_color_override("font_color", Color(0.25, 0.25, 0.25))
 		_details_container.add_child(label)
 	else:
 		for key in details.keys():
-			var label := Label.new()
+			var label: Label = Label.new()
 			label.text = "%s: %s" % [key, details[key]]
 			label.add_theme_font_size_override("font_size", 12)
 			label.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
@@ -146,7 +146,7 @@ func _get_fallback_name(_node: Node) -> String:
 	if _node.has_meta("building_type"):
 		var bt: String = _node.get_meta("building_type")
 		if bt.begins_with("type_"):
-			var idx := bt.substr(5).to_int()
+			var idx: int = bt.substr(5).to_int()
 			return "占位-%d" % idx
 	return "建筑"
 
@@ -155,17 +155,17 @@ func _process(_delta: float) -> void:
 		_target_node = null
 		return
 
-	var viewport := get_viewport()
-	var camera := viewport.get_camera_2d()
+	var viewport: Viewport = get_viewport()
+	var camera: Camera2D = viewport.get_camera_2d()
 	if not camera:
 		return
 
 	var world_pos: Vector2 = _target_node.global_position
 	var screen_pos: Vector2 = camera.get_canvas_transform() * world_pos
 
-	var tooltip_size := size
-	var pos_x := screen_pos.x - tooltip_size.x / 2.0
-	var pos_y := screen_pos.y - tooltip_size.y + OFFSET_Y
+	var tooltip_size: Vector2 = size
+	var pos_x: float = screen_pos.x - tooltip_size.x / 2.0
+	var pos_y: float = screen_pos.y - tooltip_size.y + OFFSET_Y
 
 	pos_x = clampf(pos_x, 0, viewport.size.x - tooltip_size.x)
 	pos_y = clampf(pos_y, 0, viewport.size.y - tooltip_size.y)

@@ -1,6 +1,6 @@
 extends Node
 
-var selected_cells: Dictionary = {}
+var selected_cells: Dictionary[Vector2i, bool] = {}
 var clipboard: Dictionary = {}
 var undo_stack: Array[UndoCommand] = []
 var is_paste_mode: bool = false
@@ -87,16 +87,7 @@ func _build_clipboard(cut: bool) -> Dictionary:
 	if cut:
 		var cmd := UndoCommand.new()
 		cmd.type = UndoCommand.Type.CUT
-		var undo_buildings := {}
-		for grid_pos: Vector2i in grid_keys:
-			var type_id: String = buildings_data[grid_pos]
-			var entry := {"type": type_id}
-			var node := building_manager.get_building_node(grid_pos)
-			if BuildingData.is_container_building(node):
-				entry["capacity"] = node.capacity
-				entry["max_capacity"] = node.max_capacity
-			undo_buildings[grid_pos] = entry
-		cmd.buildings = undo_buildings
+		cmd.buildings = buildings_data
 		push_undo_command(cmd)
 
 		for grid_pos in buildings_data.keys():
@@ -134,15 +125,17 @@ func perform_paste(anchor: Vector2i) -> void:
 
 	var paste_buildings: Array[Dictionary] = clipboard["buildings"]
 
-	# 第一阶段：检查所有目标位置是否可用
+	var valid_items: Array[Dictionary] = []
 	for item in paste_buildings:
 		var grid_pos: Vector2i = anchor + item["offset"]
-		if building_manager.has_building(grid_pos):
-			return
+		if not building_manager.has_building(grid_pos):
+			valid_items.append(item)
 
-	# 第二阶段：全部可用，统一放置
+	if valid_items.is_empty():
+		return
+
 	var placed_cells := {}
-	for item in paste_buildings:
+	for item in valid_items:
 		var grid_pos: Vector2i = anchor + item["offset"]
 		var building_type: String = item["type"]
 		building_manager.place_building(grid_pos, building_type)
@@ -154,8 +147,6 @@ func perform_paste(anchor: Vector2i) -> void:
 		cmd.buildings = placed_cells
 		push_undo_command(cmd)
 
-	is_paste_mode = false
-	EventBus.paste_mode_changed.emit(false)
 	selected_cells.clear()
 	EventBus.selection_changed.emit(_get_selected_cells_array())
 

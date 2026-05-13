@@ -1,15 +1,15 @@
 class_name BuildingManager
 extends Node2D
 
-var buildings: Dictionary = {} # key: Vector2i, value: BuildingData
-var _building_nodes: Dictionary = {} # key: Vector2i, value: Node2D
+var buildings: Dictionary[Vector2i, BuildingData] = {} # key: Vector2i, value: BuildingData
+var _building_nodes: Dictionary[Vector2i, Node2D] = {} # key: Vector2i, value: Node2D
 var fluid_pipes: Array[PipeNode] = []
 var fluid_sources: Array[WaterSourceNode] = []
 var ghost_cells: Array[Vector2i] = []
 var remove_ghost_cells: Array[Vector2i] = []
 var selected_cells: Array[Vector2i] = []
 var paste_ghost_cells: Array[Vector2i] = []
-var paste_ghost_types: Dictionary = {}
+var paste_ghost_types: Dictionary[Vector2i, String] = {}
 var select_ghost_cells: Array[Vector2i] = []
 var deselect_ghost_cells: Array[Vector2i] = []
 
@@ -20,7 +20,7 @@ func _ready() -> void:
 	_init_fluid_coordinator()
 
 func _init_fluid_coordinator() -> void:
-	var coordinator := preload("res://scripts/fluid/fluid_coordinator.gd").new()
+	var coordinator: FluidCoordinator = preload("res://scripts/fluid/fluid_coordinator.gd").new()
 	coordinator.name = "FluidCoordinator"
 	add_child(coordinator)
 

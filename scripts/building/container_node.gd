@@ -84,7 +84,7 @@ func _draw() -> void:
 	var right_wall := Rect2(half_size - wall_w, -half_size, wall_w, total_h)
 	draw_rect(right_wall, color_wall)
 
-	var fill_area := Rect2(inner_left, -half_size, inner_w, total_h)
+	var _fill_area := Rect2(inner_left, -half_size, inner_w, total_h)
 	var fill_h: float = total_h * fill_ratio
 
 	if fill_h > 0:

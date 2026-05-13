@@ -29,11 +29,11 @@ func setup_slot(index: int, type_data: BuildingTypeData) -> void:
 			_setup_placeholder_visual(type_data)
 
 func _setup_placeholder_visual(type_data: BuildingTypeData) -> void:
-	var idx := 0
+	var idx: int = 0
 	if type_data.type_id.begins_with("type_"):
 		idx = type_data.type_id.substr(5).to_int()
 	placeholder_label.text = "占位-%d" % idx if idx > 0 else "占位"
-	var color := Color.from_hsv(float(maxi(idx - 1, 0)) / 10.0, 0.7, 0.9)
+	var color: Color = Color.from_hsv(float(maxi(idx - 1, 0)) / 10.0, 0.7, 0.9)
 	color.a = 0.3
 	placeholder_bg.color = color
 	placeholder_bg.show()

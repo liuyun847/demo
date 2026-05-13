@@ -68,3 +68,31 @@ func test_slots_created_in_ready():
 		if child is InventorySlot:
 			slot_count += 1
 	assert_eq(slot_count, 10, "_ready 后应有 10 个 InventorySlot 子节点")
+
+func test_mode_indicator_exists():
+	var indicator := _bar.find_child("ModeIndicator", true, false)
+	assert_not_null(indicator, "_ready 后应存在 ModeIndicator 子节点")
+	assert_true(indicator is Control, "ModeIndicator 应为 Control 类型")
+
+func test_mode_indicator_text_placement():
+	var indicator := _bar.find_child("ModeIndicator", true, false)
+	assert_not_null(indicator, "ModeIndicator 不应为空")
+	var label := indicator.find_child("ModeLabel", true, false) as Label
+	assert_not_null(label, "ModeLabel 不应为空")
+	_bar.select_slot(0)
+	assert_eq(label.text, "放置", "选中槽位后模式指示器文本应为'放置'")
+
+func test_mode_indicator_text_selection():
+	var indicator := _bar.find_child("ModeIndicator", true, false)
+	var label := indicator.find_child("ModeLabel", true, false) as Label
+	_bar.select_slot(0)
+	_bar.deselect()
+	assert_eq(label.text, "框选", "取消选择后模式指示器文本应为'框选'")
+
+func test_mode_indicator_text_paste():
+	var indicator := _bar.find_child("ModeIndicator", true, false)
+	var label := indicator.find_child("ModeLabel", true, false) as Label
+	SelectionManager.is_paste_mode = true
+	EventBus.paste_mode_changed.emit(true)
+	assert_eq(label.text, "粘贴", "进入粘贴模式后模式指示器文本应为'粘贴'")
+	SelectionManager.is_paste_mode = false

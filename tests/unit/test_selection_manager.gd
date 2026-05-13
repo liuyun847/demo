@@ -35,6 +35,8 @@ func test_undo_stack_max_size():
 	assert_eq(SelectionManager.undo_stack.size(), 100, "撤销栈大小应被限制为 100")
 
 func test_paste_mode_default():
+	SelectionManager.is_paste_mode = false
+	SelectionManager.clipboard = {}
 	assert_false(SelectionManager.is_paste_mode, "默认不应处于粘贴模式")
 	assert_eq(SelectionManager.clipboard, {}, "默认剪贴板应为空")
 
@@ -75,3 +77,40 @@ func test_cancel_paste_emits_signal():
 	assert_true(SelectionManager.is_paste_mode, "应进入粘贴模式")
 	SelectionManager.cancel_paste_mode()
 	assert_signal_emitted(EventBus, "paste_mode_changed", "cancel_paste_mode 应发射 paste_mode_changed 信号")
+
+func test_cut_undo_command_buildings_are_strings():
+	SelectionManager.undo_stack.clear()
+	var cmd := UndoCommand.new()
+	cmd.type = UndoCommand.Type.CUT
+	cmd.buildings = {Vector2i(1, 1): "type_01", Vector2i(2, 2): "type_02"}
+	SelectionManager.push_undo_command(cmd)
+	var stored_cmd: UndoCommand = SelectionManager.undo_stack.back()
+	assert_eq(stored_cmd.type, UndoCommand.Type.CUT, "撤销命令类型应为 CUT")
+	for value in stored_cmd.buildings.values():
+		assert_true(value is String, "buildings 值应为纯 String 而非 Dictionary，不应包含 capacity")
+
+func test_select_rect_no_building_manager():
+	SelectionManager.clear_selection()
+	SelectionManager._building_manager = null
+	var before := SelectionManager.selected_cells.size()
+	SelectionManager.select_rect([Vector2i(0, 0), Vector2i(1, 1)])
+	assert_eq(SelectionManager.selected_cells.size(), before, "无 building_manager 时 select_rect 不应增加选中")
+
+func test_deselect_rect_removes_cells():
+	SelectionManager.clear_selection()
+	SelectionManager.select_cell(Vector2i(0, 0))
+	SelectionManager.select_cell(Vector2i(1, 1))
+	SelectionManager.select_cell(Vector2i(2, 2))
+	assert_eq(SelectionManager.selected_cells.size(), 3, "初始应有 3 个选中格子")
+	SelectionManager.deselect_rect([Vector2i(0, 0), Vector2i(2, 2)])
+	assert_eq(SelectionManager.selected_cells.size(), 1, "deselect_rect 移除 2 个后应剩 1 个")
+	assert_true(SelectionManager.selected_cells.has(Vector2i(1, 1)), "应保留 (1, 1)")
+	assert_false(SelectionManager.selected_cells.has(Vector2i(0, 0)), "不应包含 (0, 0)")
+	assert_false(SelectionManager.selected_cells.has(Vector2i(2, 2)), "不应包含 (2, 2)")
+
+func test_undo_empty_stack_does_not_crash():
+	SelectionManager.undo_stack.clear()
+	SelectionManager.undo()
+	assert_true(SelectionManager.undo_stack.is_empty(), "空撤销栈调用 undo() 不应崩溃")
+
+
