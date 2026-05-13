@@ -25,6 +25,7 @@ demo/
 │   ├── godot_mcp/             # MCP调试插件
 │   └── gut/                   # GUT单元测试框架
 ├── scripts/                   # 脚本文件目录
+│   ├── fps_display.gd         # 右上角帧率显示组件
 │   ├── main.gd                # 主场景控制器（管理 UI 叠加层和暂停状态）
 │   ├── InfiniteGridMap.gd     # 无限方格地图
 │   ├── CameraController.gd    # 相机控制器
@@ -57,11 +58,9 @@ demo/
 │       ├── inventory_slot.gd   # 建筑类型槽位逻辑
 │       └── building_tooltip.gd # 建筑悬停提示面板
 ├── resources/                 # 资源文件目录
-│   ├── building_default.svg   # 默认建筑SVG贴图
 │   ├── container_icon.svg     # 容器建筑槽位图标
 │   ├── pipe_icon.svg          # 管道建筑槽位图标
-│   ├── water_source_icon.svg  # 水源建筑槽位图标
-│   └── buildings/             # 建筑类型贴图（类型4~10使用，01~03有独立图标）
+│   └── water_source_icon.svg  # 水源建筑槽位图标
 ├── scenes/                    # 场景文件目录
 │   ├── main.tscn              # 游戏主场景文件
 │   ├── start_menu.tscn        # 开始页面场景文件
@@ -71,6 +70,7 @@ demo/
 │   └── building_tooltip.tscn  # 建筑悬停提示场景
 ├── save/                      # 持久化存储目录（运行时生成，gitignore）
 │   ├── buildings.json         # 建筑放置数据
+│   ├── test_buildings.json    # 测试建筑数据
 │   ├── keybindings.json       # 按键配置数据
 │   └── game_settings.json     # 游戏数值设置（滚轮缩放倍率、Shift加速倍率）
 ├── tests/                     # 单元测试目录（GUT框架）
@@ -108,11 +108,11 @@ demo/
 
 | 单例名称         | 脚本路径                                      | 用途                |
 | ------------ | ----------------------------------------- | ----------------- |
-| GameConfig     | res\://scripts/autoload/game\_config.gd     | 游戏配置与常量集中管理（含 container_type_id, pipe_type_id, water_source_type_id, SAVE_VERSION 等）       |
-| EventBus       | res\://scripts/autoload/event\_bus.gd       | 模块间事件通信           |
-| KeybindManager | res\://scripts/autoload/keybind\_manager.gd | 按键配置加载/保存/重映射    |
-| SelectionManager | res\://scripts/autoload/selection\_manager.gd | 选中状态/剪贴板/撤销栈管理 |
-| MCPRuntime     | res\://addons/godot\_mcp/runtime/mcp\_runtime.gd | MCP调试运行时辅助（编辑器插件） |
+| GameConfig     | res://scripts/autoload/game_config.gd     | 游戏配置与常量集中管理（含 container_type_id, pipe_type_id, water_source_type_id, SAVE_VERSION 等）       |
+| EventBus       | res://scripts/autoload/event_bus.gd       | 模块间事件通信           |
+| KeybindManager | res://scripts/autoload/keybind_manager.gd | 按键配置加载/保存/重映射    |
+| SelectionManager | res://scripts/autoload/selection_manager.gd | 选中状态/剪贴板/撤销栈管理 |
+| MCPRuntime     | res://addons/godot_mcp/runtime/mcp_runtime.gd | MCP调试运行时辅助（编辑器插件） |
 
 ## Autoload 初始化顺序依赖
 

@@ -32,7 +32,7 @@ func _input(event: InputEvent) -> void:
 	if listening_action.is_empty():
 		if event.is_action_pressed("ui_cancel"):
 			EventBus.show_start_menu_requested.emit()
-		get_viewport().set_input_as_handled()
+			get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventMouseMotion:
