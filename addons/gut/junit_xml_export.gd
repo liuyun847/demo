@@ -76,6 +76,7 @@ func _export_scripts(exp_results: Dictionary) -> Array:
 	var to_return := ""
 	var total_fail := 0
 	var total_test := 0
+	var total_skip := 0
 	for script_path: String in exp_results.test_scripts.scripts.keys():
 		var s: Dictionary = exp_results.test_scripts.scripts[script_path]
 		var test_result: Array = _export_tests(s.tests, script_path)
@@ -98,8 +99,9 @@ func _export_scripts(exp_results: Dictionary) -> Array:
 		to_return += "</testsuite>\n"
 		total_fail += fail_cnt
 		total_test += test_cnt
+		total_skip += skip_cnt
 
-	return [to_return, total_fail, total_test]
+	return [to_return, total_fail, total_test, total_skip]
 
 
 ## Takes in an instance of [GutMain] and returns a string of XML representing
@@ -110,11 +112,13 @@ func get_results_xml(gut: GutMain) -> String:
 	var scripts_xml: String = scripts_result[0]
 	var fail_count: int = scripts_result[1]
 	var test_count: int = scripts_result[2]
+	var skip_count: int = scripts_result[3]
 	var to_return := '<?xml version="1.0" encoding="UTF-8"?>' + "\n"
 	to_return += '<testsuites '
 	to_return += _add_attr("name", 'GutTests')
 	to_return += _add_attr("failures", fail_count)
 	to_return += _add_attr('tests', test_count)
+	to_return += _add_attr('skipped', skip_count)
 	to_return += ">\n"
 
 	to_return += _strutils.indent_text(scripts_xml, 1, "  ")
