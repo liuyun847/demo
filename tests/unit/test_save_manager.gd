@@ -114,6 +114,28 @@ func test_loading_does_not_trigger_save():
 	var data = _bm.get_all_buildings_data()
 	assert_eq(data.size(), 1, "加载后应有 1 个建筑")
 
+func test_debounce_prevents_double_save():
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	DirAccess.remove_absolute(GameConfig.save_file_path)
+	assert_false(FileAccess.file_exists(GameConfig.save_file_path), "开始前存档文件不应存在")
+	_sm._on_building_changed(Vector2i(0, 0))
+	assert_true(_sm._save_pending, "第一次调用后 _save_pending 应为 true")
+	_sm._on_building_changed(Vector2i(1, 1))
+	assert_true(_sm._save_pending, "第二次调用时 _save_pending 仍应为 true（未执行保存）")
+	await get_tree().process_frame
+	assert_false(_sm._save_pending, "call_deferred 执行后 _save_pending 应为 false")
+	assert_true(FileAccess.file_exists(GameConfig.save_file_path), "debounce 后应保存了一次")
+
+func test_fluid_updated_autosave():
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	DirAccess.remove_absolute(GameConfig.save_file_path)
+	assert_false(FileAccess.file_exists(GameConfig.save_file_path), "开始前存档文件不应存在")
+	EventBus.fluid_updated.emit()
+	assert_true(_sm._fluid_autosave_timer.time_left > 0, "fluid_updated 后计时器应已启动")
+	_sm._fluid_autosave_timer.stop()
+	_sm._on_fluid_autosave_timeout()
+	assert_true(FileAccess.file_exists(GameConfig.save_file_path), "计时器超时后应执行保存")
+
 
 func _read_save_file() -> Dictionary:
 	if not FileAccess.file_exists(GameConfig.save_file_path):

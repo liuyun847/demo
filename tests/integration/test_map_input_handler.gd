@@ -159,3 +159,83 @@ func test_mouse_motion_shows_paste_preview():
 	_handler._handle_mouse_motion(motion_event, get_viewport())
 
 	assert_eq(SelectionManager.paste_anchor, expected_anchor, "粘贴锚点应更新为鼠标所在网格坐标")
+
+func test_hover_exited_signal():
+	var screen_pos := Vector2(64, 64)
+	var grid_pos := _screen_to_grid(screen_pos)
+	_bm.place_building(grid_pos, GameConfig.container_type_id)
+
+	watch_signals(EventBus)
+
+	var motion_event := InputEventMouseMotion.new()
+	motion_event.position = screen_pos
+	_handler._handle_mouse_motion(motion_event, get_viewport())
+	assert_signal_emitted(EventBus, "building_hovered", "鼠标移动到建筑上时应发射 building_hovered")
+
+	var empty_screen_pos := Vector2(128, 128)
+	var empty_grid := _screen_to_grid(empty_screen_pos)
+	assert_false(_bm.has_building(empty_grid), "目标位置应无建筑，确保触发 hover_exited 逻辑")
+
+	var motion_event2 := InputEventMouseMotion.new()
+	motion_event2.position = empty_screen_pos
+	_handler._handle_mouse_motion(motion_event2, get_viewport())
+	assert_signal_emitted(EventBus, "building_hover_exited", "鼠标移开建筑时应发射 building_hover_exited")
+
+func test_remove_does_not_record_capacity_in_undo():
+	var grid_pos := Vector2i(7, 7)
+	_bm.place_building(grid_pos, GameConfig.container_type_id)
+	assert_true(_bm.has_building(grid_pos), "容器应放置成功")
+
+	var event_press := _make_mouse_event(MOUSE_BUTTON_RIGHT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_RIGHT, false)
+
+	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
+	_handler._handle_building_mode(event_release, grid_pos, get_viewport())
+
+	assert_false(_bm.has_building(grid_pos), "右键后建筑应被删除")
+	assert_false(SelectionManager.undo_stack.is_empty(), "撤销栈不应为空")
+
+	var cmd: UndoCommand = SelectionManager.undo_stack.back()
+	assert_eq(cmd.type, UndoCommand.Type.REMOVE, "撤销命令类型应为 REMOVE")
+
+	for value in cmd.buildings.values():
+		assert_true(value is String, "撤销命令的 buildings 值应为纯字符串, 不含 capacity 字典")
+
+func test_copy_selection_fills_clipboard():
+	SelectionManager._building_manager = _bm
+	SelectionManager.clear_selection()
+	SelectionManager.clipboard = {}
+	SelectionManager.undo_stack.clear()
+
+	var grid_pos := Vector2i(5, 0)
+	_bm.place_building(grid_pos, GameConfig.container_type_id)
+	SelectionManager.select_cell(grid_pos)
+
+	SelectionManager.copy_selection()
+	assert_false(SelectionManager.clipboard.is_empty(), "复制后剪贴板不应为空")
+	assert_true(SelectionManager.clipboard.has("buildings"), "剪贴板应含 buildings 键")
+	var buildings: Array = SelectionManager.clipboard["buildings"]
+	assert_eq(buildings.size(), 1, "应复制了 1 个建筑")
+	assert_eq(buildings[0]["type"], GameConfig.container_type_id, "剪贴板中建筑类型应为容器")
+	assert_eq(buildings[0]["offset"], Vector2i(0, 0), "单建筑偏移应为 (0, 0)")
+	var was_cut: bool = SelectionManager.clipboard.get("was_cut", true)
+	assert_false(was_cut, "复制操作的 was_cut 应为 false")
+
+func test_cut_selection_records_undo_and_removes_building():
+	SelectionManager._building_manager = _bm
+	SelectionManager.clear_selection()
+	SelectionManager.clipboard = {}
+	SelectionManager.undo_stack.clear()
+
+	var grid_pos := Vector2i(5, 1)
+	_bm.place_building(grid_pos, GameConfig.container_type_id)
+	SelectionManager.select_cell(grid_pos)
+
+	SelectionManager.cut_selection()
+	assert_false(_bm.has_building(grid_pos), "剪切后建筑应被删除")
+	assert_false(SelectionManager.undo_stack.is_empty(), "剪切后撤销栈不应为空")
+	var cmd: UndoCommand = SelectionManager.undo_stack.back()
+	assert_eq(cmd.type, UndoCommand.Type.CUT, "撤销命令类型应为 CUT")
+	assert_true(cmd.buildings.has(grid_pos), "撤销命令应包含被剪切的格子")
+	for value in cmd.buildings.values():
+		assert_true(value is String, "撤销命令的 buildings 值应为纯字符串")

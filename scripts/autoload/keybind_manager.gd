@@ -179,7 +179,7 @@ func load_keybindings() -> void:
 	var content := file.get_as_text()
 	file.close()
 
-	var data = JSON.parse_string(content)
+	var data: Variant = JSON.parse_string(content)
 	if data == null or not data is Dictionary:
 		push_error("KeybindManager: 按键配置格式无效")
 		return

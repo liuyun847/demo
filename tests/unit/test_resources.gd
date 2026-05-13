@@ -62,14 +62,12 @@ func test_undo_command_place_type():
 	assert_eq(cmd.type, UndoCommand.Type.PLACE, "类型应为 PLACE")
 	assert_eq(cmd.buildings.size(), 1, "应包含一个建筑记录")
 
-func test_undo_command_cut_type_with_capacity():
+func test_undo_command_cut_type_as_dict():
 	var cmd = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
 	cmd.buildings = {
 		Vector2i(2, 3): {
-			"type": "type_01",
-			"capacity": 30,
-			"max_capacity": 100
+			"type": "type_01"
 		}
 	}
 	assert_eq(cmd.type, UndoCommand.Type.CUT, "类型应为 CUT")
@@ -98,20 +96,36 @@ func test_undo_command_reverse_place_removes_building():
 	cmd.reverse(bm)
 	assert_false(bm.has_building(Vector2i(5, 5)), "reverse PLACE 应删除建筑")
 
-func test_undo_command_reverse_cut_restores_building_with_capacity():
+func test_undo_command_reverse_cut_restores_building():
 	var bm = autoqfree(_BM.new() as BuildingManager)
 	add_child_autoqfree(bm)
-	bm.place_building(Vector2i(3, 3), GameConfig.container_type_id, {"capacity": 50, "max_capacity": 100})
+	bm.place_building(Vector2i(3, 3), GameConfig.container_type_id)
+	assert_true(bm.has_building(Vector2i(3, 3)), "放置后应有建筑")
 	var cmd = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {Vector2i(3, 3): {"type": GameConfig.container_type_id, "capacity": 50, "max_capacity": 100}}
+	cmd.buildings = {Vector2i(3, 3): GameConfig.container_type_id}
 	bm.remove_building(Vector2i(3, 3))
 	assert_false(bm.has_building(Vector2i(3, 3)), "删除后不应有建筑")
 	cmd.reverse(bm)
 	assert_true(bm.has_building(Vector2i(3, 3)), "reverse CUT 应恢复建筑")
-	var data: BuildingData = bm.buildings[Vector2i(3, 3)]
-	assert_eq(data.capacity, 50, "恢复后 capacity 应为 50")
-	assert_eq(data.max_capacity, 100, "恢复后 max_capacity 应为 100")
+
+func test_undo_command_reverse_cut_does_not_restore_capacity():
+	var bm = autoqfree(_BM.new() as BuildingManager)
+	add_child_autoqfree(bm)
+	bm.place_building(Vector2i(8, 8), GameConfig.container_type_id, {"capacity": 50, "max_capacity": 100})
+	assert_true(bm.has_building(Vector2i(8, 8)), "放置后应有建筑")
+	var cmd = UndoCommand.new()
+	cmd.type = UndoCommand.Type.CUT
+	cmd.buildings = {Vector2i(8, 8): GameConfig.container_type_id}
+	bm.remove_building(Vector2i(8, 8))
+	cmd.reverse(bm)
+	assert_true(bm.has_building(Vector2i(8, 8)), "reverse CUT 应恢复建筑")
+	var node = bm.get_building_node(Vector2i(8, 8))
+	assert_not_null(node, "恢复后节点应存在")
+	assert_true(node is ContainerNode, "恢复后应为容器节点")
+	var container: ContainerNode = node as ContainerNode
+	assert_eq(container.capacity, 0, "撤销不应保留 capacity，应使用默认值 0")
+	assert_eq(container.max_capacity, 100, "撤销不应保留 max_capacity，应使用默认值 100")
 
 func test_undo_command_unset_max_capacity_constant():
 	assert_eq(UndoCommand.UNSET_MAX_CAPACITY, -1, "UNSET_MAX_CAPACITY 应为 -1")

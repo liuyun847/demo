@@ -1,6 +1,6 @@
 class_name GridCoordinate
 
-const DIR_4 := [
+const DIR_4: Array[Vector2i] = [
 	Vector2i(0, -1),  # UP (index 0)
 	Vector2i(1, 0),   # RIGHT (index 1)
 	Vector2i(0, 1),   # DOWN (index 2)
@@ -23,8 +23,8 @@ static func screen_to_world(camera: Camera2D, screen_pos: Vector2) -> Vector2:
 
 static func world_to_grid(world_pos: Vector2) -> Vector2i:
 	return Vector2i(
-		floor(world_pos.x / GameConfig.cell_size),
-		floor(world_pos.y / GameConfig.cell_size)
+		floori(world_pos.x / GameConfig.cell_size),
+		floori(world_pos.y / GameConfig.cell_size)
 	)
 
 static func grid_to_world(grid_pos: Vector2i) -> Vector2:

@@ -11,8 +11,8 @@ var current_slot_index: int = -1
 var building_types: Array[BuildingTypeData] = []
 
 var _slots: Array[InventorySlot] = []
-var _mode_indicator_panel: Panel
-var _mode_indicator_label: Label
+var _mode_indicator_panel: Panel = null
+var _mode_indicator_label: Label = null
 var _mode_indicator_style: StyleBoxFlat = null
 
 func _ready() -> void:
@@ -26,21 +26,21 @@ func _exit_tree() -> void:
 	EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
 
 func _create_mode_indicator() -> void:
-	var indicator := Control.new()
+	var indicator: Control = Control.new()
 	indicator.custom_minimum_size = Vector2(68, 64)
 	indicator.name = "ModeIndicator"
 
-	var bg := Panel.new()
+	var bg: Panel = Panel.new()
 	bg.name = "Background"
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	indicator.add_child(bg)
 
-	var label := Label.new()
+	var label: Label = Label.new()
 	label.name = "ModeLabel"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	var label_settings := LabelSettings.new()
+	var label_settings: LabelSettings = LabelSettings.new()
 	label_settings.font_size = 14
 	label_settings.font_color = Color.WHITE
 	label.label_settings = label_settings
@@ -77,21 +77,21 @@ func _on_paste_mode_changed(_active: bool) -> void:
 
 func _init_default_types() -> void:
 	for i in range(1, MAX_BUILDING_TYPES + 1):
-		var data := BuildingTypeData.new()
+		var data: BuildingTypeData = BuildingTypeData.new()
 		data.type_id = "type_%02d" % i
 		if i == 1:
 			data.display_name = "容器"
-			var tex_path := "res://resources/container_icon.svg"
+			var tex_path: String = "res://resources/container_icon.svg"
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
 		elif i == 2:
 			data.display_name = "管道"
-			var tex_path := "res://resources/pipe_icon.svg"
+			var tex_path: String = "res://resources/pipe_icon.svg"
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
 		elif i == 3:
 			data.display_name = "水源"
-			var tex_path := "res://resources/water_source_icon.svg"
+			var tex_path: String = "res://resources/water_source_icon.svg"
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
 		else:
@@ -100,7 +100,7 @@ func _init_default_types() -> void:
 
 func _setup_slots() -> void:
 	for i in range(building_types.size()):
-		var slot := SLOT_SCENE.instantiate() as InventorySlot
+		var slot: InventorySlot = SLOT_SCENE.instantiate() as InventorySlot
 		_slots.append(slot)
 		add_child(slot)
 		slot.setup_slot(i, building_types[i])
@@ -116,7 +116,7 @@ func select_slot(index: int) -> void:
 		_slots[current_slot_index].set_selected(false)
 	current_slot_index = index
 	_slots[current_slot_index].set_selected(true)
-	var type_id := FALLBACK_TYPE_ID
+	var type_id: String = FALLBACK_TYPE_ID
 	if current_slot_index < building_types.size():
 		type_id = building_types[current_slot_index].type_id
 	_update_mode_indicator()

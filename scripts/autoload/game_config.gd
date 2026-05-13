@@ -85,15 +85,15 @@ func load_game_settings() -> void:
 	var content := file.get_as_text()
 	file.close()
 
-	var data = JSON.parse_string(content)
+	var data: Variant = JSON.parse_string(content)
 	if data == null or not data is Dictionary:
 		push_error("GameConfig: 游戏设置格式无效，使用默认值")
 		zoom_speed = DEFAULT_ZOOM_SPEED
 		shift_speed_multiplier = DEFAULT_SHIFT_SPEED_MULTIPLIER
 		return
 
-	var zoom_val = data.get("zoom_speed", DEFAULT_ZOOM_SPEED)
-	var shift_val = data.get("shift_speed_multiplier", DEFAULT_SHIFT_SPEED_MULTIPLIER)
+	var zoom_val: Variant = data.get("zoom_speed", DEFAULT_ZOOM_SPEED)
+	var shift_val: Variant = data.get("shift_speed_multiplier", DEFAULT_SHIFT_SPEED_MULTIPLIER)
 	zoom_speed = zoom_val if zoom_val is float or zoom_val is int else DEFAULT_ZOOM_SPEED
 	shift_speed_multiplier = shift_val if shift_val is float or shift_val is int else DEFAULT_SHIFT_SPEED_MULTIPLIER
 

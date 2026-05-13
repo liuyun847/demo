@@ -265,3 +265,40 @@ func test_container_pipe_continues_to_downstream_container():
 
 	assert_eq(container_first.capacity, source.output_per_tick / 2, "水源直接相邻的容器应接收水")
 	assert_eq(container_second.capacity, source.output_per_tick / 2, "管道可从容器继续传输，下游容器应接收均分的水")
+
+
+func test_full_container_does_not_block_downstream_pipe():
+	# 水源 → 管道 → 容器(满) → 管道：满容器不应阻断 BFS，下游管道应被发现
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(3, 0), GameConfig.pipe_type_id)
+	_refresh_all_pipes()
+
+	var container = _bm.get_node("Building_2_0")
+	var pipe_downstream = _bm.get_node("Building_3_0")
+	container.capacity = container.max_capacity
+
+	_coordinator._on_tick()
+
+	assert_eq(pipe_downstream.network_state, 2, "满容器下游管道应被 BFS 发现，state=2（已满载）而非 0（未连通）")
+
+
+func test_full_container_then_downstream_empty_container():
+	# 水源 → 管道 → 容器(满) → 管道 → 容器(空)：满容器不阻断传播，下游空容器应接收水
+	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.container_type_id)
+	_bm.place_building(Vector2i(3, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(4, 0), GameConfig.container_type_id)
+	_refresh_all_pipes()
+
+	var container_first = _bm.get_node("Building_2_0")
+	var container_second = _bm.get_node("Building_4_0")
+	var source = _bm.get_node("Building_0_0")
+	container_first.capacity = container_first.max_capacity
+
+	_coordinator._on_tick()
+
+	assert_eq(container_first.capacity, container_first.max_capacity, "满容器不应再接收水")
+	assert_eq(container_second.capacity, source.output_per_tick, "满容器不应阻断传播，下游空容器应接收全部水量")
