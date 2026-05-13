@@ -55,3 +55,39 @@ func test_world_to_grid_roundtrip() -> void:
 	var world: Vector2 = GridCoordinate.grid_to_world(original)
 	var roundtrip: Vector2i = GridCoordinate.world_to_grid(world)
 	assert_eq(roundtrip, original, "网格坐标 -> 世界坐标 -> 网格坐标 应保持不变")
+
+func test_screen_to_world_zoom_1() -> void:
+	var camera: Camera2D = autoqfree(Camera2D.new())
+	add_child_autoqfree(camera)
+	camera.global_position = Vector2(200, 300)
+	camera.zoom = Vector2(1, 1)
+	var viewport: Viewport = camera.get_viewport()
+	var view_size: Vector2 = viewport.get_visible_rect().size
+	var center: Vector2 = view_size / 2.0
+	var result: Vector2 = GridCoordinate.screen_to_world(camera, center)
+	assert_eq(result, camera.global_position, "缩放1倍时屏幕中心应映射到相机位置")
+
+func test_screen_to_world_zoom_2() -> void:
+	var camera: Camera2D = autoqfree(Camera2D.new())
+	add_child_autoqfree(camera)
+	camera.global_position = Vector2(500, 400)
+	camera.zoom = Vector2(2, 2)
+	var viewport: Viewport = camera.get_viewport()
+	var view_size: Vector2 = viewport.get_visible_rect().size
+	var center: Vector2 = view_size / 2.0
+	var screen_pos: Vector2 = center + Vector2(100, 50)
+	var offset: Vector2 = Vector2(100, 50) / camera.zoom
+	var result: Vector2 = GridCoordinate.screen_to_world(camera, screen_pos)
+	assert_eq(result, camera.global_position + offset, "缩放2倍时屏幕偏移应正确映射到世界坐标")
+
+func test_screen_to_world_corner() -> void:
+	var camera: Camera2D = autoqfree(Camera2D.new())
+	add_child_autoqfree(camera)
+	camera.global_position = Vector2(100, 100)
+	camera.zoom = Vector2(1, 1)
+	var viewport: Viewport = camera.get_viewport()
+	var view_size: Vector2 = viewport.get_visible_rect().size
+	var center: Vector2 = view_size / 2.0
+	var result: Vector2 = GridCoordinate.screen_to_world(camera, Vector2.ZERO)
+	var expected: Vector2 = (Vector2.ZERO - center) + camera.global_position
+	assert_eq(result, expected, "屏幕左上角应映射到正确的世界坐标")

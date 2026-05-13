@@ -113,4 +113,76 @@ func test_undo_empty_stack_does_not_crash():
 	SelectionManager.undo()
 	assert_true(SelectionManager.undo_stack.is_empty(), "空撤销栈调用 undo() 不应崩溃")
 
+func test_perform_paste_batch_with_building_manager():
+	load("res://scripts/building/container_node.gd")
+	load("res://scripts/building/pipe_node.gd")
+	load("res://scripts/building/water_source_node.gd")
+	load("res://scripts/building/fluid_node_base.gd")
+	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	add_child_autoqfree(bm)
+	bm.name = "BuildingManager"
+	for conn in EventBus.fluid_updated.get_connections():
+		EventBus.fluid_updated.disconnect(conn.callable)
+
+	SelectionManager.undo_stack.clear()
+	SelectionManager._building_manager = bm
+	var buildings: Array[Dictionary] = [
+		{"offset": Vector2i(0, 0), "type": GameConfig.container_type_id},
+		{"offset": Vector2i(1, 0), "type": GameConfig.pipe_type_id},
+	]
+	SelectionManager.clipboard = {
+		"buildings": buildings,
+	}
+
+	var anchors: Array[Vector2i] = [Vector2i(0, 0), Vector2i(3, 0)]
+	SelectionManager.perform_paste_batch(anchors)
+
+	assert_true(bm.has_building(Vector2i(0, 0)), "第一个锚点的 offset(0,0) 应放置建筑")
+	assert_true(bm.has_building(Vector2i(1, 0)), "第一个锚点的 offset(1,0) 应放置建筑")
+	assert_true(bm.has_building(Vector2i(3, 0)), "第二个锚点的 offset(0,0) 应放置建筑")
+	assert_true(bm.has_building(Vector2i(4, 0)), "第二个锚点的 offset(1,0) 应放置建筑")
+
+func test_perform_paste_batch_skip_occupied():
+	load("res://scripts/building/container_node.gd")
+	load("res://scripts/building/pipe_node.gd")
+	load("res://scripts/building/water_source_node.gd")
+	load("res://scripts/building/fluid_node_base.gd")
+	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	add_child_autoqfree(bm)
+	bm.name = "BuildingManager"
+	for conn in EventBus.fluid_updated.get_connections():
+		EventBus.fluid_updated.disconnect(conn.callable)
+
+	SelectionManager.undo_stack.clear()
+	SelectionManager._building_manager = bm
+	bm.place_building(Vector2i(3, 0), GameConfig.water_source_type_id)
+
+	var buildings: Array[Dictionary] = [
+		{"offset": Vector2i(0, 0), "type": GameConfig.container_type_id},
+		{"offset": Vector2i(1, 0), "type": GameConfig.pipe_type_id},
+	]
+	SelectionManager.clipboard = {
+		"buildings": buildings,
+	}
+
+	var anchors: Array[Vector2i] = [Vector2i(0, 0), Vector2i(3, 0)]
+	SelectionManager.perform_paste_batch(anchors)
+
+	assert_true(bm.has_building(Vector2i(0, 0)), "offset(0,0) 应放置")
+	assert_true(bm.has_building(Vector2i(1, 0)), "offset(1,0) 应放置")
+	assert_eq(bm.get_building_type(Vector2i(3, 0)), GameConfig.water_source_type_id, "已占用位置应保留原建筑")
+	assert_true(bm.has_building(Vector2i(4, 0)), "第二个锚点的 offset(1,0) 应放置")
+
+func test_perform_paste_batch_empty_clipboard():
+	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	add_child_autoqfree(bm)
+	bm.name = "BuildingManager"
+	SelectionManager._building_manager = bm
+	SelectionManager.clipboard = {}
+
+	var anchors: Array[Vector2i] = [Vector2i(0, 0)]
+	SelectionManager.perform_paste_batch(anchors)
+
+	assert_eq(bm.get_all_buildings_data().size(), 0, "空剪贴板不应放置任何建筑")
+
 

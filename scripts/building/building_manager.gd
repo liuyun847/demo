@@ -317,6 +317,32 @@ static func get_line_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector
 
 	return cells
 
+static func get_paste_line_anchors(from_pos: Vector2i, to_pos: Vector2i, unit_width: int, unit_height: int) -> Array[Vector2i]:
+	var anchors: Array[Vector2i] = []
+	var dx := to_pos.x - from_pos.x
+	var dy := to_pos.y - from_pos.y
+
+	if abs(dx) >= abs(dy):
+		var y := from_pos.y
+		var start_x := mini(from_pos.x, to_pos.x)
+		var end_x := maxi(from_pos.x, to_pos.x)
+		var step := maxi(unit_width, 1)
+		var x := start_x
+		while x <= end_x:
+			anchors.append(Vector2i(x, y))
+			x += step
+	else:
+		var x := from_pos.x
+		var start_y := mini(from_pos.y, to_pos.y)
+		var end_y := maxi(from_pos.y, to_pos.y)
+		var step := maxi(unit_height, 1)
+		var y := start_y
+		while y <= end_y:
+			anchors.append(Vector2i(x, y))
+			y += step
+
+	return anchors
+
 func place_buildings_in_line(cells: Array[Vector2i], building_type: String = "default") -> int:
 	var placed_count := 0
 	for grid_pos in cells:

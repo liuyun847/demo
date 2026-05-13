@@ -115,8 +115,9 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 	if _is_paste_mode():
 		SelectionManager.paste_anchor = grid_pos
 		if _paste_is_dragging:
-			var cells := BuildingManager.get_line_cells(_paste_drag_start, grid_pos)
-			building_manager.set_paste_preview_line(cells, SelectionManager.clipboard)
+			var unit_size := SelectionManager.get_clipboard_unit_size()
+			var anchors := BuildingManager.get_paste_line_anchors(_paste_drag_start, grid_pos, unit_size.x, unit_size.y)
+			building_manager.set_paste_preview_line(anchors, SelectionManager.clipboard)
 		else:
 			building_manager.set_paste_preview_line([grid_pos], SelectionManager.clipboard)
 		viewport.set_input_as_handled()
@@ -159,8 +160,9 @@ func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewpo
 		return
 	if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		if _paste_is_dragging:
-			var cells := BuildingManager.get_line_cells(_paste_drag_start, grid_pos)
-			SelectionManager.perform_paste_batch(cells)
+			var unit_size := SelectionManager.get_clipboard_unit_size()
+			var anchors := BuildingManager.get_paste_line_anchors(_paste_drag_start, grid_pos, unit_size.x, unit_size.y)
+			SelectionManager.perform_paste_batch(anchors)
 			_paste_is_dragging = false
 		viewport.set_input_as_handled()
 		return
