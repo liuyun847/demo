@@ -69,6 +69,7 @@ func test_perform_paste_no_clipboard():
 	SelectionManager.is_paste_mode = true
 	SelectionManager.perform_paste(Vector2i(0, 0))
 	assert_true(SelectionManager.is_paste_mode, "空剪贴板时 perform_paste 不应退出粘贴模式（因无 building_manager）")
+	SelectionManager.is_paste_mode = false
 
 func test_cancel_paste_emits_signal():
 	watch_signals(EventBus)

@@ -6,6 +6,7 @@ func before_each():
 	_bar = autoqfree(InventoryBar.new())
 	_bar.name = "InventoryBar"
 	add_child_autoqfree(_bar)
+	SelectionManager.is_paste_mode = false
 
 
 func test_initial_state_not_selected():
