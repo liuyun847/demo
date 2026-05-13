@@ -217,3 +217,78 @@ func test_water_source_node_consume_output_exceed():
 func test_container_node_fill_ratio_safety():
 	var node = autoqfree(ContainerNode.new())
 	assert_eq(node.get_fill_ratio(), 0.0, "空容器填充率应为 0.0")
+
+# ===== PipeNode refresh_connections 测试 =====
+
+func test_pipe_node_refresh_connections_all_directions():
+	load("res://scripts/building/fluid_node_base.gd")
+	load("res://scripts/building/container_node.gd")
+	load("res://scripts/building/water_source_node.gd")
+	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	add_child_autoqfree(bm)
+	# 断开 fluid_updated 信号连接，避免测试中触发流体系统
+	for conn in EventBus.fluid_updated.get_connections():
+		EventBus.fluid_updated.disconnect(conn.callable)
+
+	var pipe = autoqfree(PipeNode.new())
+	pipe.grid_position = Vector2i(5, 5)
+	bm.add_child(pipe)
+	bm._building_nodes[Vector2i(5, 5)] = pipe
+	bm.fluid_pipes.append(pipe)
+
+	bm.place_building(Vector2i(5, 4), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(6, 5), GameConfig.container_type_id)
+	bm.place_building(Vector2i(5, 6), GameConfig.water_source_type_id)
+	bm.place_building(Vector2i(4, 5), GameConfig.pipe_type_id)
+
+	pipe.refresh_connections()
+
+	var expected := GridCoordinate.DirFlag.UP | GridCoordinate.DirFlag.RIGHT | GridCoordinate.DirFlag.DOWN | GridCoordinate.DirFlag.LEFT
+	assert_eq(pipe.connection_mask, expected, "四个方向都有流体建筑时应全部连接")
+	assert_ne(pipe.connection_mask & GridCoordinate.DirFlag.UP, 0, "应有上方连接")
+	assert_ne(pipe.connection_mask & GridCoordinate.DirFlag.RIGHT, 0, "应有右侧连接")
+	assert_ne(pipe.connection_mask & GridCoordinate.DirFlag.DOWN, 0, "应有下方连接")
+	assert_ne(pipe.connection_mask & GridCoordinate.DirFlag.LEFT, 0, "应有左侧连接")
+
+func test_pipe_node_refresh_connections_none():
+	load("res://scripts/building/fluid_node_base.gd")
+	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	add_child_autoqfree(bm)
+	for conn in EventBus.fluid_updated.get_connections():
+		EventBus.fluid_updated.disconnect(conn.callable)
+
+	var pipe = autoqfree(PipeNode.new())
+	pipe.grid_position = Vector2i(10, 10)
+	bm.add_child(pipe)
+	bm._building_nodes[Vector2i(10, 10)] = pipe
+	bm.fluid_pipes.append(pipe)
+
+	pipe.refresh_connections()
+
+	assert_eq(pipe.connection_mask, 0, "周围无建筑时 connection_mask 应为 0")
+
+func test_pipe_node_refresh_connections_only_non_fluid():
+	load("res://scripts/building/fluid_node_base.gd")
+	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	add_child_autoqfree(bm)
+	for conn in EventBus.fluid_updated.get_connections():
+		EventBus.fluid_updated.disconnect(conn.callable)
+
+	var pipe = autoqfree(PipeNode.new())
+	pipe.grid_position = Vector2i(3, 3)
+	bm.add_child(pipe)
+	bm._building_nodes[Vector2i(3, 3)] = pipe
+	bm.fluid_pipes.append(pipe)
+
+	bm.place_building(Vector2i(3, 2), "type_04")
+	bm.place_building(Vector2i(4, 3), "default")
+
+	pipe.refresh_connections()
+
+	assert_eq(pipe.connection_mask, 0, "周围只有非流体建筑时 connection_mask 应为 0")
+
+func test_pipe_node_refresh_connections_no_parent():
+	var pipe = autoqfree(PipeNode.new())
+	pipe.grid_position = Vector2i(0, 0)
+	pipe.refresh_connections()
+	assert_eq(pipe.connection_mask, 0, "无父节点时不应崩溃，connection_mask 保持为 0")

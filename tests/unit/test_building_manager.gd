@@ -161,3 +161,97 @@ func test_get_building_data():
 	if data:
 		assert_eq(data.building_type, GameConfig.container_type_id, "building_type 应正确")
 	assert_null(_bm.get_building_data(Vector2i(99, 99)), "不存在的位置应返回 null")
+
+func test_set_selected_cells():
+	var cells: Array[Vector2i] = [Vector2i(1, 1), Vector2i(2, 2)]
+	_bm.set_selected_cells(cells)
+	assert_eq(_bm.selected_cells.size(), 2, "selected_cells 应有 2 个格子")
+	assert_eq(_bm.selected_cells[0], Vector2i(1, 1))
+	var empty: Array[Vector2i] = []
+	_bm.set_selected_cells(empty)
+	assert_true(_bm.selected_cells.is_empty(), "空数组应清空 selected_cells")
+
+func test_set_paste_preview():
+	var buildings: Array[Dictionary] = [
+		{"offset": Vector2i(0, 0), "type": "type_01"},
+		{"offset": Vector2i(1, 0), "type": "type_02"},
+	]
+	var clipboard := {
+		"buildings": buildings,
+	}
+	_bm.set_paste_preview(Vector2i(5, 5), clipboard)
+	assert_eq(_bm.paste_ghost_cells.size(), 2, "应计算 2 个粘贴预览格子")
+	assert_eq(_bm.paste_ghost_types.size(), 2, "应有 2 个类型映射")
+
+func test_set_paste_preview_line():
+	var buildings: Array[Dictionary] = [
+		{"offset": Vector2i(0, 0), "type": "type_01"},
+		{"offset": Vector2i(1, 0), "type": "type_02"},
+	]
+	var clipboard := {
+		"buildings": buildings,
+	}
+	var anchors: Array[Vector2i] = [Vector2i(5, 5), Vector2i(7, 5)]
+	_bm.set_paste_preview_line(anchors, clipboard)
+	assert_eq(_bm.paste_ghost_cells.size(), 4, "2 锚点 × 2 偏移量 = 4 个预览格子")
+	assert_eq(_bm.paste_ghost_types.size(), 4, "应有 4 个类型映射")
+
+func test_set_paste_preview_line_dedup():
+	var buildings: Array[Dictionary] = [
+		{"offset": Vector2i(0, 0), "type": "type_01"},
+	]
+	var clipboard := {
+		"buildings": buildings,
+	}
+	var anchors: Array[Vector2i] = [Vector2i(5, 5), Vector2i(5, 5)]
+	_bm.set_paste_preview_line(anchors, clipboard)
+	assert_eq(_bm.paste_ghost_cells.size(), 1, "重复锚点应去重，只有 1 个预览格子")
+
+func test_clear_paste_preview():
+	var buildings: Array[Dictionary] = [
+		{"offset": Vector2i(0, 0), "type": "type_01"},
+	]
+	var clipboard := {
+		"buildings": buildings,
+	}
+	_bm.set_paste_preview(Vector2i(0, 0), clipboard)
+	assert_false(_bm.paste_ghost_cells.is_empty(), "设置后应有预览")
+	_bm.clear_paste_preview()
+	assert_true(_bm.paste_ghost_cells.is_empty(), "清除后 paste_ghost_cells 应为空")
+	assert_true(_bm.paste_ghost_types.is_empty(), "清除后 paste_ghost_types 应为空")
+
+func test_select_ghost_show_and_hide():
+	var cells: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 1), Vector2i(2, 2)]
+	_bm.show_select_ghost(cells)
+	assert_eq(_bm.select_ghost_cells.size(), 3, "应有 3 个选择幽灵格子")
+	_bm.hide_select_ghost()
+	assert_true(_bm.select_ghost_cells.is_empty(), "隐藏后 select_ghost_cells 应为空")
+
+func test_deselect_ghost_show_and_hide():
+	var cells: Array[Vector2i] = [Vector2i(3, 3)]
+	_bm.show_deselect_ghost(cells)
+	assert_eq(_bm.deselect_ghost_cells.size(), 1, "应有 1 个取消选择幽灵格子")
+	_bm.hide_deselect_ghost()
+	assert_true(_bm.deselect_ghost_cells.is_empty(), "隐藏后 deselect_ghost_cells 应为空")
+
+func test_get_building_node():
+	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	var node = _bm.get_building_node(Vector2i(0, 0))
+	assert_not_null(node, "存在的位置应返回节点")
+	assert_true(node is ContainerNode, "应为 ContainerNode 类型")
+	assert_null(_bm.get_building_node(Vector2i(99, 99)), "不存在的位置应返回 null")
+
+func test_get_building_node_name():
+	var name_str = _bm.get_building_node_name(Vector2i(3, 7))
+	assert_eq(name_str, "Building_3_7", "节点名应为 Building_x_y 格式")
+	var name_str2 = _bm.get_building_node_name(Vector2i(-1, -5))
+	assert_eq(name_str2, "Building_-1_-5", "负坐标也应正确格式化")
+
+func test_set_paste_preview_empty_clipboard():
+	_bm.set_paste_preview(Vector2i(0, 0), {})
+	assert_true(_bm.paste_ghost_cells.is_empty(), "空剪贴板不应有预览")
+
+func test_set_paste_preview_line_empty_clipboard():
+	var anchors: Array[Vector2i] = [Vector2i(0, 0)]
+	_bm.set_paste_preview_line(anchors, {})
+	assert_true(_bm.paste_ghost_cells.is_empty(), "空剪贴板不应有行预览")

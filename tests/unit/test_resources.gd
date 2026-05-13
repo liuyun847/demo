@@ -129,3 +129,22 @@ func test_undo_command_reverse_cut_does_not_restore_capacity():
 
 func test_undo_command_unset_max_capacity_constant():
 	assert_eq(UndoCommand.UNSET_MAX_CAPACITY, -1, "UNSET_MAX_CAPACITY 应为 -1")
+
+func test_is_container_building_with_container():
+	var node: ContainerNode = autoqfree(_ContainerNode.new())
+	assert_true(BuildingData.is_container_building(node), "ContainerNode 应判定为容器建筑")
+
+func test_is_container_building_with_other():
+	var node: Node2D = autoqfree(Node2D.new())
+	assert_false(BuildingData.is_container_building(node), "普通 Node2D 不应判定为容器建筑")
+
+func test_is_container_building_with_pipe():
+	var node: PipeNode = autoqfree(_PipeNodeScript.new())
+	assert_false(BuildingData.is_container_building(node), "PipeNode 不应判定为容器建筑")
+
+func test_is_container_building_with_water_source():
+	var node: WaterSourceNode = autoqfree(_WaterSourceNodeScript.new())
+	assert_false(BuildingData.is_container_building(node), "WaterSourceNode 不应判定为容器建筑")
+
+func test_is_container_building_with_null():
+	assert_false(BuildingData.is_container_building(null), "null 不应判定为容器建筑")

@@ -36,6 +36,7 @@ func before_each():
 
 func after_each():
 	SelectionManager.clipboard = {}
+	SelectionManager.undo_stack.clear()
 	SelectionManager._building_manager = null
 
 func _screen_to_grid(screen_pos: Vector2) -> Vector2i:
@@ -147,6 +148,43 @@ func test_paste_mode_places_buildings():
 
 	assert_true(_bm.has_building(Vector2i(3, 3)), "松开左键后 (3, 3) 应有建筑")
 	assert_true(_bm.has_building(Vector2i(4, 3)), "松开左键后 (4, 3) 应有建筑")
+
+func test_paste_mode_drag_tiles_unit_horizontally():
+	SelectionManager._building_manager = _bm
+	SelectionManager.clipboard = _make_clipboard()
+
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_paste_mode(event_press, Vector2i(0, 0), get_viewport())
+	_handler._handle_paste_mode(event_release, Vector2i(6, 0), get_viewport())
+
+	assert_true(_bm.has_building(Vector2i(0, 0)), "锚点 (0,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(1, 0)), "锚点 (0,0) offset(1,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(2, 0)), "锚点 (2,0) 应有建筑（单元宽度=2）")
+	assert_true(_bm.has_building(Vector2i(3, 0)), "锚点 (2,0) offset(1,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(4, 0)), "锚点 (4,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(5, 0)), "锚点 (4,0) offset(1,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(6, 0)), "锚点 (6,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(7, 0)), "锚点 (6,0) offset(1,0) 应有建筑")
+	assert_false(_bm.has_building(Vector2i(8, 0)), "锚点 (8,0) 不应有建筑（超出范围）")
+	assert_eq(SelectionManager.undo_stack.size(), 1, "一次拖拽应只产生一条撤销命令")
+
+func test_paste_mode_drag_tiles_unit_vertically():
+	SelectionManager._building_manager = _bm
+	SelectionManager.clipboard = _make_clipboard()
+
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_paste_mode(event_press, Vector2i(0, 0), get_viewport())
+	_handler._handle_paste_mode(event_release, Vector2i(0, 4), get_viewport())
+
+	assert_true(_bm.has_building(Vector2i(0, 0)), "锚点 (0,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(1, 0)), "锚点 (0,0) offset(1,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(0, 1)), "锚点 (0,1) 应有建筑（单元高度=1）")
+	assert_true(_bm.has_building(Vector2i(1, 1)), "锚点 (0,1) offset(1,0) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(0, 2)), "锚点 (0,2) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(1, 2)), "锚点 (0,2) offset(1,0) 应有建筑")
+	assert_eq(SelectionManager.undo_stack.size(), 1, "一次拖拽应只产生一条撤销命令")
 
 func test_mouse_motion_shows_paste_preview():
 	SelectionManager._building_manager = _bm
