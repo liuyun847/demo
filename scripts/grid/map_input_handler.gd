@@ -18,7 +18,6 @@ var _is_deselecting: bool = false
 
 var _paste_drag_start: Vector2i = Vector2i.ZERO
 var _paste_is_dragging: bool = false
-var _pasted_in_drag: Dictionary = {}
 
 var _last_hovered_grid: Vector2i = Vector2i(-99999, -99999)
 
@@ -53,7 +52,6 @@ func _cancel_all_dragging() -> void:
 		building_manager.hide_deselect_ghost()
 		_is_deselecting = false
 	_paste_is_dragging = false
-	_pasted_in_drag.clear()
 
 func _get_grid_pos(event: InputEvent) -> Vector2i:
 	var viewport: Viewport = get_viewport()
@@ -116,13 +114,11 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 
 	if _is_paste_mode():
 		SelectionManager.paste_anchor = grid_pos
-		building_manager.set_paste_preview(grid_pos, SelectionManager.clipboard)
 		if _paste_is_dragging:
-			var cells := BuildingManager.get_rect_cells(_paste_drag_start, grid_pos)
-			for cell in cells:
-				if not _pasted_in_drag.has(cell):
-					SelectionManager.perform_paste(cell)
-					_pasted_in_drag[cell] = true
+			var cells := BuildingManager.get_line_cells(_paste_drag_start, grid_pos)
+			building_manager.set_paste_preview_line(cells, SelectionManager.clipboard)
+		else:
+			building_manager.set_paste_preview_line([grid_pos], SelectionManager.clipboard)
 		viewport.set_input_as_handled()
 		return
 
@@ -158,21 +154,20 @@ func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewpo
 	if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		_paste_drag_start = grid_pos
 		_paste_is_dragging = true
-		_pasted_in_drag.clear()
-		SelectionManager.perform_paste(grid_pos)
-		_pasted_in_drag[grid_pos] = true
+		building_manager.set_paste_preview_line([grid_pos], SelectionManager.clipboard)
 		viewport.set_input_as_handled()
 		return
 	if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		_paste_is_dragging = false
-		_pasted_in_drag.clear()
+		if _paste_is_dragging:
+			var cells := BuildingManager.get_line_cells(_paste_drag_start, grid_pos)
+			SelectionManager.perform_paste_batch(cells)
+			_paste_is_dragging = false
 		viewport.set_input_as_handled()
 		return
 	if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		SelectionManager.cancel_paste_mode()
 		building_manager.clear_paste_preview()
 		_paste_is_dragging = false
-		_pasted_in_drag.clear()
 		viewport.set_input_as_handled()
 		return
 
@@ -236,7 +231,12 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		var removed: Dictionary = {}
 		for cell: Vector2i in cells:
 			if building_manager.has_building(cell):
-				removed[cell] = building_manager.get_building_type(cell)
+				var entry: Dictionary = {"type": building_manager.get_building_type(cell)}
+				var node: Node = building_manager.get_building_node(cell)
+				if BuildingData.is_container_building(node):
+					entry["capacity"] = node.capacity
+					entry["max_capacity"] = node.max_capacity
+				removed[cell] = entry
 		building_manager.remove_buildings_in_rect(cells)
 		if not removed.is_empty():
 			var cmd: UndoCommand = UndoCommand.new()

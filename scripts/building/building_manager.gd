@@ -188,6 +188,23 @@ func set_paste_preview(anchor: Vector2i, clipboard: Dictionary) -> void:
 		paste_ghost_types[grid_pos] = building_type
 	queue_redraw()
 
+func set_paste_preview_line(anchors: Array[Vector2i], clipboard: Dictionary) -> void:
+	paste_ghost_cells.clear()
+	paste_ghost_types.clear()
+	if clipboard.is_empty() or not clipboard.has("buildings"):
+		queue_redraw()
+		return
+	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
+	var seen: Dictionary[Vector2i, bool] = {}
+	for anchor in anchors:
+		for item in clip_buildings:
+			var grid_pos: Vector2i = anchor + item["offset"]
+			if not seen.has(grid_pos):
+				seen[grid_pos] = true
+				paste_ghost_cells.append(grid_pos)
+				paste_ghost_types[grid_pos] = item["type"]
+	queue_redraw()
+
 func clear_paste_preview() -> void:
 	paste_ghost_cells.clear()
 	paste_ghost_types.clear()

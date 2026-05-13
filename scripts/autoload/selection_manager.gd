@@ -150,6 +150,33 @@ func perform_paste(anchor: Vector2i) -> void:
 	selected_cells.clear()
 	EventBus.selection_changed.emit(_get_selected_cells_array())
 
+func perform_paste_batch(anchors: Array[Vector2i]) -> void:
+	var building_manager := _get_building_manager()
+	if not building_manager:
+		return
+	if clipboard.is_empty() or not clipboard.has("buildings"):
+		return
+
+	var paste_buildings: Array[Dictionary] = clipboard["buildings"]
+	var placed_cells := {}
+
+	for anchor in anchors:
+		for item in paste_buildings:
+			var grid_pos: Vector2i = anchor + item["offset"]
+			if not building_manager.has_building(grid_pos):
+				var building_type: String = item["type"]
+				building_manager.place_building(grid_pos, building_type)
+				placed_cells[grid_pos] = building_type
+
+	if not placed_cells.is_empty():
+		var cmd := UndoCommand.new()
+		cmd.type = UndoCommand.Type.PASTE
+		cmd.buildings = placed_cells
+		push_undo_command(cmd)
+
+	selected_cells.clear()
+	EventBus.selection_changed.emit(_get_selected_cells_array())
+
 func undo() -> void:
 	if undo_stack.is_empty():
 		return

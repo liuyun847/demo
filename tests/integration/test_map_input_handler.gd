@@ -140,10 +140,13 @@ func test_paste_mode_places_buildings():
 	SelectionManager.clipboard = _make_clipboard()
 
 	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
 	_handler._handle_paste_mode(event_press, Vector2i(3, 3), get_viewport())
+	assert_false(_bm.has_building(Vector2i(3, 3)), "按下左键时应仅显示预览，不立即放置建筑")
+	_handler._handle_paste_mode(event_release, Vector2i(3, 3), get_viewport())
 
-	assert_true(_bm.has_building(Vector2i(3, 3)), "粘贴后 (3, 3) 应有建筑")
-	assert_true(_bm.has_building(Vector2i(4, 3)), "粘贴后 (4, 3) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(3, 3)), "松开左键后 (3, 3) 应有建筑")
+	assert_true(_bm.has_building(Vector2i(4, 3)), "松开左键后 (4, 3) 应有建筑")
 
 func test_mouse_motion_shows_paste_preview():
 	SelectionManager._building_manager = _bm
@@ -199,7 +202,8 @@ func test_remove_does_not_record_capacity_in_undo():
 	assert_eq(cmd.type, UndoCommand.Type.REMOVE, "撤销命令类型应为 REMOVE")
 
 	for value in cmd.buildings.values():
-		assert_true(value is String, "撤销命令的 buildings 值应为纯字符串, 不含 capacity 字典")
+		assert_true(value is Dictionary, "撤销命令的 buildings 值应为字典类型")
+		assert_true(value.has("type"), "字典应包含 type 键")
 
 func test_copy_selection_fills_clipboard():
 	SelectionManager._building_manager = _bm
