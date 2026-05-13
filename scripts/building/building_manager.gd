@@ -3,8 +3,8 @@ extends Node2D
 
 var buildings: Dictionary = {} # key: Vector2i, value: BuildingData
 var _building_nodes: Dictionary = {} # key: Vector2i, value: Node2D
-var fluid_pipes: Array = [] # Array[PipeNode]
-var fluid_sources: Array = [] # Array[WaterSourceNode]
+var fluid_pipes: Array[PipeNode] = []
+var fluid_sources: Array[WaterSourceNode] = []
 var ghost_cells: Array[Vector2i] = []
 var remove_ghost_cells: Array[Vector2i] = []
 var selected_cells: Array[Vector2i] = []
@@ -30,7 +30,7 @@ func _on_selection_changed(cells: Array[Vector2i]) -> void:
 func has_building(grid_pos: Vector2i) -> bool:
 	return buildings.has(grid_pos)
 
-func place_building(grid_pos: Vector2i, building_type: String = "default", capacity: int = 0, max_capacity: int = -1) -> bool:
+func place_building(grid_pos: Vector2i, building_type: String = "default", restore_data: Dictionary = {}) -> bool:
 	if has_building(grid_pos):
 		return false
 
@@ -96,13 +96,13 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", capac
 		placeholder.add_child(label)
 		add_child(placeholder)
 
-	if capacity > 0 or max_capacity >= 0:
-		data.capacity = capacity
-		if max_capacity >= 0:
-			data.max_capacity = max_capacity
-		if BuildingData.is_fluid_storage_building(building_node):
-			building_node.max_capacity = data.max_capacity
-			building_node.capacity = data.capacity
+	if BuildingData.is_container_building(building_node) and not restore_data.is_empty():
+		if restore_data.has("capacity"):
+			data.capacity = restore_data["capacity"]
+			building_node.capacity = restore_data["capacity"]
+		if restore_data.has("max_capacity"):
+			data.max_capacity = restore_data["max_capacity"]
+			building_node.max_capacity = restore_data["max_capacity"]
 
 	_building_nodes[grid_pos] = building_node
 	if building_node is PipeNode:
@@ -119,13 +119,13 @@ func remove_building(grid_pos: Vector2i) -> bool:
 		return false
 
 	var node := get_building_node(grid_pos)
-	if BuildingData.is_fluid_storage_building(node):
+	if node == null:
+		return false
+	if BuildingData.is_container_building(node):
 		var data: BuildingData = buildings[grid_pos]
 		data.capacity = node.capacity
 		data.max_capacity = node.max_capacity
-		node.queue_free()
-	elif node:
-		node.queue_free()
+	node.queue_free()
 
 	var node_to_remove = _building_nodes.get(grid_pos)
 	if node_to_remove is PipeNode:
@@ -139,7 +139,16 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	return true
 
 func get_all_buildings_data() -> Dictionary:
-	return buildings.duplicate(true)
+	var copy: Dictionary = {}
+	for grid_pos in buildings.keys():
+		var data: BuildingData = buildings[grid_pos]
+		var new_data := BuildingData.new()
+		new_data.grid_position = data.grid_position
+		new_data.building_type = data.building_type
+		new_data.capacity = data.capacity
+		new_data.max_capacity = data.max_capacity
+		copy[grid_pos] = new_data
+	return copy
 
 func clear_all_buildings() -> void:
 	for grid_pos in buildings.keys():
@@ -259,6 +268,14 @@ func _draw() -> void:
 
 static func get_building_node_name(grid_pos: Vector2i) -> String:
 	return "Building_%d_%d" % [grid_pos.x, grid_pos.y]
+
+func get_building_type(grid_pos: Vector2i) -> String:
+	if buildings.has(grid_pos):
+		return buildings[grid_pos].building_type
+	return ""
+
+func get_building_data(grid_pos: Vector2i) -> BuildingData:
+	return buildings.get(grid_pos) as BuildingData
 
 func get_building_node(grid_pos: Vector2i) -> Node:
 	return _building_nodes.get(grid_pos) as Node

@@ -11,7 +11,8 @@ const MAX_UNDO_SIZE: int = 100
 var _building_manager: BuildingManager = null
 
 func _get_building_manager() -> BuildingManager:
-	if _building_manager == null:
+	if _building_manager == null or not is_instance_valid(_building_manager):
+		_building_manager = null
 		var main := get_tree().current_scene
 		if main:
 			_building_manager = main.get_node_or_null("BuildingManager") as BuildingManager
@@ -91,7 +92,7 @@ func _build_clipboard(cut: bool) -> Dictionary:
 			var type_id: String = buildings_data[grid_pos]
 			var entry := {"type": type_id}
 			var node := building_manager.get_building_node(grid_pos)
-			if BuildingData.is_fluid_storage_building(node):
+			if BuildingData.is_container_building(node):
 				entry["capacity"] = node.capacity
 				entry["max_capacity"] = node.max_capacity
 			undo_buildings[grid_pos] = entry

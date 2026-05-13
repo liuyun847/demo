@@ -133,7 +133,7 @@ func test_pipe_node_tooltip_details():
 
 func test_pipe_node_tooltip_details_with_connections():
 	var node = autoqfree(PipeNode.new())
-	node.connection_mask = PipeNode.ConnectionDir.TOP | PipeNode.ConnectionDir.RIGHT
+	node.connection_mask = GridCoordinate.DirFlag.UP | GridCoordinate.DirFlag.RIGHT
 	var details = node.get_tooltip_details()
 	assert_true(details["连接方向"].contains("上"), "应包含 上")
 	assert_true(details["连接方向"].contains("右"), "应包含 右")
@@ -154,8 +154,8 @@ func test_pipe_node_network_state_triggers_redraw():
 
 func test_pipe_node_connection_mask_triggers_redraw():
 	var node = autoqfree(PipeNode.new())
-	node.connection_mask = PipeNode.ConnectionDir.TOP
-	assert_eq(node.connection_mask, PipeNode.ConnectionDir.TOP)
+	node.connection_mask = GridCoordinate.DirFlag.UP
+	assert_eq(node.connection_mask, GridCoordinate.DirFlag.UP)
 
 # ===== WaterSourceNode 测试 =====
 
@@ -193,3 +193,27 @@ func test_water_source_node_no_capacity_props():
 	var node = autoqfree(WaterSourceNode.new())
 	assert_null(node.get("capacity"), "水源不应有 capacity 属性")
 	assert_null(node.get("max_capacity"), "水源不应有 max_capacity 属性")
+
+func test_water_source_node_reset_output():
+	var node = autoqfree(WaterSourceNode.new())
+	node.remaining_output = 0
+	node.reset_output()
+	assert_eq(node.remaining_output, node.output_per_tick, "reset_output 应将 remaining_output 重置为 output_per_tick")
+
+func test_water_source_node_consume_output():
+	var node = autoqfree(WaterSourceNode.new())
+	node.reset_output()
+	var consumed = node.consume_output(10)
+	assert_eq(consumed, 10, "应返回实际消耗量")
+	assert_eq(node.remaining_output, 20, "remaining_output 应减少 10")
+
+func test_water_source_node_consume_output_exceed():
+	var node = autoqfree(WaterSourceNode.new())
+	node.reset_output()
+	var consumed = node.consume_output(100)
+	assert_eq(consumed, 30, "消耗量不应超过 remaining_output")
+	assert_eq(node.remaining_output, 0, "remaining_output 应为 0")
+
+func test_container_node_fill_ratio_safety():
+	var node = autoqfree(ContainerNode.new())
+	assert_eq(node.get_fill_ratio(), 0.0, "空容器填充率应为 0.0")

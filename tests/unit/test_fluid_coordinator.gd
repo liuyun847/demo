@@ -63,7 +63,7 @@ func test_source_to_container_via_pipe():
 	assert_eq(container.capacity, source.output_per_tick, "水源每 tick 产出应全部分配给容器")
 
 
-func test_source_to_two_containers_even_split():
+func test_non_adjacent_container_receives_no_water():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 2), GameConfig.container_type_id)
@@ -79,7 +79,7 @@ func test_source_to_two_containers_even_split():
 	assert_eq(container_b.capacity, 0, "容器B不直接相邻水源/管道，不应接收水")
 
 
-func test_three_containers_with_remainder():
+func test_only_directly_adjacent_containers_receive_water():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 2), GameConfig.container_type_id)

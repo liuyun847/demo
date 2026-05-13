@@ -22,6 +22,10 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	"slot_8": "槽位 8",
 	"slot_9": "槽位 9",
 	"slot_0": "槽位 0",
+	"ui_copy": "复制",
+	"ui_cut": "剪切",
+	"ui_paste": "粘贴",
+	"ui_undo": "撤销",
 }
 
 const GAMEPLAY_ACTIONS: Array[String] = [
@@ -44,6 +48,10 @@ const GAMEPLAY_ACTIONS: Array[String] = [
 	"slot_8",
 	"slot_9",
 	"slot_0",
+	"ui_copy",
+	"ui_cut",
+	"ui_paste",
+	"ui_undo",
 ]
 
 func _ready() -> void:
@@ -130,8 +138,7 @@ func remap_action(action: String, new_event: InputEvent) -> void:
 func reset_to_defaults() -> void:
 	_apply_default_keybindings()
 	save_keybindings()
-	for action in GAMEPLAY_ACTIONS:
-		EventBus.keybind_changed.emit(action)
+	EventBus.keybind_changed.emit("")
 
 func save_keybindings() -> void:
 	var keybind_data := {
@@ -182,7 +189,9 @@ func load_keybindings() -> void:
 		return
 
 	if data.version != KEYBIND_VERSION:
-		push_warning("KeybindManager: 按键配置版本不匹配，期望 %s，实际 %s" % [KEYBIND_VERSION, data.version])
+		push_warning("KeybindManager: 按键配置版本不匹配，期望 %s，实际 %s，回退默认值" % [KEYBIND_VERSION, data.version])
+		_apply_default_keybindings()
+		return
 
 	if not data.has("keybindings") or not data.keybindings is Dictionary:
 		push_error("KeybindManager: 按键配置缺少 keybindings 字段")
@@ -229,6 +238,10 @@ func _apply_default_keybindings() -> void:
 		"slot_8": _create_key_event(KEY_8),
 		"slot_9": _create_key_event(KEY_9),
 		"slot_0": _create_key_event(KEY_0),
+		"ui_copy": _create_key_event_with_ctrl(KEY_C),
+		"ui_cut": _create_key_event_with_ctrl(KEY_X),
+		"ui_paste": _create_key_event_with_ctrl(KEY_V),
+		"ui_undo": _create_key_event_with_ctrl(KEY_Z),
 	}
 
 	for action in defaults.keys():
@@ -242,6 +255,15 @@ func _create_key_event(keycode: Key) -> InputEventKey:
 	event.alt_pressed = false
 	event.shift_pressed = false
 	event.ctrl_pressed = false
+	event.meta_pressed = false
+	return event
+
+func _create_key_event_with_ctrl(keycode: Key) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.keycode = keycode
+	event.alt_pressed = false
+	event.shift_pressed = false
+	event.ctrl_pressed = true
 	event.meta_pressed = false
 	return event
 

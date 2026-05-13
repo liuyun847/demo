@@ -1,3 +1,4 @@
+class_name Settings
 extends Control
 
 @onready var keybind_list: VBoxContainer = $MarginContainer/VBoxContainer/ContentHBox/LeftVBox/ScrollContainer/KeybindList
@@ -7,13 +8,22 @@ extends Control
 
 var listening_action: String = ""
 var listening_button: Button = null
+var _settings_save_timer: Timer = null
 
 func _ready() -> void:
+	_settings_save_timer = Timer.new()
+	_settings_save_timer.one_shot = true
+	_settings_save_timer.wait_time = 1.0
+	_settings_save_timer.timeout.connect(_do_save_settings)
+	add_child(_settings_save_timer)
 	btn_reset.pressed.connect(_on_reset_pressed)
 	btn_back.pressed.connect(_on_back_pressed)
 	EventBus.keybind_changed.connect(_on_keybind_changed)
 	_refresh_keybind_list()
 	_refresh_game_options()
+
+func _exit_tree() -> void:
+	EventBus.keybind_changed.disconnect(_on_keybind_changed)
 
 func _input(event: InputEvent) -> void:
 	if not visible:
@@ -22,7 +32,7 @@ func _input(event: InputEvent) -> void:
 	if listening_action.is_empty():
 		if event.is_action_pressed("ui_cancel"):
 			EventBus.show_start_menu_requested.emit()
-			get_viewport().set_input_as_handled()
+		get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventMouseMotion:
@@ -133,13 +143,16 @@ func _create_slider_option_row(label_text: String, min_val: float, max_val: floa
 
 func _on_zoom_speed_changed(value: float) -> void:
 	GameConfig.zoom_speed = value
-	GameConfig.save_game_settings()
 	EventBus.game_settings_changed.emit()
+	_settings_save_timer.start()
 
 func _on_shift_speed_changed(value: float) -> void:
 	GameConfig.shift_speed_multiplier = value
-	GameConfig.save_game_settings()
 	EventBus.game_settings_changed.emit()
+	_settings_save_timer.start()
+
+func _do_save_settings() -> void:
+	GameConfig.save_game_settings()
 
 func _on_key_button_pressed(action: String, button: Button) -> void:
 	if not listening_action.is_empty():

@@ -44,6 +44,7 @@ visible = false
 process_mode = 3
 
 [node name="InventoryBar" parent="UIOverlay" instance=ExtResource("9_invbar")]
+unique_name_in_owner = true
 visible = false
 
 [node name="BuildingTooltip" parent="UIOverlay" instance=ExtResource("10_tooltip")]

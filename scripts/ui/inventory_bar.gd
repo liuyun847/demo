@@ -22,6 +22,9 @@ func _ready() -> void:
 	_update_mode_indicator()
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
 
+func _exit_tree() -> void:
+	EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
+
 func _create_mode_indicator() -> void:
 	var indicator := Control.new()
 	indicator.custom_minimum_size = Vector2(68, 64)
@@ -124,7 +127,7 @@ func deselect() -> void:
 		_slots[current_slot_index].set_selected(false)
 	current_slot_index = -1
 	_update_mode_indicator()
-	slot_selected.emit(-1, "")
+	slot_selected.emit(-1, FALLBACK_TYPE_ID)
 
 func has_building_type_selected() -> bool:
 	return current_slot_index >= 0

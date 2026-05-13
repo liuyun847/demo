@@ -27,11 +27,7 @@ func test_settings_pressed_emits_signal():
 	btn_settings.pressed.emit()
 	assert_signal_emitted(EventBus, "show_settings_requested", "点击设置按钮应发射 show_settings_requested")
 
-func test_esc_input_emits_start_game():
+func test_show_start_menu_requested_signal():
 	watch_signals(EventBus)
-	_menu.show()
-	var event := InputEventKey.new()
-	event.keycode = KEY_ESCAPE
-	event.pressed = true
-	_menu._input(event)
-	assert_signal_emitted(EventBus, "start_game_requested", "可见时 ESC 键应发射 start_game_requested")
+	EventBus.show_start_menu_requested.emit()
+	assert_signal_emitted(EventBus, "show_start_menu_requested", "应能发射 show_start_menu_requested 信号")

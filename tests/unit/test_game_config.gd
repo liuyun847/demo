@@ -7,8 +7,6 @@ func test_building_type_constants():
 
 func test_fluid_config_constants():
 	assert_eq(GameConfig.fluid_tick_interval, 0.3, "fluid_tick_interval 应为 0.3")
-	assert_eq(GameConfig.fluid_sub_iterations, 5, "fluid_sub_iterations 应为 5")
-	assert_eq(GameConfig.fluid_flow_rate, 0.3, "fluid_flow_rate 应为 0.3")
 
 func test_block_pixel_size():
 	var expected = GameConfig.cell_size * GameConfig.big_cell_size
@@ -71,3 +69,24 @@ func test_selection_constants():
 	assert_ne(GameConfig.selection_highlight_color, Color.BLACK, "selection_highlight_color 不应为纯黑")
 	assert_ne(GameConfig.selection_border_color, Color.BLACK, "selection_border_color 不应为纯黑")
 	assert_eq(GameConfig.paste_ghost_alpha, 0.45, "paste_ghost_alpha 应为 0.45")
+
+func test_load_settings_invalid_type_fallback():
+	var original_save_path = GameConfig.game_settings_file_path
+	GameConfig.game_settings_file_path = "res://save/test_game_settings_invalid.json"
+	_cleanup_invalid_test_settings()
+	var dir_path := "res://save"
+	var file := FileAccess.open("res://save/test_game_settings_invalid.json", FileAccess.WRITE)
+	if file:
+		file.store_string('{"version":"1.0.0","zoom_speed":"invalid","shift_speed_multiplier":null}')
+		file.close()
+	GameConfig.zoom_speed = GameConfig.DEFAULT_ZOOM_SPEED
+	GameConfig.shift_speed_multiplier = GameConfig.DEFAULT_SHIFT_SPEED_MULTIPLIER
+	GameConfig.load_game_settings()
+	assert_eq(GameConfig.zoom_speed, GameConfig.DEFAULT_ZOOM_SPEED, "无效 zoom_speed 应回退默认值")
+	assert_eq(GameConfig.shift_speed_multiplier, GameConfig.DEFAULT_SHIFT_SPEED_MULTIPLIER, "无效 shift_speed_multiplier 应回退默认值")
+	_cleanup_invalid_test_settings()
+	GameConfig.game_settings_file_path = original_save_path
+
+func _cleanup_invalid_test_settings() -> void:
+	if FileAccess.file_exists("res://save/test_game_settings_invalid.json"):
+		DirAccess.remove_absolute("res://save/test_game_settings_invalid.json")

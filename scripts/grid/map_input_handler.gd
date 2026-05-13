@@ -22,7 +22,7 @@ func _ready() -> void:
 	if not building_manager:
 		building_manager = %BuildingManager
 	if not inventory_bar:
-		inventory_bar = $"../UIOverlay/InventoryBar"
+		inventory_bar = %InventoryBar
 	if inventory_bar:
 		inventory_bar.slot_selected.connect(_on_slot_selected)
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
@@ -213,9 +213,9 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		var removed := {}
 		for cell in cells:
 			if building_manager.has_building(cell):
-				var entry := {"type": building_manager.buildings[cell].building_type}
+				var entry := {"type": building_manager.get_building_type(cell)}
 				var node := building_manager.get_building_node(cell)
-				if BuildingData.is_fluid_storage_building(node):
+				if BuildingData.is_container_building(node):
 					entry["capacity"] = node.capacity
 					entry["max_capacity"] = node.max_capacity
 				removed[cell] = entry

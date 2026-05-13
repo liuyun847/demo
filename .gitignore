@@ -6,3 +6,7 @@
 *.tmp
 *.uid
 save/
+export_presets.cfg
+.vs/
+*.crash
+*.log

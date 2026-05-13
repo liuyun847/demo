@@ -1,3 +1,4 @@
+class_name SaveManager
 extends Node
 
 @onready var building_manager: BuildingManager = get_node("../BuildingManager")
@@ -14,6 +15,11 @@ func _ready() -> void:
 	EventBus.fluid_updated.connect(_on_fluid_updated)
 	_init_fluid_autosave_timer()
 	load_buildings()
+
+func _exit_tree() -> void:
+	EventBus.building_placed.disconnect(_on_building_changed)
+	EventBus.building_removed.disconnect(_on_building_changed)
+	EventBus.fluid_updated.disconnect(_on_fluid_updated)
 
 func _init_fluid_autosave_timer() -> void:
 	_fluid_autosave_timer = Timer.new()
@@ -48,6 +54,8 @@ func _sync_container_data() -> void:
 		if not BuildingData.has_capacity(data.building_type):
 			continue
 		var node := building_manager.get_building_node(grid_pos)
+		if node == null:
+			continue
 		if "capacity" in node:
 			data.capacity = node.capacity
 		if "max_capacity" in node:
@@ -132,16 +140,11 @@ func load_buildings() -> void:
 				var grid_pos := Vector2i(int(parts[0]), int(parts[1]))
 				var b_data: Dictionary = save_data.buildings[key]
 				var b_type: String = b_data.get("type", "default")
-				building_manager.place_building(grid_pos, b_type)
-				if BuildingData.has_capacity(b_type) and building_manager.buildings.has(grid_pos):
-					var data: BuildingData = building_manager.buildings[grid_pos]
-					data.capacity = b_data.get("capacity", 0)
-					data.max_capacity = b_data.get("max_capacity", data.max_capacity)
-					var node := building_manager.get_building_node(grid_pos)
-					if "max_capacity" in node:
-						node.max_capacity = data.max_capacity
-					if "capacity" in node:
-						node.capacity = data.capacity
+				var restore_data: Dictionary = {}
+				if BuildingData.has_capacity(b_type):
+					restore_data["capacity"] = b_data.get("capacity", 0)
+					restore_data["max_capacity"] = b_data.get("max_capacity", UndoCommand.UNSET_MAX_CAPACITY)
+				building_manager.place_building(grid_pos, b_type, restore_data)
 
 	for grid_pos in building_manager.buildings.keys():
 		var node := building_manager.get_building_node(grid_pos)
