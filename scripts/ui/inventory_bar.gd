@@ -136,3 +136,10 @@ func get_current_building_type() -> String:
 	if current_slot_index >= 0 and current_slot_index < building_types.size():
 		return building_types[current_slot_index].type_id
 	return FALLBACK_TYPE_ID
+
+func select_by_type_id(type_id: String) -> bool:
+	for i in range(building_types.size()):
+		if building_types[i].type_id == type_id:
+			select_slot(i)
+			return true
+	return false

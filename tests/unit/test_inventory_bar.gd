@@ -8,6 +8,26 @@ func before_each():
 	add_child_autoqfree(_bar)
 	SelectionManager.is_paste_mode = false
 
+func test_select_by_type_id_found():
+	assert_false(_bar.has_building_type_selected(), "初始不应有选中")
+	var result: bool = _bar.select_by_type_id("type_01")
+	assert_true(result, "select_by_type_id 找到时应返回 true")
+	assert_true(_bar.has_building_type_selected(), "选中后应有选中")
+	assert_eq(_bar.current_slot_index, 0, "type_01 应对应槽位 0")
+
+func test_select_by_type_id_not_found():
+	assert_false(_bar.has_building_type_selected(), "初始不应有选中")
+	var result: bool = _bar.select_by_type_id("nonexistent_type")
+	assert_false(result, "select_by_type_id 未找到时应返回 false")
+	assert_false(_bar.has_building_type_selected(), "未找到时不应改变选中状态")
+
+func test_select_by_type_id_already_selected_deselects():
+	_bar.select_slot(0)
+	assert_true(_bar.has_building_type_selected(), "选中槽位 0 后应有选中")
+	var result: bool = _bar.select_by_type_id("type_01")
+	assert_true(result, "select_by_type_id 应返回 true")
+	assert_false(_bar.has_building_type_selected(), "重复选中同一类型应取消选择")
+
 
 func test_initial_state_not_selected():
 	assert_false(_bar.has_building_type_selected(), "初始不应有选中槽位")

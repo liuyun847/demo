@@ -186,4 +186,79 @@ func test_perform_paste_batch_empty_clipboard():
 
 	assert_eq(bm.get_all_buildings_data().size(), 0, "空剪贴板不应放置任何建筑")
 
+func test_redo_empty_stack_does_not_crash():
+	SelectionManager.redo_stack.clear()
+	SelectionManager.redo()
+	assert_true(SelectionManager.redo_stack.is_empty(), "空 redo 栈调用 redo() 不应崩溃")
+
+func test_new_action_clears_redo_stack():
+	SelectionManager.redo_stack.clear()
+	SelectionManager.redo_stack.append(UndoCommand.new())
+	assert_eq(SelectionManager.redo_stack.size(), 1, "redo 栈应有 1 个元素")
+	var cmd := UndoCommand.new()
+	cmd.type = UndoCommand.Type.PLACE
+	cmd.buildings = {Vector2i(0, 0): "type_01"}
+	SelectionManager.push_undo_command(cmd)
+	assert_eq(SelectionManager.redo_stack.size(), 0, "新操作后 redo 栈应被清空")
+
+func test_redo_after_undo_restores_building():
+	load("res://scripts/building/container_node.gd")
+	load("res://scripts/building/pipe_node.gd")
+	load("res://scripts/building/water_source_node.gd")
+	load("res://scripts/building/fluid_node_base.gd")
+	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	add_child_autoqfree(bm)
+	bm.name = "BuildingManager"
+	for conn in EventBus.fluid_updated.get_connections():
+		EventBus.fluid_updated.disconnect(conn.callable)
+
+	SelectionManager.undo_stack.clear()
+	SelectionManager.redo_stack.clear()
+	SelectionManager._building_manager = bm
+
+	bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	var cmd := UndoCommand.new()
+	cmd.type = UndoCommand.Type.PLACE
+	cmd.buildings = {Vector2i(0, 0): GameConfig.container_type_id}
+	SelectionManager.push_undo_command(cmd)
+	assert_true(bm.has_building(Vector2i(0, 0)), "放置后应有建筑")
+
+	SelectionManager.undo()
+	assert_false(bm.has_building(Vector2i(0, 0)), "undo 后建筑应被删除")
+	assert_eq(SelectionManager.redo_stack.size(), 1, "undo 后 redo 栈应有 1 个元素")
+
+	SelectionManager.redo()
+	assert_true(bm.has_building(Vector2i(0, 0)), "redo 后建筑应被恢复")
+	assert_eq(SelectionManager.undo_stack.size(), 1, "redo 后 undo 栈应有 1 个元素，可再次撤销")
+
+func test_redo_undo_cycle():
+	load("res://scripts/building/container_node.gd")
+	load("res://scripts/building/pipe_node.gd")
+	load("res://scripts/building/water_source_node.gd")
+	load("res://scripts/building/fluid_node_base.gd")
+	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	add_child_autoqfree(bm)
+	bm.name = "BuildingManager"
+	for conn in EventBus.fluid_updated.get_connections():
+		EventBus.fluid_updated.disconnect(conn.callable)
+
+	SelectionManager.undo_stack.clear()
+	SelectionManager.redo_stack.clear()
+	SelectionManager._building_manager = bm
+
+	bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	var cmd := UndoCommand.new()
+	cmd.type = UndoCommand.Type.PLACE
+	cmd.buildings = {Vector2i(0, 0): GameConfig.container_type_id}
+	SelectionManager.push_undo_command(cmd)
+
+	SelectionManager.undo()
+	assert_false(bm.has_building(Vector2i(0, 0)), "第1次 undo: 建筑应被删除")
+	SelectionManager.redo()
+	assert_true(bm.has_building(Vector2i(0, 0)), "第1次 redo: 建筑应被恢复")
+	SelectionManager.undo()
+	assert_false(bm.has_building(Vector2i(0, 0)), "第2次 undo: 建筑应再次被删除")
+	SelectionManager.redo()
+	assert_true(bm.has_building(Vector2i(0, 0)), "第2次 redo: 建筑应再次被恢复")
+
 

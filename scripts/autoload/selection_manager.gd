@@ -3,6 +3,7 @@ extends Node
 var selected_cells: Dictionary[Vector2i, bool] = {}
 var clipboard: Dictionary = {}
 var undo_stack: Array[UndoCommand] = []
+var redo_stack: Array[UndoCommand] = []
 var is_paste_mode: bool = false
 var paste_anchor: Vector2i = Vector2i.ZERO
 
@@ -195,8 +196,19 @@ func undo() -> void:
 	var building_manager := _get_building_manager()
 	if building_manager:
 		cmd.reverse(building_manager)
+		redo_stack.append(cmd)
+
+func redo() -> void:
+	if redo_stack.is_empty():
+		return
+	var cmd: UndoCommand = redo_stack.pop_back()
+	var building_manager := _get_building_manager()
+	if building_manager:
+		cmd.forward(building_manager)
+		undo_stack.append(cmd)
 
 func push_undo_command(cmd: UndoCommand) -> void:
+	redo_stack.clear()
 	undo_stack.append(cmd)
 	if undo_stack.size() > MAX_UNDO_SIZE:
 		undo_stack.remove_at(0)
