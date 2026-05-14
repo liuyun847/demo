@@ -169,6 +169,8 @@ func _recalculate_size() -> void:
 	offset_bottom = offset_top + new_h
 
 func _process(_delta: float) -> void:
+	if not visible:
+		return
 	if not is_instance_valid(_target_node) or not is_visible_in_tree():
 		_target_node = null
 		return

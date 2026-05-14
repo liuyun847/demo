@@ -4,52 +4,81 @@ extends Node
 var _timer: Timer = null
 var _building_manager: BuildingManager = null
 
+var _dirty: bool = true
+var _cached_networks: Array[Dictionary] = []
+
 func _ready() -> void:
 	_building_manager = get_parent() as BuildingManager
+	EventBus.building_placed.connect(_on_topology_changed)
+	EventBus.building_removed.connect(_on_topology_changed)
 	_timer = Timer.new()
 	_timer.wait_time = GameConfig.fluid_tick_interval
 	_timer.autostart = true
 	_timer.timeout.connect(_on_tick)
 	add_child(_timer)
 
+func _exit_tree() -> void:
+	if EventBus.building_placed.is_connected(_on_topology_changed):
+		EventBus.building_placed.disconnect(_on_topology_changed)
+	if EventBus.building_removed.is_connected(_on_topology_changed):
+		EventBus.building_removed.disconnect(_on_topology_changed)
+
+func _on_topology_changed(_grid_pos: Vector2i) -> void:
+	_dirty = true
 
 func _on_tick() -> void:
 	if not _building_manager:
 		return
 	var all_pipes: Array[PipeNode] = _building_manager.fluid_pipes
 	var all_sources: Array[WaterSourceNode] = _building_manager.fluid_sources
-	var all_network_nodes: Array[Node] = []
-	all_network_nodes.append_array(all_pipes)
-	all_network_nodes.append_array(all_sources)
 
-	for node in all_pipes:
-		if node is PipeNode:
-			node.network_state = 0
-
-	if all_network_nodes.is_empty():
+	if all_pipes.is_empty() and all_sources.is_empty():
+		_cached_networks.clear()
+		_dirty = false
 		return
 
+	if _dirty:
+		_rebuild_networks(all_pipes, all_sources)
+		_dirty = false
+
+	for pipe in all_pipes:
+		pipe.network_state = 0
+
 	for src in all_sources:
-		if src is WaterSourceNode:
-			src.reset_output()
-
-	var visited: Dictionary[int, bool] = {}
-	var networks: Array[Dictionary] = []
-
-	for node: Node in all_network_nodes:
-		if visited.has(node.get_instance_id()):
-			continue
-		var network := _bfs_network(node, visited)
-		if network.sources.size() > 0 or network.pipes.size() > 0:
-			networks.append(network)
+		src.reset_output()
 
 	var has_flow := false
 
-	for network: Dictionary in networks:
+	for network: Dictionary in _cached_networks:
 		has_flow = _process_network(network) or has_flow
 
 	if has_flow:
 		EventBus.fluid_updated.emit()
+
+func _rebuild_networks(pipes: Array[PipeNode], sources: Array[WaterSourceNode]) -> void:
+	_cached_networks.clear()
+
+	var node_count := pipes.size() + sources.size()
+	if node_count == 0:
+		return
+
+	var visited: Dictionary[int, bool] = {}
+
+	for i in sources.size():
+		var node: Node = sources[i]
+		if visited.has(node.get_instance_id()):
+			continue
+		var network := _bfs_network(node, visited)
+		if network.sources.size() > 0 or network.pipes.size() > 0:
+			_cached_networks.append(network)
+
+	for i in pipes.size():
+		var node: Node = pipes[i]
+		if visited.has(node.get_instance_id()):
+			continue
+		var network := _bfs_network(node, visited)
+		if network.sources.size() > 0 or network.pipes.size() > 0:
+			_cached_networks.append(network)
 
 
 func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionary:
@@ -77,9 +106,6 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 				container_dict[node.get_instance_id()] = true
 				containers.append(node)
 
-		# 容器、水源和管道都可以扩展邻居，容器可以穿过发现下游管道/水源
-		# 但容器扩展时只发现管道/水源，不发现其他容器（防止相邻容器直接传输）
-		# 满容器仍然允许 BFS 穿过以发现下游节点，只是不会被分配流体
 		if not (node is WaterSourceNode or node is PipeNode or node is ContainerNode):
 			continue
 
@@ -93,14 +119,10 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 
 			var neighbor_pos: Vector2i = node.grid_position + dirs[dir_idx]
 
-			if not _building_manager.has_building(neighbor_pos):
-				continue
-
 			var neighbor: Node = _building_manager.get_building_node(neighbor_pos)
 			if neighbor == null:
 				continue
 
-			# 容器只发现管道/水源，不发现其他容器（防止相邻容器直接传输）
 			if node is ContainerNode and neighbor is ContainerNode:
 				continue
 
@@ -115,7 +137,6 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 					visited[neighbor.get_instance_id()] = true
 					queue.append(neighbor)
 			elif neighbor is ContainerNode:
-				# 水源/管道发现容器：记录并加入队列（容器入队后可扩展发现下游管道/水源）
 				if not container_dict.has(neighbor.get_instance_id()):
 					container_dict[neighbor.get_instance_id()] = true
 					containers.append(neighbor)
