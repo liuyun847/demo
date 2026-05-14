@@ -8,6 +8,7 @@ const SLOT_KEYS := [
 @onready var start_menu: Control = $UIOverlay/StartMenu
 @onready var settings_panel: Control = $UIOverlay/SettingsPanel
 @onready var inventory_bar: InventoryBar = $UIOverlay/InventoryBar
+@onready var key_hints: VBoxContainer = $UIOverlay/KeyHints
 
 func _enter_tree() -> void:
 	EventBus.buildings_loaded.connect(_on_buildings_loaded)
@@ -75,6 +76,7 @@ func _pause_game(paused: bool) -> void:
 
 func show_start_menu() -> void:
 	settings_panel.hide()
+	key_hints.hide()
 	start_menu.show()
 	inventory_bar.hide()
 	_pause_game(true)
@@ -82,10 +84,12 @@ func show_start_menu() -> void:
 func hide_start_menu() -> void:
 	start_menu.hide()
 	inventory_bar.show()
+	key_hints.show()
 	_pause_game(false)
 
 func show_settings() -> void:
 	start_menu.hide()
+	key_hints.hide()
 	settings_panel.show()
 	inventory_bar.hide()
 	_pause_game(true)

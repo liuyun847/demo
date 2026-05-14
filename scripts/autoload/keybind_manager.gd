@@ -29,6 +29,14 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	"ui_redo": "重做",
 }
 
+const COMBO_MODIFIER: Dictionary = {
+	"ui_copy": "Ctrl",
+	"ui_cut": "Ctrl",
+	"ui_paste": "Ctrl",
+	"ui_undo": "Ctrl",
+	"ui_redo": "Ctrl",
+}
+
 const GAMEPLAY_ACTIONS: Array[String] = [
 	"move_up",
 	"move_down",
@@ -53,6 +61,7 @@ const GAMEPLAY_ACTIONS: Array[String] = [
 	"ui_cut",
 	"ui_paste",
 	"ui_undo",
+	"ui_redo",
 ]
 
 func _ready() -> void:
@@ -63,7 +72,10 @@ func get_action_display_name(action: String) -> String:
 		return ACTION_DISPLAY_NAMES[action]
 	return action
 
-func get_event_display_text(event: InputEvent) -> String:
+func get_action_combo_modifier(action: String) -> String:
+	return COMBO_MODIFIER.get(action, "")
+
+func get_event_display_text(event: InputEvent, include_modifiers: bool = true) -> String:
 	if event is InputEventKey:
 		if event.keycode == KEY_SHIFT:
 			return "Shift"
@@ -71,10 +83,29 @@ func get_event_display_text(event: InputEvent) -> String:
 			return "Ctrl"
 		if event.keycode == KEY_ALT:
 			return "Alt"
-		var text: String = OS.get_keycode_string(event.keycode)
-		if text.is_empty():
-			text = OS.get_keycode_string(event.physical_keycode)
-		return text
+		if event.keycode == KEY_META:
+			return "Meta"
+
+		if include_modifiers:
+			var parts: PackedStringArray = []
+			if event.ctrl_pressed:
+				parts.append("Ctrl")
+			if event.shift_pressed:
+				parts.append("Shift")
+			if event.alt_pressed:
+				parts.append("Alt")
+			if event.meta_pressed:
+				parts.append("Meta")
+			var key_text: String = OS.get_keycode_string(event.keycode)
+			if key_text.is_empty():
+				key_text = OS.get_keycode_string(event.physical_keycode)
+			parts.append(key_text)
+			return " + ".join(parts)
+		else:
+			var text: String = OS.get_keycode_string(event.keycode)
+			if text.is_empty():
+				text = OS.get_keycode_string(event.physical_keycode)
+			return text
 	elif event is InputEventMouseButton:
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
@@ -107,13 +138,18 @@ func get_keybind_info() -> Array[Dictionary]:
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
 		var display_name: String = get_action_display_name(action)
+		var modifier_prefix: String = COMBO_MODIFIER.get(action, "")
 		var event_text: String = ""
 		if events.size() > 0:
-			event_text = get_event_display_text(events[0])
+			if not modifier_prefix.is_empty():
+				event_text = get_event_display_text(events[0], false)
+			else:
+				event_text = get_event_display_text(events[0])
 		result.append({
 			"action": action,
 			"display_name": display_name,
 			"event_text": event_text,
+			"modifier_prefix": modifier_prefix,
 		})
 	return result
 
@@ -243,6 +279,7 @@ func _apply_default_keybindings() -> void:
 		"ui_cut": _create_key_event_with_ctrl(KEY_X),
 		"ui_paste": _create_key_event_with_ctrl(KEY_V),
 		"ui_undo": _create_key_event_with_ctrl(KEY_Z),
+		"ui_redo": _create_key_event_with_ctrl(KEY_Y),
 	}
 
 	for action in defaults.keys():

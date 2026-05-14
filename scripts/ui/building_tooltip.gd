@@ -3,6 +3,7 @@ extends Control
 
 const OFFSET_Y: float = -12.0
 const MIN_WIDTH: float = 140.0
+const MIN_HEIGHT: float = 60.0
 
 var _target_node: Node2D = null
 var _is_expanded: bool = false
@@ -43,6 +44,7 @@ func _exit_tree() -> void:
 
 func _create_styles() -> void:
 	_panel_style = StyleBoxFlat.new()
+	_panel_style.draw_center = true
 	_panel_style.bg_color = Color(0.98, 0.98, 0.98, 0.95)
 	_panel_style.border_color = Color(0.7, 0.7, 0.7, 1.0)
 	_panel_style.border_width_left = 1
@@ -56,7 +58,8 @@ func _create_styles() -> void:
 	_panel_style.set_content_margin_all(8)
 
 func _apply_styles() -> void:
-	_panel.add_theme_stylebox_override("panel", _panel_style)
+	_panel.set(&"theme_override_styles/panel", _panel_style)
+	_panel.queue_redraw()
 
 func _on_building_hovered(grid_pos: Vector2i, node: Node2D) -> void:
 	_hovered_grid_pos = grid_pos
@@ -81,6 +84,7 @@ func _on_expand_pressed() -> void:
 	else:
 		_expand_button.text = "展开详情 ▼"
 		_details_container.hide()
+	_recalculate_size()
 
 func _update_content() -> void:
 	if _target_node == null:
@@ -149,6 +153,19 @@ func _get_fallback_name(_node: Node) -> String:
 			var idx: int = bt.substr(5).to_int()
 			return "占位-%d" % idx
 	return "建筑"
+
+func _recalculate_size() -> void:
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	var vbox: VBoxContainer = $Panel/MarginContainer/VBoxContainer
+	var content_min: Vector2 = vbox.get_combined_minimum_size()
+	var margin_w: float = _margin.get_theme_constant("margin_left") + _margin.get_theme_constant("margin_right")
+	var margin_h: float = _margin.get_theme_constant("margin_top") + _margin.get_theme_constant("margin_bottom")
+	var new_w: float = maxf(content_min.x + margin_w, MIN_WIDTH)
+	var new_h: float = maxf(content_min.y + margin_h, MIN_HEIGHT)
+	offset_right = offset_left + new_w
+	offset_bottom = offset_top + new_h
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(_target_node) or not is_visible_in_tree():
