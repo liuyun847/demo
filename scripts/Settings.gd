@@ -47,7 +47,21 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton:
-		KeybindManager.remap_action(listening_action, event)
+		if event is InputEventKey:
+			var modifier_name := KeybindManager.get_action_combo_modifier(listening_action)
+			if modifier_name == "Ctrl":
+				var mod_event := InputEventKey.new()
+				mod_event.keycode = event.keycode
+				mod_event.physical_keycode = event.physical_keycode
+				mod_event.ctrl_pressed = true
+				mod_event.shift_pressed = event.shift_pressed
+				mod_event.alt_pressed = event.alt_pressed
+				mod_event.meta_pressed = event.meta_pressed
+				KeybindManager.remap_action(listening_action, mod_event)
+			else:
+				KeybindManager.remap_action(listening_action, event)
+		else:
+			KeybindManager.remap_action(listening_action, event)
 		_stop_listening()
 		get_viewport().set_input_as_handled()
 
@@ -65,6 +79,13 @@ func _refresh_keybind_list() -> void:
 		name_label.custom_minimum_size = Vector2(120, 36)
 		name_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		row.add_child(name_label)
+
+		var modifier_prefix: String = info.get("modifier_prefix", "")
+		if not modifier_prefix.is_empty():
+			var mod_label := Label.new()
+			mod_label.text = modifier_prefix + " + "
+			mod_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			row.add_child(mod_label)
 
 		var key_button := Button.new()
 		key_button.text = info.event_text if not info.event_text.is_empty() else "未绑定"
@@ -176,7 +197,12 @@ func _update_button_text(action: String, button: Button) -> void:
 		button.text = "未绑定"
 		return
 	var events: Array[InputEvent] = InputMap.action_get_events(action)
-	var text: String = KeybindManager.get_event_display_text(events[0]) if events.size() > 0 else ""
+	if events.size() == 0:
+		button.text = "未绑定"
+		return
+	var mod := KeybindManager.get_action_combo_modifier(action)
+	var include_mod := mod.is_empty()
+	var text: String = KeybindManager.get_event_display_text(events[0], include_mod)
 	button.text = text if not text.is_empty() else "未绑定"
 
 func _on_keybind_changed(action: String) -> void:

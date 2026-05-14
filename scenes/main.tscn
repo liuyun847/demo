@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/inventory_bar.tscn" id="9_invbar"]
 [ext_resource type="PackedScene" uid="uid://c8k5y2p1x3m9z" path="res://scenes/building_tooltip.tscn" id="10_tooltip"]
 [ext_resource type="Script" path="res://scripts/fps_display.gd" id="11_fps_display"]
+[ext_resource type="Script" path="res://scripts/ui/key_hints.gd" id="12_key_hints"]
 
 [node name="Root" type="Node2D"]
 script = ExtResource("1_main")
@@ -51,3 +52,7 @@ visible = false
 
 [node name="FPSDisplay" type="Label" parent="UIOverlay"]
 script = ExtResource("11_fps_display")
+
+[node name="KeyHints" type="VBoxContainer" parent="UIOverlay"]
+script = ExtResource("12_key_hints")
+visible = false
