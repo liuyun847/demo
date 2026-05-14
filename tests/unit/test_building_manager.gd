@@ -1,15 +1,17 @@
 extends GutTest
 
+const _BM = preload("res://scripts/building/building_manager.gd")
+
 var _bm = null
 
 func before_each():
 	if _bm == null:
-		load("res://scripts/building/fluid_node_base.gd")
-		load("res://scripts/building/container_node.gd")
-		load("res://scripts/building/pipe_node.gd")
-		load("res://scripts/building/water_source_node.gd")
-		load("res://scripts/resources/building_data.gd")
-	_bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+		preload("res://scripts/building/fluid_node_base.gd")
+		preload("res://scripts/building/container_node.gd")
+		preload("res://scripts/building/pipe_node.gd")
+		preload("res://scripts/building/water_source_node.gd")
+		preload("res://scripts/resources/building_data.gd")
+	_bm = autoqfree(_BM.new())
 	add_child_autoqfree(_bm)
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)

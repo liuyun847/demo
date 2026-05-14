@@ -6,26 +6,26 @@ var _bar: InventoryBar = null
 var _camera: Camera2D = null
 
 func before_each():
-	load("res://scripts/building/fluid_node_base.gd")
-	load("res://scripts/building/container_node.gd")
-	load("res://scripts/building/pipe_node.gd")
-	load("res://scripts/building/water_source_node.gd")
-	load("res://scripts/resources/building_data.gd")
-	load("res://scripts/resources/undo_command.gd")
+	preload("res://scripts/building/fluid_node_base.gd")
+	preload("res://scripts/building/container_node.gd")
+	preload("res://scripts/building/pipe_node.gd")
+	preload("res://scripts/building/water_source_node.gd")
+	preload("res://scripts/resources/building_data.gd")
+	preload("res://scripts/resources/undo_command.gd")
 
 	_camera = autoqfree(Camera2D.new())
 	_camera.enabled = true
 	add_child_autoqfree(_camera)
 
-	var bm_script = load("res://scripts/building/building_manager.gd")
+	var bm_script = preload("res://scripts/building/building_manager.gd")
 	_bm = autoqfree(bm_script.new())
 	add_child_autoqfree(_bm)
 
-	_bar = autoqfree(load("res://scripts/ui/inventory_bar.gd").new())
+	_bar = autoqfree(preload("res://scripts/ui/inventory_bar.gd").new())
 	_bar.name = "InventoryBar"
 	add_child_autoqfree(_bar)
 
-	var handler_script = load("res://scripts/grid/map_input_handler.gd")
+	var handler_script = preload("res://scripts/grid/map_input_handler.gd")
 	_handler = autoqfree(handler_script.new())
 	_handler.building_manager = _bm
 	_handler.inventory_bar = _bar
@@ -40,14 +40,7 @@ func after_each():
 	SelectionManager._building_manager = null
 
 func _screen_to_grid(screen_pos: Vector2) -> Vector2i:
-	var view_size := get_viewport().get_visible_rect().size
-	var center := view_size / 2.0
-	var offset := (screen_pos - center) / _camera.zoom
-	var world_pos := offset + _camera.global_position
-	return Vector2i(
-		floor(world_pos.x / GameConfig.cell_size),
-		floor(world_pos.y / GameConfig.cell_size)
-	)
+	return GridCoordinate.screen_to_grid(_camera, screen_pos)
 
 func _make_mouse_event(button_index: int, pressed: bool, pos: Vector2 = Vector2(320, 240)) -> InputEventMouseButton:
 	var event := InputEventMouseButton.new()

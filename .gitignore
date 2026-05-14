@@ -12,3 +12,7 @@ export_presets.cfg
 *.crash
 *.log
 CODE_REVIEW_REPORT.md
+.DS_Store
+Thumbs.db
+*~
+*.swp

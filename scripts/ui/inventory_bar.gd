@@ -23,7 +23,8 @@ func _ready() -> void:
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
 
 func _exit_tree() -> void:
-	EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
+	if EventBus.paste_mode_changed.is_connected(_on_paste_mode_changed):
+		EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
 
 func _create_mode_indicator() -> void:
 	var indicator: Control = Control.new()

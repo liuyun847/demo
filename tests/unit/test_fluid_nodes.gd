@@ -221,10 +221,10 @@ func test_container_node_fill_ratio_safety():
 # ===== PipeNode refresh_connections 测试 =====
 
 func test_pipe_node_refresh_connections_all_directions():
-	load("res://scripts/building/fluid_node_base.gd")
-	load("res://scripts/building/container_node.gd")
-	load("res://scripts/building/water_source_node.gd")
-	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	preload("res://scripts/building/fluid_node_base.gd")
+	preload("res://scripts/building/container_node.gd")
+	preload("res://scripts/building/water_source_node.gd")
+	var bm = autoqfree(preload("res://scripts/building/building_manager.gd").new())
 	add_child_autoqfree(bm)
 	# 断开 fluid_updated 信号连接，避免测试中触发流体系统
 	for conn in EventBus.fluid_updated.get_connections():
@@ -251,8 +251,8 @@ func test_pipe_node_refresh_connections_all_directions():
 	assert_ne(pipe.connection_mask & GridCoordinate.DirFlag.LEFT, 0, "应有左侧连接")
 
 func test_pipe_node_refresh_connections_none():
-	load("res://scripts/building/fluid_node_base.gd")
-	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	preload("res://scripts/building/fluid_node_base.gd")
+	var bm = autoqfree(preload("res://scripts/building/building_manager.gd").new())
 	add_child_autoqfree(bm)
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
@@ -268,8 +268,8 @@ func test_pipe_node_refresh_connections_none():
 	assert_eq(pipe.connection_mask, 0, "周围无建筑时 connection_mask 应为 0")
 
 func test_pipe_node_refresh_connections_only_non_fluid():
-	load("res://scripts/building/fluid_node_base.gd")
-	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
+	preload("res://scripts/building/fluid_node_base.gd")
+	var bm = autoqfree(preload("res://scripts/building/building_manager.gd").new())
 	add_child_autoqfree(bm)
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)

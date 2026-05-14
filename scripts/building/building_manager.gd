@@ -154,6 +154,17 @@ func clear_all_buildings() -> void:
 	for grid_pos in buildings.keys():
 		remove_building(grid_pos)
 
+func bulk_clear() -> void:
+	for node in _building_nodes.values():
+		node.queue_free()
+	_building_nodes.clear()
+	buildings.clear()
+	fluid_pipes.clear()
+	fluid_sources.clear()
+	var coordinator := get_node_or_null("FluidCoordinator")
+	if coordinator:
+		coordinator._on_tick()
+
 func show_ghost(cells: Array[Vector2i]) -> void:
 	ghost_cells = cells
 	queue_redraw()

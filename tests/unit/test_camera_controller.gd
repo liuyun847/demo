@@ -29,8 +29,8 @@ func test_zoom_always_positive():
 func test_zoom_does_not_explode():
 	_camera.zoom = Vector2(50, 50)
 	_camera.zoom_at_position(Vector2(400, 300), 5.0)
-	assert_true(_camera.zoom.x < 1e8, "zoom.x 不应无限增大")
-	assert_true(_camera.zoom.y < 1e8, "zoom.y 不应无限增大")
+	assert_eq(_camera.zoom.x, 10.0, "zoom.x 应被 clamp 到最大值 10.0")
+	assert_eq(_camera.zoom.y, 10.0, "zoom.y 应被 clamp 到最大值 10.0")
 
 func test_zoom_preserves_aspect_ratio():
 	_camera.zoom_at_position(Vector2(400, 300), 1 + GameConfig.zoom_speed)

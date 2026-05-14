@@ -31,7 +31,7 @@ func _on_tick() -> void:
 
 	for src in all_sources:
 		if src is WaterSourceNode:
-			src.remaining_output = src.output_per_tick
+			src.reset_output()
 
 	var visited: Dictionary[int, bool] = {}
 	var networks: Array[Dictionary] = []
@@ -130,38 +130,6 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 	}
 
 
-func _collect_direct_containers(all_containers: Array[Node], fluid_positions: Dictionary[Vector2i, Node]) -> Array[Node]:
-	if _building_manager == null:
-		return []
-	"""
-	仅基于 BFS 发现的网络节点识别"直接相邻"容器：
-	- 遍历 all_containers，检查每个容器的邻居是否在 fluid_positions 中
-	- 邻居是水源 → 直接有效（水源不需要 connection_mask）
-	- 邻居是管道 → 需要 pipe.connection_mask 朝容器方向有连接
-	"""
-	var result: Array[Node] = []
-	var dirs: Array[Vector2i] = GridCoordinate.DIR_4
-
-	for container: Node in all_containers:
-		var container_pos: Vector2i = container.grid_position
-		for dir_idx: int in 4:
-			var neighbor_pos: Vector2i = container_pos + dirs[dir_idx]
-			if not fluid_positions.has(neighbor_pos):
-				continue
-			var fluid_node: Node = fluid_positions[neighbor_pos]
-			if fluid_node is WaterSourceNode:
-				result.append(container)
-				break
-			if fluid_node is PipeNode:
-				var pipe_node: PipeNode = fluid_node as PipeNode
-				var opposite_dir: int = dir_idx ^ 2
-				if (pipe_node.connection_mask & (1 << opposite_dir)) != 0:
-					result.append(container)
-					break
-
-	return result
-
-
 func _process_network(network: Dictionary) -> bool:
 	if _building_manager == null:
 		return false
@@ -186,21 +154,9 @@ func _process_network(network: Dictionary) -> bool:
 			pipe.network_state = 0
 		return false
 
-	# 构建 fluid_positions：只包含 BFS 发现的网络节点
-	var fluid_positions: Dictionary[Vector2i, Node] = {}
-	for src: Node in sources:
-		if src is WaterSourceNode:
-			fluid_positions[src.grid_position] = src
-	for pipe: Node in pipes:
-		if pipe is PipeNode:
-			fluid_positions[pipe.grid_position] = pipe
-
-	# 基于 BFS 网络节点识别直接相邻容器
-	var direct_containers: Array[Node] = _collect_direct_containers(all_containers, fluid_positions)
-
 	var candidates: Array[ContainerNode] = []
 	var total_space: int = 0
-	for container: ContainerNode in direct_containers:
+	for container: ContainerNode in all_containers:
 		var space: int = container.max_capacity - container.capacity
 		if space > 0:
 			candidates.append(container)
@@ -212,10 +168,6 @@ func _process_network(network: Dictionary) -> bool:
 		return false
 
 	var to_distribute: int = mini(total_output, total_space)
-	if to_distribute <= 0:
-		for pipe: PipeNode in pipes:
-			pipe.network_state = 0
-		return false
 
 	var per: int = to_distribute / candidates.size()
 	var extra: int = to_distribute % candidates.size()
@@ -232,12 +184,16 @@ func _process_network(network: Dictionary) -> bool:
 	var remaining: int = to_distribute
 	for src: Node in sources:
 		if src is WaterSourceNode:
-			var deduct: int = mini(remaining, src.remaining_output)
-			src.remaining_output -= deduct
-			remaining -= deduct
+			var deducted: int = src.consume_output(remaining)
+			remaining -= deducted
 
+	var all_full: bool = true
+	for container: ContainerNode in all_containers:
+		if container.capacity < container.max_capacity:
+			all_full = false
+			break
 	for pipe: PipeNode in pipes:
-		pipe.network_state = 2 if candidates.is_empty() else 1
+		pipe.network_state = 2 if all_full else 1
 
 	return has_flow
 
@@ -249,5 +205,3 @@ func _sync_building_data(node: Node) -> void:
 	if data == null:
 		return
 	data.capacity = node.capacity
-	if "max_capacity" in node:
-		data.max_capacity = node.max_capacity

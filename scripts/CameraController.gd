@@ -30,7 +30,7 @@ func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
 	position += (world_pos - new_world_pos)
 
 func _process(delta: float) -> void:
-	var input_dir = Vector2.ZERO
+	var input_dir: Vector2 = Vector2.ZERO
 	if Input.is_action_pressed("move_right"):
 		input_dir.x += 1
 	if Input.is_action_pressed("move_left"):
@@ -42,7 +42,7 @@ func _process(delta: float) -> void:
 
 	if input_dir.length() > 0:
 		input_dir = input_dir.normalized()
-		var current_speed = move_speed
+		var current_speed: float = move_speed
 		if Input.is_action_pressed("speed_up"):
 			current_speed *= GameConfig.shift_speed_multiplier
 		position += input_dir * current_speed * delta / zoom.x

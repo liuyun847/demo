@@ -17,31 +17,29 @@ func test_loaded_blocks_exists() -> void:
 
 func test_load_block() -> void:
 	assert_false(_grid_map.loaded_blocks.has(Vector2i(42, 42)), "加载前不应包含 (42, 42)")
-	_grid_map.load_block(Vector2i(42, 42))
+	_grid_map.mark_block_visible(Vector2i(42, 42))
 	assert_true(_grid_map.loaded_blocks.has(Vector2i(42, 42)), "加载后应包含 (42, 42)")
 
 func test_unload_block() -> void:
-	_grid_map.load_block(Vector2i(10, 20))
-	var block_node: Node = _grid_map.get_node_or_null("Block_10_20")
+	_grid_map.mark_block_visible(Vector2i(10, 20))
 	assert_true(_grid_map.loaded_blocks.has(Vector2i(10, 20)), "卸载前应包含 (10, 20)")
-	assert_true(block_node == null or block_node.is_inside_tree(), "区块节点应有效")
-	_grid_map.unload_block(Vector2i(10, 20))
+	_grid_map.mark_block_hidden(Vector2i(10, 20))
 	assert_false(_grid_map.loaded_blocks.has(Vector2i(10, 20)), "卸载后不应包含 (10, 20)")
 
 func test_unload_nonexistent_block() -> void:
-	_grid_map.unload_block(Vector2i(999, 999))
+	_grid_map.mark_block_hidden(Vector2i(999, 999))
 	assert_true(true, "卸载不存在的块不应报错")
 
 func test_load_same_block_once() -> void:
-	_grid_map.load_block(Vector2i(5, 5))
+	_grid_map.mark_block_visible(Vector2i(5, 5))
 	var count_before: int = _grid_map.loaded_blocks.size()
-	_grid_map.load_block(Vector2i(5, 5))
+	_grid_map.mark_block_visible(Vector2i(5, 5))
 	assert_eq(_grid_map.loaded_blocks.size(), count_before, "加载相同块不应重复添加")
 
 func test_unload_block_removes_from_dictionary() -> void:
-	_grid_map.load_block(Vector2i(1, 1))
+	_grid_map.mark_block_visible(Vector2i(1, 1))
 	assert_true(_grid_map.loaded_blocks.has(Vector2i(1, 1)), "加载后应存在")
-	_grid_map.unload_block(Vector2i(1, 1))
+	_grid_map.mark_block_hidden(Vector2i(1, 1))
 	assert_false(_grid_map.loaded_blocks.has(Vector2i(1, 1)), "卸载后应移除")
 
 func test_get_visible_block_range_returns_dict() -> void:

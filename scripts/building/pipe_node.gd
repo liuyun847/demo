@@ -34,11 +34,10 @@ func refresh_connections() -> void:
 
 	connection_mask = mask
 
-func _is_connectable_at(bm: Node, grid_pos: Vector2i) -> bool:
-	var building_manager := bm as BuildingManager
-	if not building_manager or not building_manager.buildings.has(grid_pos):
+func _is_connectable_at(bm: BuildingManager, grid_pos: Vector2i) -> bool:
+	if not bm or not bm.buildings.has(grid_pos):
 		return false
-	var building_data: BuildingData = building_manager.buildings[grid_pos] as BuildingData
+	var building_data: BuildingData = bm.buildings[grid_pos] as BuildingData
 	if not building_data:
 		return false
 	return BuildingData.is_fluid_building(building_data.building_type)

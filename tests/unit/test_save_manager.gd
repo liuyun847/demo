@@ -128,6 +128,7 @@ func test_debounce_prevents_double_save():
 
 func test_fluid_updated_autosave():
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	await get_tree().process_frame
 	DirAccess.remove_absolute(GameConfig.save_file_path)
 	assert_false(FileAccess.file_exists(GameConfig.save_file_path), "开始前存档文件不应存在")
 	EventBus.fluid_updated.emit()
