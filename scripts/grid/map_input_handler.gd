@@ -6,10 +6,10 @@ extends Node
 enum InteractionMode {NONE, PLACE, REMOVE, SELECT, DESELECT, PASTE}
 var _current_mode: InteractionMode = InteractionMode.NONE
 
-var _drag_start_grid: Vector2i
-var _removing_start_grid: Vector2i
-var _select_start_grid: Vector2i
-var _deselect_start_grid: Vector2i
+var _drag_start_grid: Vector2i = Vector2i.ZERO
+var _removing_start_grid: Vector2i = Vector2i.ZERO
+var _select_start_grid: Vector2i = Vector2i.ZERO
+var _deselect_start_grid: Vector2i = Vector2i.ZERO
 
 var _is_dragging: bool = false
 var _is_removing: bool = false
@@ -20,6 +20,7 @@ var _paste_drag_start: Vector2i = Vector2i.ZERO
 var _paste_is_dragging: bool = false
 
 var _last_hovered_grid: Vector2i = Vector2i(-99999, -99999)
+var _has_camera: bool = false
 
 func _ready() -> void:
 	if not building_manager:
@@ -29,6 +30,7 @@ func _ready() -> void:
 	if inventory_bar:
 		inventory_bar.slot_selected.connect(_on_slot_selected)
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
+	_has_camera = get_viewport().get_camera_2d() != null
 
 func _on_slot_selected(index: int, _type_id: String) -> void:
 	if index < 0:
@@ -58,8 +60,7 @@ func _get_grid_pos(event: InputEvent) -> Vector2i:
 	var camera: Camera2D = viewport.get_camera_2d()
 	if not camera:
 		return Vector2i.ZERO
-	var world_pos: Vector2 = GridCoordinate.screen_to_world(camera, event.position)
-	return GridCoordinate.world_to_grid(world_pos)
+	return GridCoordinate.screen_to_grid(camera, event.position)
 
 func _is_building_placement_mode() -> bool:
 	return inventory_bar and inventory_bar.has_building_type_selected() and not SelectionManager.is_paste_mode
@@ -71,8 +72,11 @@ func _is_selection_mode() -> bool:
 	return not _is_building_placement_mode() and not _is_paste_mode()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not _has_camera:
+		return
 	var viewport: Viewport = get_viewport()
 	if not viewport.get_camera_2d():
+		_has_camera = false
 		return
 
 	if event is InputEventMouseMotion:
@@ -83,6 +87,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+		if building_manager.has_building(_last_hovered_grid):
+			var type_id: String = building_manager.get_building_type(_last_hovered_grid)
+			if inventory_bar and type_id != "default":
+				inventory_bar.select_by_type_id(type_id)
+			viewport.set_input_as_handled()
+		return
+
+	if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
 		if building_manager.has_building(_last_hovered_grid):
 			var type_id: String = building_manager.get_building_type(_last_hovered_grid)
 			if inventory_bar and type_id != "default":
@@ -263,7 +275,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		return
 
 func _handle_selection_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
-	if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	if event.is_action("place_building") and event.pressed:
 		if _is_removing:
 			building_manager.hide_remove_ghost()
 			_is_removing = false
@@ -276,7 +288,7 @@ func _handle_selection_mode(event: InputEventMouseButton, grid_pos: Vector2i, vi
 		viewport.set_input_as_handled()
 		return
 
-	if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and _is_selecting:
+	if event.is_action("place_building") and not event.pressed and _is_selecting:
 		var cells: Array[Vector2i] = BuildingManager.get_rect_cells(_select_start_grid, grid_pos)
 		SelectionManager.select_rect(cells)
 		building_manager.hide_select_ghost()
@@ -284,7 +296,7 @@ func _handle_selection_mode(event: InputEventMouseButton, grid_pos: Vector2i, vi
 		viewport.set_input_as_handled()
 		return
 
-	if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+	if event.is_action("remove_building") and event.pressed:
 		if _is_selecting:
 			building_manager.hide_select_ghost()
 			_is_selecting = false
@@ -294,7 +306,7 @@ func _handle_selection_mode(event: InputEventMouseButton, grid_pos: Vector2i, vi
 		viewport.set_input_as_handled()
 		return
 
-	if event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed and _is_deselecting:
+	if event.is_action("remove_building") and not event.pressed and _is_deselecting:
 		var cells: Array[Vector2i] = BuildingManager.get_rect_cells(_deselect_start_grid, grid_pos)
 		SelectionManager.deselect_rect(cells)
 		building_manager.hide_deselect_ghost()

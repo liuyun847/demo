@@ -38,9 +38,12 @@ func _ready() -> void:
 	EventBus.building_removed.connect(_on_building_removed)
 
 func _exit_tree() -> void:
-	EventBus.building_hovered.disconnect(_on_building_hovered)
-	EventBus.building_hover_exited.disconnect(_on_building_hover_exited)
-	EventBus.building_removed.disconnect(_on_building_removed)
+	if EventBus.building_hovered.is_connected(_on_building_hovered):
+		EventBus.building_hovered.disconnect(_on_building_hovered)
+	if EventBus.building_hover_exited.is_connected(_on_building_hover_exited):
+		EventBus.building_hover_exited.disconnect(_on_building_hover_exited)
+	if EventBus.building_removed.is_connected(_on_building_removed):
+		EventBus.building_removed.disconnect(_on_building_removed)
 
 func _create_styles() -> void:
 	_panel_style = StyleBoxFlat.new()
@@ -93,13 +96,11 @@ func _update_content() -> void:
 	var building_name: String = "未知建筑"
 	var summary: Dictionary = {}
 
-	if _target_node.has_method("get_building_name"):
+	if _target_node is ContainerNode or _target_node is PipeNode or _target_node is WaterSourceNode:
 		building_name = _target_node.get_building_name()
+		summary = _target_node.get_tooltip_summary()
 	else:
 		building_name = _get_fallback_name(_target_node)
-
-	if _target_node.has_method("get_tooltip_summary"):
-		summary = _target_node.get_tooltip_summary()
 
 	_name_label.text = building_name
 
@@ -127,7 +128,7 @@ func _update_details() -> void:
 		return
 
 	var details: Dictionary = {}
-	if _target_node.has_method("get_tooltip_details"):
+	if _target_node is ContainerNode or _target_node is PipeNode or _target_node is WaterSourceNode:
 		details = _target_node.get_tooltip_details()
 
 	for child in _details_container.get_children():
@@ -146,9 +147,9 @@ func _update_details() -> void:
 			label.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
 			_details_container.add_child(label)
 
-func _get_fallback_name(_node: Node) -> String:
-	if _node.has_meta("building_type"):
-		var bt: String = _node.get_meta("building_type")
+func _get_fallback_name(node: Node) -> String:
+	if node.has_meta("building_type"):
+		var bt: String = node.get_meta("building_type")
 		if bt.begins_with("type_"):
 			var idx: int = bt.substr(5).to_int()
 			return "占位-%d" % idx

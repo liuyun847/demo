@@ -17,9 +17,12 @@ func _ready() -> void:
 	load_buildings()
 
 func _exit_tree() -> void:
-	EventBus.building_placed.disconnect(_on_building_changed)
-	EventBus.building_removed.disconnect(_on_building_changed)
-	EventBus.fluid_updated.disconnect(_on_fluid_updated)
+	if EventBus.building_placed.is_connected(_on_building_changed):
+		EventBus.building_placed.disconnect(_on_building_changed)
+	if EventBus.building_removed.is_connected(_on_building_changed):
+		EventBus.building_removed.disconnect(_on_building_changed)
+	if EventBus.fluid_updated.is_connected(_on_fluid_updated):
+		EventBus.fluid_updated.disconnect(_on_fluid_updated)
 
 func _init_fluid_autosave_timer() -> void:
 	_fluid_autosave_timer = Timer.new()
@@ -28,7 +31,7 @@ func _init_fluid_autosave_timer() -> void:
 	add_child(_fluid_autosave_timer)
 
 func _on_fluid_updated() -> void:
-	if _is_loading:
+	if _is_loading or _save_pending:
 		return
 	_fluid_autosave_timer.start(FLUID_AUTOSAVE_DELAY)
 
@@ -97,7 +100,10 @@ func save_buildings() -> void:
 	if file:
 		file.store_string(JSON.stringify(save_dict, "\t"))
 		file.close()
-		DirAccess.rename_absolute(temp_path, GameConfig.save_file_path)
+		var rename_err := DirAccess.rename_absolute(temp_path, GameConfig.save_file_path)
+		if rename_err != OK:
+			push_error("SaveManager: 无法重命名临时文件，错误码: %d" % rename_err)
+			DirAccess.remove_absolute(temp_path)
 	else:
 		push_error("SaveManager: 无法写入存档文件: %s" % GameConfig.save_file_path)
 
@@ -125,18 +131,23 @@ func load_buildings() -> void:
 
 	if save_data.version != GameConfig.SAVE_VERSION:
 		push_warning("SaveManager: 存档版本不匹配，期望 %s，实际 %s" % [GameConfig.SAVE_VERSION, save_data.version])
+		EventBus.buildings_loaded.emit()
+		return
 
 	if not building_manager:
 		push_error("SaveManager: 找不到 BuildingManager 节点")
 		return
 
 	_is_loading = true
-	building_manager.clear_all_buildings()
+	building_manager.bulk_clear()
 
 	if save_data.has("buildings") and save_data.buildings is Dictionary:
 		for key: String in save_data.buildings.keys():
 			var parts: PackedStringArray = key.split(",")
 			if parts.size() == 2:
+				if not parts[0].is_valid_int() or not parts[1].is_valid_int():
+					push_warning("SaveManager: 无效的格子坐标: %s，跳过" % key)
+					continue
 				var grid_pos: Vector2i = Vector2i(int(parts[0]), int(parts[1]))
 				var b_data: Dictionary = save_data.buildings[key]
 				var b_type: String = b_data.get("type", "default")
@@ -150,6 +161,11 @@ func load_buildings() -> void:
 		var node := building_manager.get_building_node(grid_pos)
 		if node is PipeNode:
 			node.refresh_connections()
+		elif node is ContainerNode:
+			node.queue_redraw()
+		elif node is WaterSourceNode:
+			node.reset_output()
+			node.queue_redraw()
 
 	_is_loading = false
 	EventBus.buildings_loaded.emit()

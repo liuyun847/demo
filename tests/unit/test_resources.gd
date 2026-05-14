@@ -148,3 +148,29 @@ func test_is_container_building_with_water_source():
 
 func test_is_container_building_with_null():
 	assert_false(BuildingData.is_container_building(null), "null 不应判定为容器建筑")
+
+func test_undo_command_forward_remove():
+	var bm = autoqfree(_BM.new() as BuildingManager)
+	add_child_autoqfree(bm)
+	bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
+	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
+
+	var cmd = UndoCommand.new()
+	cmd.type = UndoCommand.Type.REMOVE
+	cmd.buildings = {Vector2i(5, 5): GameConfig.container_type_id}
+	cmd.forward(bm)
+
+	assert_false(bm.has_building(Vector2i(5, 5)), "forward REMOVE 应删除建筑")
+
+func test_undo_command_forward_cut():
+	var bm = autoqfree(_BM.new() as BuildingManager)
+	add_child_autoqfree(bm)
+	bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
+	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
+
+	var cmd = UndoCommand.new()
+	cmd.type = UndoCommand.Type.CUT
+	cmd.buildings = {Vector2i(5, 5): GameConfig.container_type_id}
+	cmd.forward(bm)
+
+	assert_false(bm.has_building(Vector2i(5, 5)), "forward CUT 应删除建筑")

@@ -225,7 +225,7 @@ func load_keybindings() -> void:
 		push_error("KeybindManager: 按键配置缺少版本号")
 		return
 
-	if data.version != KEYBIND_VERSION:
+	if str(data.version) != KEYBIND_VERSION:
 		push_warning("KeybindManager: 按键配置版本不匹配，期望 %s，实际 %s，回退默认值" % [KEYBIND_VERSION, data.version])
 		_apply_default_keybindings()
 		return

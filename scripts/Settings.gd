@@ -188,7 +188,7 @@ func _stop_listening() -> void:
 	listening_button = null
 
 func _cancel_listening() -> void:
-	if listening_button:
+	if is_instance_valid(listening_button):
 		_update_button_text(listening_action, listening_button)
 	_stop_listening()
 

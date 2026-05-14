@@ -4,14 +4,27 @@ extends Node2D
 var loaded_blocks: Dictionary[Vector2i, bool] = {}
 var block_pixel_size: int = 0
 
+var _last_camera_pos: Vector2 = Vector2.ZERO
+var _last_camera_zoom: Vector2 = Vector2.ZERO
+var _needs_update: bool = true
+
 func _ready() -> void:
 	block_pixel_size = GameConfig.cell_size * GameConfig.big_cell_size
 	update_visible_blocks()
 	queue_redraw()
 
 func _process(_delta: float) -> void:
-	update_visible_blocks()
-	queue_redraw()
+	var camera: Camera2D = get_viewport().get_camera_2d()
+	if not camera:
+		return
+	if camera.global_position != _last_camera_pos or camera.zoom != _last_camera_zoom:
+		_last_camera_pos = camera.global_position
+		_last_camera_zoom = camera.zoom
+		_needs_update = true
+	if _needs_update:
+		update_visible_blocks()
+		queue_redraw()
+		_needs_update = false
 
 
 
@@ -42,14 +55,14 @@ func update_visible_blocks() -> void:
 			var key: Vector2i = Vector2i(x, y)
 			current_blocks[key] = true
 			if not loaded_blocks.has(key):
-				load_block(key)
+				mark_block_visible(key)
 	
 	var blocks_to_unload: Array[Vector2i] = []
 	for key: Vector2i in loaded_blocks:
 		if not current_blocks.has(key):
 			blocks_to_unload.append(key)
 	for key: Vector2i in blocks_to_unload:
-		unload_block(key)
+		mark_block_hidden(key)
 
 func _draw() -> void:
 	var camera: Camera2D = get_viewport().get_camera_2d()
@@ -91,11 +104,11 @@ func _draw() -> void:
 	var marker_rect: Rect2 = Rect2(Vector2(-marker_half, -marker_half), Vector2(marker_size, marker_size))
 	draw_rect(marker_rect, Color.BLACK, true)
 
-func load_block(block_coord: Vector2i) -> void:
+func mark_block_visible(block_coord: Vector2i) -> void:
 	loaded_blocks[block_coord] = true
 	queue_redraw()
 
-func unload_block(block_coord: Vector2i) -> void:
+func mark_block_hidden(block_coord: Vector2i) -> void:
 	if loaded_blocks.has(block_coord):
 		loaded_blocks.erase(block_coord)
 		queue_redraw()

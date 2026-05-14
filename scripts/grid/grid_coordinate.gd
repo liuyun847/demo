@@ -21,6 +21,9 @@ static func screen_to_world(camera: Camera2D, screen_pos: Vector2) -> Vector2:
 	var offset := (screen_pos - center) / camera.zoom
 	return offset + camera.global_position
 
+static func screen_to_grid(camera: Camera2D, screen_pos: Vector2) -> Vector2i:
+	return world_to_grid(screen_to_world(camera, screen_pos))
+
 static func world_to_grid(world_pos: Vector2) -> Vector2i:
 	return Vector2i(
 		floori(world_pos.x / GameConfig.cell_size),

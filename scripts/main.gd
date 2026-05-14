@@ -10,6 +10,12 @@ const SLOT_KEYS := [
 @onready var inventory_bar: InventoryBar = $UIOverlay/InventoryBar
 @onready var key_hints: VBoxContainer = $UIOverlay/KeyHints
 
+func _assert_ui_ready() -> void:
+	assert(start_menu != null, "StartMenu 节点未找到")
+	assert(settings_panel != null, "SettingsPanel 节点未找到")
+	assert(inventory_bar != null, "InventoryBar 节点未找到")
+	assert(key_hints != null, "KeyHints 节点未找到")
+
 func _enter_tree() -> void:
 	EventBus.buildings_loaded.connect(_on_buildings_loaded)
 	EventBus.start_game_requested.connect(_on_start_game_requested)
@@ -17,6 +23,7 @@ func _enter_tree() -> void:
 	EventBus.show_settings_requested.connect(_on_show_settings_requested)
 
 func _ready() -> void:
+	_assert_ui_ready()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	start_menu.hide()
 	settings_panel.hide()

@@ -17,6 +17,8 @@ func _get_building_manager() -> BuildingManager:
 		var main := get_tree().current_scene
 		if main:
 			_building_manager = main.get_node_or_null("BuildingManager") as BuildingManager
+		if _building_manager == null:
+			push_warning("SelectionManager: 无法获取 BuildingManager 节点，操作将失败")
 	return _building_manager
 
 func _get_selected_cells_array() -> Array[Vector2i]:

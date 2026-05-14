@@ -70,8 +70,8 @@ func test_non_adjacent_container_receives_no_water():
 	_bm.place_building(Vector2i(0, 3), GameConfig.container_type_id)
 	_refresh_all_pipes()
 
-	var container_a = _bm.get_node("Building_0_2")
-	var container_b = _bm.get_node("Building_0_3")
+	var container_a = _bm.get_building_node(Vector2i(0, 2))
+	var container_b = _bm.get_building_node(Vector2i(0, 3))
 
 	_coordinator._on_tick()
 

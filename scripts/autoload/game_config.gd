@@ -26,8 +26,16 @@ const paste_ghost_alpha: float = 0.45
 # 游戏数值设置
 const DEFAULT_ZOOM_SPEED: float = 0.2
 const DEFAULT_SHIFT_SPEED_MULTIPLIER: float = 5.0
-var zoom_speed: float = DEFAULT_ZOOM_SPEED
-var shift_speed_multiplier: float = DEFAULT_SHIFT_SPEED_MULTIPLIER
+const ZOOM_SPEED_MIN: float = 0.01
+const ZOOM_SPEED_MAX: float = 0.5
+const SHIFT_MULTIPLIER_MIN: float = 1.0
+const SHIFT_MULTIPLIER_MAX: float = 10.0
+var zoom_speed: float = DEFAULT_ZOOM_SPEED:
+	set(value):
+		zoom_speed = clampf(value, ZOOM_SPEED_MIN, ZOOM_SPEED_MAX)
+var shift_speed_multiplier: float = DEFAULT_SHIFT_SPEED_MULTIPLIER:
+	set(value):
+		shift_speed_multiplier = clampf(value, SHIFT_MULTIPLIER_MIN, SHIFT_MULTIPLIER_MAX)
 
 # 容器建筑类型标识
 const container_type_id: String = "type_01"
