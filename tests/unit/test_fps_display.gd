@@ -1,12 +1,12 @@
 extends GutTest
 
-func test_fps_display_initial_text():
-	var fps = autoqfree(load("res://scripts/fps_display.gd").new())
+func test_fps_display_initial_text() -> void:
+	var fps: Label = autoqfree(load("res://scripts/fps_display.gd").new())
 	add_child_autoqfree(fps)
 	assert_eq(fps.text, "FPS: --", "初始应显示 FPS: --")
 
-func test_fps_display_updates_after_interval():
-	var fps = autoqfree(load("res://scripts/fps_display.gd").new())
+func test_fps_display_updates_after_interval() -> void:
+	var fps: Label = autoqfree(load("res://scripts/fps_display.gd").new())
 	add_child_autoqfree(fps)
 
 	fps._time_elapsed = 0.0
@@ -18,8 +18,8 @@ func test_fps_display_updates_after_interval():
 
 	assert_ne(fps.text, "FPS: --", "经过足够时间后应更新显示")
 
-func test_fps_display_does_not_update_too_soon():
-	var fps = autoqfree(load("res://scripts/fps_display.gd").new())
+func test_fps_display_does_not_update_too_soon() -> void:
+	var fps: Label = autoqfree(load("res://scripts/fps_display.gd").new())
 	add_child_autoqfree(fps)
 
 	fps._time_elapsed = 0.0
@@ -31,8 +31,8 @@ func test_fps_display_does_not_update_too_soon():
 
 	assert_eq(fps.text, "FPS: --", "间隔不足 0.5 秒时不应更新")
 
-func test_fps_display_calculation():
-	var fps = autoqfree(load("res://scripts/fps_display.gd").new())
+func test_fps_display_calculation() -> void:
+	var fps: Label = autoqfree(load("res://scripts/fps_display.gd").new())
 	add_child_autoqfree(fps)
 
 	fps._time_elapsed = 0.0
@@ -44,8 +44,8 @@ func test_fps_display_calculation():
 	assert_ne(fps.text, "FPS: --", "经过 0.5 秒应更新")
 	assert_eq(fps._fps, 1.0 / 0.5, "FPS 计算应为 1/0.5 = 2")
 
-func test_fps_display_resets_after_update():
-	var fps = autoqfree(load("res://scripts/fps_display.gd").new())
+func test_fps_display_resets_after_update() -> void:
+	var fps: Label = autoqfree(load("res://scripts/fps_display.gd").new())
 	add_child_autoqfree(fps)
 
 	fps._time_elapsed = 0.5
@@ -53,13 +53,13 @@ func test_fps_display_resets_after_update():
 
 	fps._process(0.0)
 
-	var text_after = fps.text
+	var text_after: String = fps.text
 	assert_ne(fps._time_elapsed, 0.5, "更新后 _time_elapsed 应重置")
 	assert_eq(fps._frame_count, 0, "更新后 _frame_count 应归零")
 	assert_ne(text_after, "FPS: --", "应显示 FPS 数值")
 
-func test_fps_display_structure():
-	var fps = autoqfree(load("res://scripts/fps_display.gd").new())
+func test_fps_display_structure() -> void:
+	var fps: Label = autoqfree(load("res://scripts/fps_display.gd").new())
 	add_child_autoqfree(fps)
 	assert_eq(fps.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER, "应居中显示")
 	assert_eq(fps.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER, "应居中对齐")

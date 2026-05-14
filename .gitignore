@@ -11,3 +11,4 @@ export_presets.cfg
 .vs/
 *.crash
 *.log
+CODE_REVIEW_REPORT.md
