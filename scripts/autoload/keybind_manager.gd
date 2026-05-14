@@ -26,6 +26,7 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	"ui_cut": "剪切",
 	"ui_paste": "粘贴",
 	"ui_undo": "撤销",
+	"ui_redo": "重做",
 }
 
 const GAMEPLAY_ACTIONS: Array[String] = [

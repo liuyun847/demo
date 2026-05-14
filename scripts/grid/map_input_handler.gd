@@ -82,6 +82,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventMouseButton:
 		return
 
+	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+		if building_manager.has_building(_last_hovered_grid):
+			var type_id: String = building_manager.get_building_type(_last_hovered_grid)
+			if inventory_bar and type_id != "default":
+				inventory_bar.select_by_type_id(type_id)
+			viewport.set_input_as_handled()
+		return
+
 	var grid_pos: Vector2i = _get_grid_pos(event)
 
 	if _is_paste_mode():

@@ -53,6 +53,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_undo"):
 		SelectionManager.undo()
 		return
+	if event.is_action_pressed("ui_redo"):
+		SelectionManager.redo()
+		return
 
 func _on_buildings_loaded() -> void:
 	if is_inside_tree():
