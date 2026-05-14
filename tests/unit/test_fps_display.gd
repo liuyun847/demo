@@ -62,4 +62,3 @@ func test_fps_display_structure() -> void:
 	var fps: Label = autoqfree(load("res://scripts/fps_display.gd").new())
 	add_child_autoqfree(fps)
 	assert_eq(fps.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER, "应居中显示")
-	assert_eq(fps.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER, "应居中对齐")
