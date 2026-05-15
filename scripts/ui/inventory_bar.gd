@@ -8,6 +8,7 @@ const MAX_BUILDING_TYPES := 10
 const FALLBACK_TYPE_ID := "default"
 
 var current_slot_index: int = -1
+var _last_used_slot_index: int = -1
 var building_types: Array[BuildingTypeData] = []
 
 var _slots: Array[InventorySlot] = []
@@ -121,6 +122,8 @@ func select_slot(index: int) -> void:
 	if current_slot_index < building_types.size():
 		type_id = building_types[current_slot_index].type_id
 	_update_mode_indicator()
+	if current_slot_index >= 0:
+		_last_used_slot_index = current_slot_index
 	slot_selected.emit(current_slot_index, type_id)
 
 func deselect() -> void:
@@ -144,3 +147,12 @@ func select_by_type_id(type_id: String) -> bool:
 			select_slot(i)
 			return true
 	return false
+
+func toggle_place_mode() -> void:
+	if has_building_type_selected():
+		deselect()
+	else:
+		if _last_used_slot_index >= 0 and _last_used_slot_index < _slots.size():
+			select_slot(_last_used_slot_index)
+		else:
+			select_slot(0)
