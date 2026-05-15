@@ -21,7 +21,6 @@ GameConfig="*res://scripts/autoload/game_config.gd"
 EventBus="*res://scripts/autoload/event_bus.gd"
 KeybindManager="*res://scripts/autoload/keybind_manager.gd"
 SelectionManager="*res://scripts/autoload/selection_manager.gd"
-; 仅开发环境使用，导出发布版时请移除此项
 MCPRuntime="*res://addons/godot_mcp/runtime/mcp_runtime.gd"
 
 [debug]

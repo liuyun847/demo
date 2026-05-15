@@ -15,11 +15,7 @@ enum DirFlag {
 }
 
 static func screen_to_world(camera: Camera2D, screen_pos: Vector2) -> Vector2:
-	var viewport := camera.get_viewport()
-	var view_size := viewport.get_visible_rect().size
-	var center := view_size / 2.0
-	var offset := (screen_pos - center) / camera.zoom
-	return offset + camera.global_position
+	return camera.get_canvas_transform().affine_inverse() * screen_pos
 
 static func screen_to_grid(camera: Camera2D, screen_pos: Vector2) -> Vector2i:
 	return world_to_grid(screen_to_world(camera, screen_pos))

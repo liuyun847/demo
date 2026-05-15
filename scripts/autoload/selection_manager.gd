@@ -42,18 +42,18 @@ func select_rect(cells: Array[Vector2i]) -> void:
 	var building_manager := _get_building_manager()
 	if not building_manager:
 		return
-	var old_selection := selected_cells.duplicate()
+	var old_size: int = selected_cells.size()
 	for grid_pos in cells:
 		if building_manager.has_building(grid_pos):
 			selected_cells[grid_pos] = true
-	if selected_cells != old_selection:
+	if selected_cells.size() != old_size:
 		EventBus.selection_changed.emit(_get_selected_cells_array())
 
 func deselect_rect(cells: Array[Vector2i]) -> void:
-	var old_selection := selected_cells.duplicate()
+	var old_size: int = selected_cells.size()
 	for grid_pos in cells:
 		selected_cells.erase(grid_pos)
-	if selected_cells != old_selection:
+	if selected_cells.size() != old_size:
 		EventBus.selection_changed.emit(_get_selected_cells_array())
 
 func _build_clipboard(cut: bool) -> Dictionary:

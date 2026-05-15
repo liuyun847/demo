@@ -13,6 +13,15 @@ var paste_ghost_types: Dictionary[Vector2i, String] = {}
 var select_ghost_cells: Array[Vector2i] = []
 var deselect_ghost_cells: Array[Vector2i] = []
 
+static var _placeholder_label_settings: LabelSettings
+
+static func _get_placeholder_label_settings() -> LabelSettings:
+	if _placeholder_label_settings == null:
+		_placeholder_label_settings = LabelSettings.new()
+		_placeholder_label_settings.font_size = 12
+		_placeholder_label_settings.font_color = Color.WHITE
+	return _placeholder_label_settings
+
 
 
 func _ready() -> void:
@@ -89,10 +98,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.size = Vector2(GameConfig.building_size, GameConfig.building_size)
 		label.position = Vector2(-half_size, -half_size)
-		var ls := LabelSettings.new()
-		ls.font_size = 12
-		ls.font_color = Color.WHITE
-		label.label_settings = ls
+		label.label_settings = _get_placeholder_label_settings()
 		placeholder.add_child(label)
 		add_child(placeholder)
 
