@@ -12,22 +12,13 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	"zoom_out": "缩小",
 	"place_building": "放置建筑",
 	"remove_building": "删除建筑",
-	"slot_1": "槽位 1",
-	"slot_2": "槽位 2",
-	"slot_3": "槽位 3",
-	"slot_4": "槽位 4",
-	"slot_5": "槽位 5",
-	"slot_6": "槽位 6",
-	"slot_7": "槽位 7",
-	"slot_8": "槽位 8",
-	"slot_9": "槽位 9",
-	"slot_0": "槽位 0",
 	"toggle_place_mode": "切换模式",
 	"ui_copy": "复制",
 	"ui_cut": "剪切",
 	"ui_paste": "粘贴",
 	"ui_undo": "撤销",
 	"ui_redo": "重做",
+	"rotate_clipboard": "旋转剪贴板",
 }
 
 const COMBO_MODIFIER: Dictionary = {
@@ -48,25 +39,21 @@ const GAMEPLAY_ACTIONS: Array[String] = [
 	"zoom_out",
 	"place_building",
 	"remove_building",
-	"slot_1",
-	"slot_2",
-	"slot_3",
-	"slot_4",
-	"slot_5",
-	"slot_6",
-	"slot_7",
-	"slot_8",
-	"slot_9",
-	"slot_0",
 	"toggle_place_mode",
 	"ui_copy",
 	"ui_cut",
 	"ui_paste",
 	"ui_undo",
 	"ui_redo",
+	"rotate_clipboard",
 ]
 
 func _ready() -> void:
+	if not InputMap.has_action("rotate_clipboard"):
+		InputMap.add_action("rotate_clipboard")
+		var r_key := InputEventKey.new()
+		r_key.keycode = KEY_R
+		InputMap.action_add_event("rotate_clipboard", r_key)
 	load_keybindings()
 
 func get_action_display_name(action: String) -> String:
@@ -267,22 +254,13 @@ func _apply_default_keybindings() -> void:
 		"zoom_out": _create_mouse_event(MOUSE_BUTTON_WHEEL_DOWN),
 		"place_building": _create_mouse_event(MOUSE_BUTTON_LEFT),
 		"remove_building": _create_mouse_event(MOUSE_BUTTON_RIGHT),
-		"slot_1": _create_key_event(KEY_1),
-		"slot_2": _create_key_event(KEY_2),
-		"slot_3": _create_key_event(KEY_3),
-		"slot_4": _create_key_event(KEY_4),
-		"slot_5": _create_key_event(KEY_5),
-		"slot_6": _create_key_event(KEY_6),
-		"slot_7": _create_key_event(KEY_7),
-		"slot_8": _create_key_event(KEY_8),
-		"slot_9": _create_key_event(KEY_9),
-		"slot_0": _create_key_event(KEY_0),
 		"toggle_place_mode": _create_key_event(KEY_E),
 		"ui_copy": _create_key_event_with_ctrl(KEY_C),
 		"ui_cut": _create_key_event_with_ctrl(KEY_X),
 		"ui_paste": _create_key_event_with_ctrl(KEY_V),
 		"ui_undo": _create_key_event_with_ctrl(KEY_Z),
 		"ui_redo": _create_key_event_with_ctrl(KEY_Y),
+		"rotate_clipboard": _create_key_event(KEY_R),
 	}
 
 	for action in defaults.keys():
