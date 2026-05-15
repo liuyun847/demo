@@ -82,7 +82,7 @@ func _build_rotate_row() -> void:
 	var key_label := _make_keycap("rotate_clipboard")
 	_rotate_row.add_child(key_label)
 
-	var desc := _make_desc("旋转剪贴板")
+	var desc := _make_desc("粘贴时旋转")
 	_rotate_row.add_child(desc)
 
 	_rotate_row.hide()
