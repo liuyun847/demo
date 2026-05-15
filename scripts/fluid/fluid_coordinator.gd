@@ -41,16 +41,20 @@ func _on_tick() -> void:
 		_rebuild_networks(all_pipes, all_sources)
 		_dirty = false
 
-	for pipe in all_pipes:
-		pipe.network_state = 0
-
 	for src in all_sources:
 		src.reset_output()
 
 	var has_flow := false
+	var pipes_in_network: Dictionary[int, bool] = {}
 
 	for network: Dictionary in _cached_networks:
 		has_flow = _process_network(network) or has_flow
+		for pipe in network.pipes:
+			pipes_in_network[pipe.get_instance_id()] = true
+
+	for pipe in all_pipes:
+		if not pipes_in_network.has(pipe.get_instance_id()):
+			pipe.network_state = 0
 
 	if has_flow:
 		EventBus.fluid_updated.emit()
