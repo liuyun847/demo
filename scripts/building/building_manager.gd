@@ -5,6 +5,12 @@ var buildings: Dictionary[Vector2i, BuildingData] = {} # key: Vector2i, value: B
 var _building_nodes: Dictionary[Vector2i, Node2D] = {} # key: Vector2i, value: Node2D
 var fluid_pipes: Array[PipeNode] = []
 var fluid_sources: Array[WaterSourceNode] = []
+var _pipe_positions: PackedVector2Array = PackedVector2Array()
+var _pipe_masks: PackedInt32Array = PackedInt32Array()
+var _pipe_states: PackedInt32Array = PackedInt32Array()
+var _pipe_ids: PackedInt64Array = PackedInt64Array()
+var _pipe_index_map: Dictionary[int, int] = {}
+
 var ghost_cells: Array[Vector2i] = []
 var remove_ghost_cells: Array[Vector2i] = []
 var selected_cells: Array[Vector2i] = []
@@ -112,6 +118,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 
 	_building_nodes[grid_pos] = building_node
 	if building_node is PipeNode:
+		_register_pipe(building_node)
 		fluid_pipes.append(building_node)
 	elif building_node is WaterSourceNode:
 		fluid_sources.append(building_node)
@@ -135,6 +142,7 @@ func remove_building(grid_pos: Vector2i) -> bool:
 
 	var node_to_remove = _building_nodes.get(grid_pos)
 	if node_to_remove is PipeNode:
+		_unregister_pipe(node_to_remove)
 		fluid_pipes.erase(node_to_remove)
 	elif node_to_remove is WaterSourceNode:
 		fluid_sources.erase(node_to_remove)
@@ -167,6 +175,11 @@ func bulk_clear() -> void:
 	buildings.clear()
 	fluid_pipes.clear()
 	fluid_sources.clear()
+	_pipe_positions.clear()
+	_pipe_masks.clear()
+	_pipe_states.clear()
+	_pipe_ids.clear()
+	_pipe_index_map.clear()
 	var coordinator := get_node_or_null("FluidCoordinator")
 	if coordinator:
 		coordinator._on_tick()
@@ -269,7 +282,63 @@ func _draw_cell_highlight(cells: Array[Vector2i], fill_color: Color, border_colo
 		draw_rect(rect, fill_color, true)
 		draw_rect(rect, border_color, false, border_width)
 
+func _draw_pipes() -> void:
+	if _pipe_positions.is_empty():
+		return
+	var half := GameConfig.building_size / 2.0
+	var wall_w := 2.5
+	var color_wall := Color(0.25, 0.25, 0.25)
+	var passage_w := 14.0
+	var pw := passage_w / 2.0
+
+	for i in _pipe_positions.size():
+		var pos := _pipe_positions[i]
+		var mask := _pipe_masks[i]
+		var state := _pipe_states[i]
+		var cx := pos.x
+		var cy := pos.y
+
+		var color_bg: Color
+		var color_passage: Color
+		if state == 0:
+			color_bg = Color(0.12, 0.12, 0.12)
+			color_passage = Color(0.35, 0.35, 0.35)
+		elif state == 1:
+			color_bg = Color(0.12, 0.18, 0.25)
+			color_passage = Color(0.3, 0.75, 1.0)
+		else:
+			color_bg = Color(0.10, 0.20, 0.10)
+			color_passage = Color(0.2, 0.85, 0.2)
+
+		draw_rect(Rect2(cx - half, cy - half, GameConfig.building_size, GameConfig.building_size), color_bg)
+
+		if mask & GridCoordinate.DirFlag.LEFT:
+			draw_rect(Rect2(cx - half, cy - pw, half, passage_w), color_passage)
+		if mask & GridCoordinate.DirFlag.RIGHT:
+			draw_rect(Rect2(cx, cy - pw, half, passage_w), color_passage)
+		if mask & GridCoordinate.DirFlag.UP:
+			draw_rect(Rect2(cx - pw, cy - half, passage_w, half), color_passage)
+		if mask & GridCoordinate.DirFlag.DOWN:
+			draw_rect(Rect2(cx - pw, cy, passage_w, half), color_passage)
+
+		if mask != 0:
+			draw_rect(Rect2(cx - pw, cy - pw, passage_w, passage_w), color_passage)
+
+		draw_rect(Rect2(cx - half, cy - half, GameConfig.building_size, GameConfig.building_size), color_wall, false, wall_w)
+
+		if mask & GridCoordinate.DirFlag.LEFT:
+			draw_rect(Rect2(cx - half, cy - pw, wall_w, passage_w), color_passage)
+		if mask & GridCoordinate.DirFlag.RIGHT:
+			draw_rect(Rect2(cx + half - wall_w, cy - pw, wall_w, passage_w), color_passage)
+		if mask & GridCoordinate.DirFlag.UP:
+			draw_rect(Rect2(cx - pw, cy - half, passage_w, wall_w), color_passage)
+		if mask & GridCoordinate.DirFlag.DOWN:
+			draw_rect(Rect2(cx - pw, cy + half - wall_w, passage_w, wall_w), color_passage)
+
+
 func _draw() -> void:
+	_draw_pipes()
+
 	if not ghost_cells.is_empty():
 		var ghost_fill := Color(1, 1, 1, GameConfig.ghost_alpha)
 		var filtered_cells: Array[Vector2i] = []
@@ -398,3 +467,42 @@ func _refresh_pipe_connections(grid_pos: Vector2i) -> void:
 	var self_node := get_building_node(grid_pos)
 	if self_node is PipeNode:
 		self_node.refresh_connections()
+
+
+func _register_pipe(pipe: PipeNode) -> void:
+	var id := pipe.get_instance_id()
+	_pipe_index_map[id] = _pipe_positions.size()
+	_pipe_positions.append(pipe.position)
+	_pipe_masks.append(pipe.connection_mask)
+	_pipe_states.append(pipe.network_state)
+	_pipe_ids.append(id)
+
+
+func _unregister_pipe(pipe: PipeNode) -> void:
+	var id := pipe.get_instance_id()
+	var index: int = _pipe_index_map.get(id, -1)
+	if index < 0:
+		return
+	var last := _pipe_positions.size() - 1
+	if index != last:
+		_pipe_positions[index] = _pipe_positions[last]
+		_pipe_masks[index] = _pipe_masks[last]
+		_pipe_states[index] = _pipe_states[last]
+		var last_id := _pipe_ids[last]
+		_pipe_ids[index] = last_id
+		_pipe_index_map[last_id] = index
+	_pipe_positions.resize(last)
+	_pipe_masks.resize(last)
+	_pipe_states.resize(last)
+	_pipe_ids.resize(last)
+	_pipe_index_map.erase(id)
+	queue_redraw()
+
+
+func _pipe_data_changed(pipe: PipeNode) -> void:
+	var id := pipe.get_instance_id()
+	var index: int = _pipe_index_map.get(id, -1)
+	if index >= 0 and index < _pipe_positions.size():
+		_pipe_masks[index] = pipe.connection_mask
+		_pipe_states[index] = pipe.network_state
+	queue_redraw()
