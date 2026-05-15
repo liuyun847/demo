@@ -36,6 +36,7 @@ func _ready() -> void:
 	EventBus.building_hovered.connect(_on_building_hovered)
 	EventBus.building_hover_exited.connect(_on_building_hover_exited)
 	EventBus.building_removed.connect(_on_building_removed)
+	EventBus.camera_changed.connect(_update_position)
 
 func _exit_tree() -> void:
 	if EventBus.building_hovered.is_connected(_on_building_hovered):
@@ -44,6 +45,8 @@ func _exit_tree() -> void:
 		EventBus.building_hover_exited.disconnect(_on_building_hover_exited)
 	if EventBus.building_removed.is_connected(_on_building_removed):
 		EventBus.building_removed.disconnect(_on_building_removed)
+	if EventBus.camera_changed.is_connected(_update_position):
+		EventBus.camera_changed.disconnect(_update_position)
 
 func _create_styles() -> void:
 	_panel_style = StyleBoxFlat.new()
@@ -72,6 +75,7 @@ func _on_building_hovered(grid_pos: Vector2i, node: Node2D) -> void:
 	_details_container.hide()
 	_update_content()
 	show()
+	_update_position.call_deferred()
 
 func _on_building_hover_exited(_grid_pos: Vector2i) -> void:
 	_hovered_grid_pos = Vector2i.MIN
@@ -88,6 +92,7 @@ func _on_expand_pressed() -> void:
 		_expand_button.text = "展开详情 ▼"
 		_details_container.hide()
 	_recalculate_size()
+	_update_position.call_deferred()
 
 func _update_content() -> void:
 	if _target_node == null:
@@ -168,11 +173,12 @@ func _recalculate_size() -> void:
 	offset_right = offset_left + new_w
 	offset_bottom = offset_top + new_h
 
-func _process(_delta: float) -> void:
+func _update_position() -> void:
 	if not visible:
 		return
 	if not is_instance_valid(_target_node) or not is_visible_in_tree():
 		_target_node = null
+		hide()
 		return
 
 	var viewport: Viewport = get_viewport()

@@ -18,7 +18,7 @@ func _refresh_all_pipes() -> void:
 	for grid_pos in _bm.buildings.keys():
 		var node := _bm.get_building_node(grid_pos)
 		if node is PipeNode:
-			node.refresh_connections()
+			node.refresh_connections(_bm.is_fluid_building_at)
 
 func _find_timer() -> Timer:
 	for child in _coordinator.get_children():

@@ -30,6 +30,10 @@ signal paste_mode_changed(active: bool)
 @warning_ignore("unused_signal")
 signal fluid_updated
 
+# 摄像机变更信号
+@warning_ignore("unused_signal")
+signal camera_changed
+
 # 建筑悬停提示信号
 @warning_ignore("unused_signal")
 signal building_hovered(grid_pos: Vector2i, node: Node2D)

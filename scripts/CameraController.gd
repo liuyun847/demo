@@ -28,6 +28,7 @@ func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
 	# 调整位置保持鼠标指向的位置不变
 	var new_world_pos = (screen_pos - center) / zoom + global_position
 	position += (world_pos - new_world_pos)
+	EventBus.camera_changed.emit()
 
 func _process(delta: float) -> void:
 	var input_dir: Vector2 = Vector2.ZERO
@@ -46,3 +47,4 @@ func _process(delta: float) -> void:
 		if Input.is_action_pressed("speed_up"):
 			current_speed *= GameConfig.shift_speed_multiplier
 		position += input_dir * current_speed * delta / zoom.x
+		EventBus.camera_changed.emit()
