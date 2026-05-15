@@ -4,27 +4,19 @@ extends Node2D
 var loaded_blocks: Dictionary[Vector2i, bool] = {}
 var block_pixel_size: int = 0
 
-var _last_camera_pos: Vector2 = Vector2.ZERO
-var _last_camera_zoom: Vector2 = Vector2.ZERO
-var _needs_update: bool = true
-
 func _ready() -> void:
 	block_pixel_size = GameConfig.cell_size * GameConfig.big_cell_size
 	update_visible_blocks()
 	queue_redraw()
+	EventBus.camera_changed.connect(_on_camera_changed)
 
-func _process(_delta: float) -> void:
-	var camera: Camera2D = get_viewport().get_camera_2d()
-	if not camera:
-		return
-	if camera.global_position != _last_camera_pos or camera.zoom != _last_camera_zoom:
-		_last_camera_pos = camera.global_position
-		_last_camera_zoom = camera.zoom
-		_needs_update = true
-	if _needs_update:
-		update_visible_blocks()
-		queue_redraw()
-		_needs_update = false
+func _exit_tree() -> void:
+	if EventBus.camera_changed.is_connected(_on_camera_changed):
+		EventBus.camera_changed.disconnect(_on_camera_changed)
+
+func _on_camera_changed() -> void:
+	update_visible_blocks()
+	queue_redraw()
 
 
 

@@ -1,6 +1,11 @@
 class_name PipeNode
 extends FluidNodeBase
 
+var _data_changed_callback: Callable
+
+func set_data_changed_callback(cb: Callable) -> void:
+	_data_changed_callback = cb
+
 var connection_mask: int = 0:
 	set(value):
 		connection_mask = value
@@ -14,39 +19,26 @@ var network_state: int = 0:
 
 
 func _notify_bm_dirty() -> void:
-	var bm := get_parent() as BuildingManager
-	if bm:
-		bm._pipe_data_changed(self)
+	if _data_changed_callback.is_valid():
+		_data_changed_callback.call(self)
 
 func _ready() -> void:
 	add_to_group("pipe")
 
-func refresh_connections() -> void:
-	var bm := get_parent() as BuildingManager
-	if bm == null:
-		return
-
+func refresh_connections(is_connectable: Callable) -> void:
 	var my_pos := grid_position
 	var mask := 0
 
-	if _is_connectable_at(bm, my_pos + Vector2i(0, -1)):
+	if is_connectable.call(my_pos + Vector2i(0, -1)):
 		mask |= GridCoordinate.DirFlag.UP
-	if _is_connectable_at(bm, my_pos + Vector2i(1, 0)):
+	if is_connectable.call(my_pos + Vector2i(1, 0)):
 		mask |= GridCoordinate.DirFlag.RIGHT
-	if _is_connectable_at(bm, my_pos + Vector2i(0, 1)):
+	if is_connectable.call(my_pos + Vector2i(0, 1)):
 		mask |= GridCoordinate.DirFlag.DOWN
-	if _is_connectable_at(bm, my_pos + Vector2i(-1, 0)):
+	if is_connectable.call(my_pos + Vector2i(-1, 0)):
 		mask |= GridCoordinate.DirFlag.LEFT
 
 	connection_mask = mask
-
-func _is_connectable_at(bm: BuildingManager, grid_pos: Vector2i) -> bool:
-	if not bm or not bm.buildings.has(grid_pos):
-		return false
-	var building_data: BuildingData = bm.buildings[grid_pos] as BuildingData
-	if not building_data:
-		return false
-	return BuildingData.is_fluid_building(building_data.building_type)
 
 func get_pressure() -> float:
 	return 0.0

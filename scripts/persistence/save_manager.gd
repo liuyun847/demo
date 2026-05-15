@@ -171,7 +171,7 @@ func load_buildings() -> void:
 	for grid_pos in building_manager.buildings.keys():
 		var node := building_manager.get_building_node(grid_pos)
 		if node is PipeNode:
-			node.refresh_connections()
+			node.refresh_connections(building_manager.is_fluid_building_at)
 		elif node is ContainerNode:
 			node.queue_redraw()
 		elif node is WaterSourceNode:

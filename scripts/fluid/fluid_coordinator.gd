@@ -7,8 +7,10 @@ var _building_manager: BuildingManager = null
 var _dirty: bool = true
 var _cached_networks: Array[Dictionary] = []
 
+func init(building_manager: BuildingManager) -> void:
+	_building_manager = building_manager
+
 func _ready() -> void:
-	_building_manager = get_parent() as BuildingManager
 	EventBus.building_placed.connect(_on_topology_changed)
 	EventBus.building_removed.connect(_on_topology_changed)
 	_timer = Timer.new()

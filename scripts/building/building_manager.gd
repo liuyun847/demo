@@ -37,6 +37,7 @@ func _ready() -> void:
 func _init_fluid_coordinator() -> void:
 	var coordinator: FluidCoordinator = preload("res://scripts/fluid/fluid_coordinator.gd").new()
 	coordinator.name = "FluidCoordinator"
+	coordinator.init(self)
 	add_child(coordinator)
 
 func _on_selection_changed(cells: Array[Vector2i]) -> void:
@@ -383,6 +384,12 @@ func get_building_data(grid_pos: Vector2i) -> BuildingData:
 func get_building_node(grid_pos: Vector2i) -> Node:
 	return _building_nodes.get(grid_pos) as Node
 
+func is_fluid_building_at(grid_pos: Vector2i) -> bool:
+	if not buildings.has(grid_pos):
+		return false
+	var data: BuildingData = buildings[grid_pos] as BuildingData
+	return data != null and BuildingData.is_fluid_building(data.building_type)
+
 static func get_line_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	var dx := to_pos.x - from_pos.x
@@ -462,14 +469,15 @@ func _refresh_pipe_connections(grid_pos: Vector2i) -> void:
 		if has_building(npos):
 			var node := get_building_node(npos)
 			if node is PipeNode:
-				node.refresh_connections()
+				node.refresh_connections(is_fluid_building_at)
 
 	var self_node := get_building_node(grid_pos)
 	if self_node is PipeNode:
-		self_node.refresh_connections()
+		self_node.refresh_connections(is_fluid_building_at)
 
 
 func _register_pipe(pipe: PipeNode) -> void:
+	pipe.set_data_changed_callback(_pipe_data_changed)
 	var id := pipe.get_instance_id()
 	_pipe_index_map[id] = _pipe_positions.size()
 	_pipe_positions.append(pipe.position)
@@ -479,6 +487,7 @@ func _register_pipe(pipe: PipeNode) -> void:
 
 
 func _unregister_pipe(pipe: PipeNode) -> void:
+	pipe.set_data_changed_callback(Callable())
 	var id := pipe.get_instance_id()
 	var index: int = _pipe_index_map.get(id, -1)
 	if index < 0:

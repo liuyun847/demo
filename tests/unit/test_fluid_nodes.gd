@@ -241,7 +241,7 @@ func test_pipe_node_refresh_connections_all_directions():
 	bm.place_building(Vector2i(5, 6), GameConfig.water_source_type_id)
 	bm.place_building(Vector2i(4, 5), GameConfig.pipe_type_id)
 
-	pipe.refresh_connections()
+	pipe.refresh_connections(bm.is_fluid_building_at)
 
 	var expected := GridCoordinate.DirFlag.UP | GridCoordinate.DirFlag.RIGHT | GridCoordinate.DirFlag.DOWN | GridCoordinate.DirFlag.LEFT
 	assert_eq(pipe.connection_mask, expected, "四个方向都有流体建筑时应全部连接")
@@ -263,7 +263,7 @@ func test_pipe_node_refresh_connections_none():
 	bm._building_nodes[Vector2i(10, 10)] = pipe
 	bm.fluid_pipes.append(pipe)
 
-	pipe.refresh_connections()
+	pipe.refresh_connections(bm.is_fluid_building_at)
 
 	assert_eq(pipe.connection_mask, 0, "周围无建筑时 connection_mask 应为 0")
 
@@ -283,12 +283,12 @@ func test_pipe_node_refresh_connections_only_non_fluid():
 	bm.place_building(Vector2i(3, 2), "type_04")
 	bm.place_building(Vector2i(4, 3), "default")
 
-	pipe.refresh_connections()
+	pipe.refresh_connections(bm.is_fluid_building_at)
 
 	assert_eq(pipe.connection_mask, 0, "周围只有非流体建筑时 connection_mask 应为 0")
 
 func test_pipe_node_refresh_connections_no_parent():
 	var pipe = autoqfree(PipeNode.new())
 	pipe.grid_position = Vector2i(0, 0)
-	pipe.refresh_connections()
+	pipe.refresh_connections(func(_pos: Vector2i) -> bool: return false)
 	assert_eq(pipe.connection_mask, 0, "无父节点时不应崩溃，connection_mask 保持为 0")
