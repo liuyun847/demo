@@ -18,7 +18,7 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	"ui_paste": "粘贴",
 	"ui_undo": "撤销",
 	"ui_redo": "重做",
-	"rotate_clipboard": "旋转剪贴板",
+	"rotate_clipboard": "粘贴时旋转",
 }
 
 const COMBO_MODIFIER: Dictionary = {
@@ -40,12 +40,12 @@ const GAMEPLAY_ACTIONS: Array[String] = [
 	"place_building",
 	"remove_building",
 	"toggle_place_mode",
+	"rotate_clipboard",
 	"ui_copy",
 	"ui_cut",
 	"ui_paste",
 	"ui_undo",
 	"ui_redo",
-	"rotate_clipboard",
 ]
 
 func _ready() -> void:
