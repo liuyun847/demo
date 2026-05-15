@@ -69,25 +69,7 @@ func save_buildings() -> void:
 		push_error("SaveManager: 找不到 BuildingManager 节点")
 		return
 
-	_sync_container_data()
-
-	var buildings_data: Dictionary = building_manager.get_all_buildings_data()
-	var save_dict := {
-		"version": GameConfig.SAVE_VERSION,
-		"saved_at": Time.get_datetime_string_from_system(true),
-		"buildings": {}
-	}
-
-	for grid_pos in buildings_data.keys():
-		var data: BuildingData = buildings_data[grid_pos]
-		var key := "%d,%d" % [grid_pos.x, grid_pos.y]
-		var entry := {
-			"type": data.building_type
-		}
-		if BuildingData.has_capacity(data.building_type):
-			entry["capacity"] = data.capacity
-			entry["max_capacity"] = data.max_capacity
-		save_dict.buildings[key] = entry
+	var save_dict := _build_save_dict()
 
 	var dir_path := GameConfig.save_file_path.get_base_dir()
 	var err := DirAccess.make_dir_recursive_absolute(dir_path)
@@ -98,7 +80,7 @@ func save_buildings() -> void:
 	var temp_path := GameConfig.save_file_path + ".tmp"
 	var file := FileAccess.open(temp_path, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(save_dict, "\t"))
+		file.store_string(JSON.stringify(save_dict))
 		file.close()
 		var rename_err := DirAccess.rename_absolute(temp_path, GameConfig.save_file_path)
 		if rename_err != OK:
@@ -106,6 +88,35 @@ func save_buildings() -> void:
 			DirAccess.remove_absolute(temp_path)
 	else:
 		push_error("SaveManager: 无法写入存档文件: %s" % GameConfig.save_file_path)
+
+func _build_save_dict() -> Dictionary:
+	var save_dict := {
+		"version": GameConfig.SAVE_VERSION,
+		"saved_at": Time.get_datetime_string_from_system(true),
+		"buildings": {}
+	}
+
+	for grid_pos in building_manager.buildings.keys():
+		var data: BuildingData = building_manager.buildings[grid_pos]
+
+		if BuildingData.has_capacity(data.building_type):
+			var node := building_manager.get_building_node(grid_pos)
+			if node != null:
+				if "capacity" in node:
+					data.capacity = node.capacity
+				if "max_capacity" in node:
+					data.max_capacity = node.max_capacity
+
+		var key := "%d,%d" % [grid_pos.x, grid_pos.y]
+		var entry := {
+			"type": data.building_type
+		}
+		if BuildingData.has_capacity(data.building_type):
+			entry["capacity"] = data.capacity
+			entry["max_capacity"] = data.max_capacity
+		save_dict.buildings[key] = entry
+
+	return save_dict
 
 func load_buildings() -> void:
 	if not FileAccess.file_exists(GameConfig.save_file_path):

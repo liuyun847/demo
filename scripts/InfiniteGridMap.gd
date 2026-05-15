@@ -82,22 +82,38 @@ func _draw() -> void:
 	var visible_big_cells_x: float = view_rect.size.x / (block_pixel_size * current_zoom)
 	var show_thin_lines: bool = visible_big_cells_x < 6
 	
-	for block_coord: Vector2i in loaded_blocks.keys():
-		var block_x: int = block_coord.x
-		var block_y: int = block_coord.y
-		var block_offset: Vector2 = Vector2(block_x * block_pixel_size, block_y * block_pixel_size)
-		
-		if show_thin_lines:
+	if show_thin_lines:
+		var thin_v_points := PackedVector2Array()
+		var thin_h_points := PackedVector2Array()
+		for block_coord: Vector2i in loaded_blocks:
+			var block_offset: Vector2 = Vector2(block_coord.x * block_pixel_size, block_coord.y * block_pixel_size)
+			var top: float = block_offset.y
+			var bottom: float = block_offset.y + block_pixel_size
+			var left: float = block_offset.x
+			var right: float = block_offset.x + block_pixel_size
+			
 			for x in range(1, GameConfig.big_cell_size):
 				var line_x: float = block_offset.x + x * GameConfig.cell_size
-				draw_line(Vector2(line_x, block_offset.y), Vector2(line_x, block_offset.y + block_pixel_size), GameConfig.line_color, adjusted_thin_width)
-			
+				thin_v_points.append(Vector2(line_x, top))
+				thin_v_points.append(Vector2(line_x, bottom))
 			for y in range(1, GameConfig.big_cell_size):
 				var line_y: float = block_offset.y + y * GameConfig.cell_size
-				draw_line(Vector2(block_offset.x, line_y), Vector2(block_offset.x + block_pixel_size, line_y), GameConfig.line_color, adjusted_thin_width)
-		
-		draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x, block_offset.y + block_pixel_size), GameConfig.line_color, adjusted_thick_width)
-		draw_line(Vector2(block_offset.x, block_offset.y), Vector2(block_offset.x + block_pixel_size, block_offset.y), GameConfig.line_color, adjusted_thick_width)
+				thin_h_points.append(Vector2(left, line_y))
+				thin_h_points.append(Vector2(right, line_y))
+		draw_multiline(thin_v_points, GameConfig.line_color, adjusted_thin_width)
+		draw_multiline(thin_h_points, GameConfig.line_color, adjusted_thin_width)
+	
+	var thick_points := PackedVector2Array()
+	for block_coord: Vector2i in loaded_blocks:
+		var left: float = block_coord.x * block_pixel_size
+		var top: float = block_coord.y * block_pixel_size
+		var right: float = left + block_pixel_size
+		var bottom: float = top + block_pixel_size
+		thick_points.append(Vector2(left, top))
+		thick_points.append(Vector2(left, bottom))
+		thick_points.append(Vector2(left, top))
+		thick_points.append(Vector2(right, top))
+	draw_multiline(thick_points, GameConfig.line_color, adjusted_thick_width)
 	
 	var marker_size: float = GameConfig.cell_size * 2
 	var marker_half: float = marker_size / 2.0
