@@ -49,6 +49,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed(SLOT_KEYS[i]):
 			inventory_bar.select_slot(i)
 			return
+	if event.is_action_pressed("toggle_place_mode"):
+		if SelectionManager.is_paste_mode:
+			SelectionManager.cancel_paste_mode()
+		if is_instance_valid(inventory_bar):
+			inventory_bar.toggle_place_mode()
+		return
 	if event.is_action_pressed("ui_copy"):
 		SelectionManager.copy_selection()
 		return

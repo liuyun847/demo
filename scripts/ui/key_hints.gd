@@ -7,6 +7,7 @@ const PANEL_WIDTH: int = 180
 const EDIT_ACTIONS: Array[String] = ["ui_copy", "ui_cut", "ui_paste", "ui_undo"]
 
 var _keycap_labels: Array[Label] = []
+var _toggle_key_label: Label
 var _left_click_desc: Label
 var _right_click_desc: Label
 var _pipette_desc: Label
@@ -24,6 +25,7 @@ func _ready() -> void:
 
 	_build_edit_section()
 	_build_separator()
+	_build_toggle_row()
 	_build_click_section()
 
 	_refresh_click_rows()
@@ -56,6 +58,19 @@ func _build_separator() -> void:
 	var sep := HSeparator.new()
 	sep.custom_minimum_size = Vector2(PANEL_WIDTH, 4)
 	add_child(sep)
+
+func _build_toggle_row() -> void:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.add_theme_constant_override("separation", 8)
+
+	_toggle_key_label = _make_keycap("toggle_place_mode")
+	row.add_child(_toggle_key_label)
+
+	var desc := _make_desc("切换模式")
+	row.add_child(desc)
+
+	add_child(row)
 
 func _build_click_section() -> void:
 	var left_row := HBoxContainer.new()
@@ -166,6 +181,7 @@ func _refresh_all() -> void:
 	for i in EDIT_ACTIONS.size():
 		if i < _keycap_labels.size():
 			_keycap_labels[i].text = _get_action_text(EDIT_ACTIONS[i])
+	_toggle_key_label.text = _get_action_text("toggle_place_mode")
 	_refresh_click_rows()
 
 func _refresh_click_rows() -> void:

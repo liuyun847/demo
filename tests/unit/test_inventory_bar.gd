@@ -117,3 +117,25 @@ func test_mode_indicator_text_paste():
 	EventBus.paste_mode_changed.emit(true)
 	assert_eq(label.text, "粘贴", "进入粘贴模式后模式指示器文本应为'粘贴'")
 	SelectionManager.is_paste_mode = false
+
+func test_toggle_place_mode_switches_between_select_and_place():
+	assert_false(_bar.has_building_type_selected(), "初始应为未选中")
+	_bar.toggle_place_mode()
+	assert_true(_bar.has_building_type_selected(), "toggle 后应进入放置模式")
+	assert_eq(_bar.current_slot_index, 0, "首次 toggle 应默认选槽位 0")
+	_bar.toggle_place_mode()
+	assert_false(_bar.has_building_type_selected(), "再次 toggle 应回到框选模式")
+
+func test_toggle_place_mode_remembers_last_slot():
+	_bar.select_slot(2)
+	_bar.deselect()
+	assert_false(_bar.has_building_type_selected(), "取消后应为框选模式")
+	_bar.toggle_place_mode()
+	assert_eq(_bar.current_slot_index, 2, "toggle 后应回到上次槽位 2")
+
+func test_toggle_place_mode_last_slot_not_cleared_on_deselect():
+	_bar.select_slot(1)
+	_bar.select_slot(1)
+	assert_false(_bar.has_building_type_selected(), "重复选相同槽位应取消选择")
+	_bar.toggle_place_mode()
+	assert_eq(_bar.current_slot_index, 1, "记忆不应被取消操作清除，应回到槽位 1")
