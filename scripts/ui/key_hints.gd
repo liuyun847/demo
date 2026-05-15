@@ -11,6 +11,7 @@ var _toggle_key_label: Label
 var _left_click_desc: Label
 var _right_click_desc: Label
 var _pipette_desc: Label
+var _rotate_row: HBoxContainer
 
 @onready var _inventory_bar: InventoryBar = %InventoryBar
 
@@ -26,6 +27,7 @@ func _ready() -> void:
 	_build_edit_section()
 	_build_separator()
 	_build_toggle_row()
+	_build_rotate_row()
 	_build_click_section()
 
 	_refresh_click_rows()
@@ -71,6 +73,20 @@ func _build_toggle_row() -> void:
 	row.add_child(desc)
 
 	add_child(row)
+
+func _build_rotate_row() -> void:
+	_rotate_row = HBoxContainer.new()
+	_rotate_row.alignment = BoxContainer.ALIGNMENT_END
+	_rotate_row.add_theme_constant_override("separation", 8)
+
+	var key_label := _make_keycap("rotate_clipboard")
+	_rotate_row.add_child(key_label)
+
+	var desc := _make_desc("旋转剪贴板")
+	_rotate_row.add_child(desc)
+
+	_rotate_row.hide()
+	add_child(_rotate_row)
 
 func _build_click_section() -> void:
 	var left_row := HBoxContainer.new()
@@ -190,12 +206,15 @@ func _refresh_click_rows() -> void:
 		"paste":
 			_left_click_desc.text = "粘贴"
 			_right_click_desc.text = "取消粘贴"
+			_rotate_row.show()
 		"place":
 			_left_click_desc.text = "放置"
 			_right_click_desc.text = "删除"
+			_rotate_row.hide()
 		"select":
 			_left_click_desc.text = "框选"
 			_right_click_desc.text = "取消框选"
+			_rotate_row.hide()
 
 func _get_current_mode() -> String:
 	if SelectionManager.is_paste_mode:

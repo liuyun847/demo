@@ -70,6 +70,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_redo"):
 		SelectionManager.redo()
 		return
+	if event.is_action_pressed("rotate_clipboard") and SelectionManager.is_paste_mode:
+		SelectionManager.rotate_clipboard()
+		return
 
 func _on_buildings_loaded() -> void:
 	if is_inside_tree():

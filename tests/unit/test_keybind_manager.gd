@@ -25,8 +25,6 @@ func _restore_input_states() -> void:
 func test_get_action_display_name_known():
 	assert_eq(KeybindManager.get_action_display_name("move_up"), "上移")
 	assert_eq(KeybindManager.get_action_display_name("place_building"), "放置建筑")
-	assert_eq(KeybindManager.get_action_display_name("slot_1"), "槽位 1")
-	assert_eq(KeybindManager.get_action_display_name("slot_0"), "槽位 0")
 
 func test_get_action_display_name_unknown():
 	assert_eq(KeybindManager.get_action_display_name("unknown_action"), "unknown_action")

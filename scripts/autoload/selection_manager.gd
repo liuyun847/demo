@@ -6,6 +6,7 @@ var undo_stack: Array[UndoCommand] = []
 var redo_stack: Array[UndoCommand] = []
 var is_paste_mode: bool = false
 var paste_anchor: Vector2i = Vector2i.ZERO
+var _paste_rotation: int = 0
 
 const MAX_UNDO_SIZE: int = 100
 
@@ -118,9 +119,54 @@ func get_clipboard_unit_size() -> Vector2i:
 		max_off.y = maxi(max_off.y, off.y)
 	return Vector2i(max_off.x + 1, max_off.y + 1)
 
+static func _rotate_offset(offset: Vector2i, rotation: int) -> Vector2i:
+	match rotation:
+		1: return Vector2i(-offset.y, offset.x)
+		2: return Vector2i(-offset.x, -offset.y)
+		3: return Vector2i(offset.y, -offset.x)
+		_: return offset
+
+func rotate_clipboard() -> void:
+	if not is_paste_mode:
+		return
+	_paste_rotation = (_paste_rotation + 1) % 4
+
+func get_effective_clipboard() -> Dictionary:
+	if _paste_rotation == 0 or clipboard.is_empty() or not clipboard.has("buildings"):
+		return clipboard
+	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
+	var rotated: Array[Dictionary] = []
+	for item in clip_buildings:
+		var offset: Vector2i = item["offset"]
+		var rotated_offset := _rotate_offset(offset, _paste_rotation)
+		rotated.append({"offset": rotated_offset, "type": item["type"]})
+	var min_x := 0
+	var min_y := 0
+	for item in rotated:
+		var off: Vector2i = item["offset"]
+		min_x = mini(min_x, off.x)
+		min_y = mini(min_y, off.y)
+	for item in rotated:
+		var off: Vector2i = item["offset"]
+		item["offset"] = Vector2i(off.x - min_x, off.y - min_y)
+	return {"buildings": rotated, "was_cut": clipboard.get("was_cut", false)}
+
+func get_effective_clipboard_unit_size() -> Vector2i:
+	var effective := get_effective_clipboard()
+	if effective.is_empty() or not effective.has("buildings"):
+		return Vector2i(1, 1)
+	var clip_buildings: Array[Dictionary] = effective["buildings"]
+	var max_off := Vector2i.ZERO
+	for item in clip_buildings:
+		var off: Vector2i = item["offset"]
+		max_off.x = maxi(max_off.x, off.x)
+		max_off.y = maxi(max_off.y, off.y)
+	return Vector2i(max_off.x + 1, max_off.y + 1)
+
 func start_paste_mode() -> void:
 	if clipboard.is_empty() or not clipboard.has("buildings"):
 		return
+	_paste_rotation = 0
 	is_paste_mode = true
 	paste_anchor = Vector2i.ZERO
 	EventBus.paste_mode_changed.emit(true)
@@ -134,10 +180,11 @@ func perform_paste(anchor: Vector2i) -> void:
 	var building_manager := _get_building_manager()
 	if not building_manager:
 		return
-	if clipboard.is_empty() or not clipboard.has("buildings"):
+	var effective := get_effective_clipboard()
+	if effective.is_empty() or not effective.has("buildings"):
 		return
 
-	var paste_buildings: Array[Dictionary] = clipboard["buildings"]
+	var paste_buildings: Array[Dictionary] = effective["buildings"]
 
 	var valid_items: Array[Dictionary] = []
 	for item in paste_buildings:
@@ -168,10 +215,11 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 	var building_manager := _get_building_manager()
 	if not building_manager:
 		return
-	if clipboard.is_empty() or not clipboard.has("buildings"):
+	var effective := get_effective_clipboard()
+	if effective.is_empty() or not effective.has("buildings"):
 		return
 
-	var paste_buildings: Array[Dictionary] = clipboard["buildings"]
+	var paste_buildings: Array[Dictionary] = effective["buildings"]
 	var placed_cells := {}
 
 	for anchor in anchors:

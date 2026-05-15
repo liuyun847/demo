@@ -135,11 +135,11 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 	if _is_paste_mode():
 		SelectionManager.paste_anchor = grid_pos
 		if _paste_is_dragging:
-			var unit_size := SelectionManager.get_clipboard_unit_size()
+			var unit_size := SelectionManager.get_effective_clipboard_unit_size()
 			var anchors := BuildingManager.get_paste_line_anchors(_paste_drag_start, grid_pos, unit_size.x, unit_size.y)
-			building_manager.set_paste_preview_line(anchors, SelectionManager.clipboard)
+			building_manager.set_paste_preview_line(anchors, SelectionManager.get_effective_clipboard())
 		else:
-			building_manager.set_paste_preview_line([grid_pos], SelectionManager.clipboard)
+			building_manager.set_paste_preview_line([grid_pos], SelectionManager.get_effective_clipboard())
 		viewport.set_input_as_handled()
 		return
 
@@ -175,12 +175,12 @@ func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewpo
 	if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		_paste_drag_start = grid_pos
 		_paste_is_dragging = true
-		building_manager.set_paste_preview_line([grid_pos], SelectionManager.clipboard)
+		building_manager.set_paste_preview_line([grid_pos], SelectionManager.get_effective_clipboard())
 		viewport.set_input_as_handled()
 		return
 	if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		if _paste_is_dragging:
-			var unit_size := SelectionManager.get_clipboard_unit_size()
+			var unit_size := SelectionManager.get_effective_clipboard_unit_size()
 			var anchors := BuildingManager.get_paste_line_anchors(_paste_drag_start, grid_pos, unit_size.x, unit_size.y)
 			SelectionManager.perform_paste_batch(anchors)
 			_paste_is_dragging = false
