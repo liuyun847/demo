@@ -10,6 +10,7 @@ var _pipe_masks: PackedInt32Array = PackedInt32Array()
 var _pipe_states: PackedInt32Array = PackedInt32Array()
 var _pipe_ids: PackedInt64Array = PackedInt64Array()
 var _pipe_index_map: Dictionary[int, int] = {}
+var _pipe_batch_mode: bool = false
 
 var ghost_cells: Array[Vector2i] = []
 var remove_ghost_cells: Array[Vector2i] = []
@@ -514,4 +515,22 @@ func _pipe_data_changed(pipe: PipeNode) -> void:
 	if index >= 0 and index < _pipe_positions.size():
 		_pipe_masks[index] = pipe.connection_mask
 		_pipe_states[index] = pipe.network_state
-	queue_redraw()
+	if not _pipe_batch_mode:
+		queue_redraw()
+
+
+func batch_update_pipe_states(pipe_states: Dictionary) -> void:
+	_pipe_batch_mode = true
+	var needs_redraw := false
+	for i in _pipe_ids.size():
+		var id := _pipe_ids[i]
+		var new_state: int = pipe_states.get(id, 0)
+		if _pipe_states[i] != new_state:
+			_pipe_states[i] = new_state
+			needs_redraw = true
+		var pipe := instance_from_id(id) as PipeNode
+		if pipe and pipe.network_state != new_state:
+			pipe.network_state = new_state
+	_pipe_batch_mode = false
+	if needs_redraw:
+		queue_redraw()

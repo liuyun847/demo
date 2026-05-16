@@ -30,7 +30,7 @@ func test_undo_stack_max_size():
 	for i in range(110):
 		var cmd = UndoCommand.new()
 		cmd.type = UndoCommand.Type.PLACE
-		cmd.buildings = {Vector2i(i, 0): "type_01"}
+		cmd.buildings = {Vector2i(i, 0): {"type": "type_01"}}
 		SelectionManager.push_undo_command(cmd)
 	assert_eq(SelectionManager.undo_stack.size(), 100, "撤销栈大小应被限制为 100")
 
@@ -79,16 +79,17 @@ func test_cancel_paste_emits_signal():
 	SelectionManager.cancel_paste_mode()
 	assert_signal_emitted(EventBus, "paste_mode_changed", "cancel_paste_mode 应发射 paste_mode_changed 信号")
 
-func test_cut_undo_command_buildings_are_strings():
+func test_cut_undo_command_buildings_are_dictionaries():
 	SelectionManager.undo_stack.clear()
 	var cmd := UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {Vector2i(1, 1): "type_01", Vector2i(2, 2): "type_02"}
+	cmd.buildings = {Vector2i(1, 1): {"type": "type_01"}, Vector2i(2, 2): {"type": "type_02"}}
 	SelectionManager.push_undo_command(cmd)
 	var stored_cmd: UndoCommand = SelectionManager.undo_stack.back()
 	assert_eq(stored_cmd.type, UndoCommand.Type.CUT, "撤销命令类型应为 CUT")
 	for value in stored_cmd.buildings.values():
-		assert_true(value is String, "buildings 值应为纯 String 而非 Dictionary，不应包含 capacity")
+		assert_true(value is Dictionary, "buildings 值应为 Dictionary 类型")
+		assert_true(value.has("type"), "Dictionary 应包含 type 键")
 
 func test_select_rect_no_building_manager():
 	SelectionManager.clear_selection()
@@ -197,7 +198,7 @@ func test_new_action_clears_redo_stack():
 	assert_eq(SelectionManager.redo_stack.size(), 1, "redo 栈应有 1 个元素")
 	var cmd := UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(0, 0): "type_01"}
+	cmd.buildings = {Vector2i(0, 0): {"type": "type_01"}}
 	SelectionManager.push_undo_command(cmd)
 	assert_eq(SelectionManager.redo_stack.size(), 0, "新操作后 redo 栈应被清空")
 
@@ -219,7 +220,7 @@ func test_redo_after_undo_restores_building():
 	bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	var cmd := UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(0, 0): GameConfig.container_type_id}
+	cmd.buildings = {Vector2i(0, 0): {"type": GameConfig.container_type_id}}
 	SelectionManager.push_undo_command(cmd)
 	assert_true(bm.has_building(Vector2i(0, 0)), "放置后应有建筑")
 
@@ -249,7 +250,7 @@ func test_redo_undo_cycle():
 	bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	var cmd := UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(0, 0): GameConfig.container_type_id}
+	cmd.buildings = {Vector2i(0, 0): {"type": GameConfig.container_type_id}}
 	SelectionManager.push_undo_command(cmd)
 
 	SelectionManager.undo()

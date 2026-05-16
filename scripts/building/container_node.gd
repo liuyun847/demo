@@ -31,8 +31,6 @@ func _ready() -> void:
 	add_to_group("container")
 
 func get_fill_ratio() -> float:
-	if max_capacity <= 0:
-		return 0.0
 	return float(capacity) / float(max_capacity)
 
 

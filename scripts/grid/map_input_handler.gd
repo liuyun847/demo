@@ -216,7 +216,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		var placed: Dictionary = {}
 		for cell: Vector2i in cells:
 			if building_manager.place_building(cell, building_type):
-				placed[cell] = building_type
+				placed[cell] = {"type": building_type}
 		if not placed.is_empty():
 			var cmd: UndoCommand = UndoCommand.new()
 			cmd.type = UndoCommand.Type.PLACE
@@ -253,12 +253,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		var removed: Dictionary = {}
 		for cell: Vector2i in cells:
 			if building_manager.has_building(cell):
-				var entry: Dictionary = {"type": building_manager.get_building_type(cell)}
-				var node: Node = building_manager.get_building_node(cell)
-				if BuildingData.is_container_building(node):
-					entry["capacity"] = node.capacity
-					entry["max_capacity"] = node.max_capacity
-				removed[cell] = entry
+				removed[cell] = {"type": building_manager.get_building_type(cell)}
 		building_manager.remove_buildings_in_rect(cells)
 		if not removed.is_empty():
 			var cmd: UndoCommand = UndoCommand.new()

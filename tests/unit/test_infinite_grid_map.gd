@@ -70,3 +70,21 @@ func test_get_visible_block_range_no_camera() -> void:
 	assert_eq(result.end_x, 0, "无相机时 end_x 应为 0")
 	assert_eq(result.start_y, 0, "无相机时 start_y 应为 0")
 	assert_eq(result.end_y, 0, "无相机时 end_y 应为 0")
+
+
+func test_on_viewport_size_changed_updates_blocks() -> void:
+	_grid_map.loaded_blocks.clear()
+	_grid_map._on_viewport_size_changed()
+	assert_true(_grid_map.loaded_blocks.size() > 0, "viewport 尺寸变化后 loaded_blocks 应非空")
+
+
+func test_on_viewport_size_changed_same_behavior_as_update() -> void:
+	_grid_map.loaded_blocks.clear()
+	_grid_map.update_visible_blocks()
+	var blocks_after_update: int = _grid_map.loaded_blocks.size()
+
+	_grid_map.loaded_blocks.clear()
+	_grid_map._on_viewport_size_changed()
+	var blocks_after_resize: int = _grid_map.loaded_blocks.size()
+
+	assert_eq(blocks_after_resize, blocks_after_update, "_on_viewport_size_changed 应与 update_visible_blocks 加载相同数量的区块")

@@ -257,3 +257,70 @@ func test_set_paste_preview_line_empty_clipboard():
 	var anchors: Array[Vector2i] = [Vector2i(0, 0)]
 	_bm.set_paste_preview_line(anchors, {})
 	assert_true(_bm.paste_ghost_cells.is_empty(), "空剪贴板不应有行预览")
+
+
+func test_batch_update_pipe_states_updates_network_state():
+	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
+
+	var pipe_0 := _bm.get_building_node(Vector2i(0, 0)) as PipeNode
+	var pipe_1 := _bm.get_building_node(Vector2i(1, 0)) as PipeNode
+	var pipe_2 := _bm.get_building_node(Vector2i(2, 0)) as PipeNode
+
+	var states := {
+		pipe_0.get_instance_id(): 1,
+		pipe_1.get_instance_id(): 2,
+		pipe_2.get_instance_id(): 1,
+	}
+	_bm.batch_update_pipe_states(states)
+
+	assert_eq(pipe_0.network_state, 1, "管道0 network_state 应为 1")
+	assert_eq(pipe_1.network_state, 2, "管道1 network_state 应为 2")
+	assert_eq(pipe_2.network_state, 1, "管道2 network_state 应为 1")
+	assert_eq(_bm._pipe_states[0], 1, "_pipe_states[0] 应为 1")
+	assert_eq(_bm._pipe_states[1], 2, "_pipe_states[1] 应为 2")
+	assert_eq(_bm._pipe_states[2], 1, "_pipe_states[2] 应为 1")
+
+
+func test_batch_update_pipe_states_isolated_pipe_gets_zero():
+	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
+
+	var pipe_0 := _bm.get_building_node(Vector2i(0, 0)) as PipeNode
+	var pipe_1 := _bm.get_building_node(Vector2i(1, 0)) as PipeNode
+	var pipe_2 := _bm.get_building_node(Vector2i(2, 0)) as PipeNode
+
+	pipe_0.network_state = 1
+	pipe_1.network_state = 2
+	pipe_2.network_state = 1
+
+	var states := {
+		pipe_0.get_instance_id(): 1,
+	}
+	_bm.batch_update_pipe_states(states)
+
+	assert_eq(pipe_0.network_state, 1, "管道0 network_state 由字典设为 1")
+	assert_eq(pipe_1.network_state, 0, "管道1 不在字典中，network_state 应重置为 0")
+	assert_eq(pipe_2.network_state, 0, "管道2 不在字典中，network_state 应重置为 0")
+
+
+func test_batch_update_pipe_states_empty_dict():
+	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
+
+	var pipe_0 := _bm.get_building_node(Vector2i(0, 0)) as PipeNode
+	var pipe_1 := _bm.get_building_node(Vector2i(1, 0)) as PipeNode
+	pipe_0.network_state = 1
+	pipe_1.network_state = 2
+
+	_bm.batch_update_pipe_states({})
+
+	assert_eq(pipe_0.network_state, 0, "空字典时管道0 network_state 应重置为 0")
+	assert_eq(pipe_1.network_state, 0, "空字典时管道1 network_state 应重置为 0")
+
+
+func test_batch_update_pipe_states_no_pipes():
+	_bm.batch_update_pipe_states({1: 1, 2: 2})
+	assert_true(true, "无管道时 batch_update_pipe_states 不应崩溃")

@@ -6,15 +6,23 @@ var block_pixel_size: int = 0
 
 func _ready() -> void:
 	block_pixel_size = GameConfig.cell_size * GameConfig.big_cell_size
+	RenderingServer.set_default_clear_color(GameConfig.background_color)
 	update_visible_blocks()
 	queue_redraw()
 	EventBus.camera_changed.connect(_on_camera_changed)
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
 
 func _exit_tree() -> void:
 	if EventBus.camera_changed.is_connected(_on_camera_changed):
 		EventBus.camera_changed.disconnect(_on_camera_changed)
+	if get_viewport().size_changed.is_connected(_on_viewport_size_changed):
+		get_viewport().size_changed.disconnect(_on_viewport_size_changed)
 
 func _on_camera_changed() -> void:
+	update_visible_blocks()
+	queue_redraw()
+
+func _on_viewport_size_changed() -> void:
 	update_visible_blocks()
 	queue_redraw()
 

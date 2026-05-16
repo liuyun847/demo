@@ -165,7 +165,7 @@ func load_buildings() -> void:
 				var restore_data: Dictionary = {}
 				if BuildingData.has_capacity(b_type):
 					restore_data["capacity"] = b_data.get("capacity", 0)
-					restore_data["max_capacity"] = b_data.get("max_capacity", UndoCommand.UNSET_MAX_CAPACITY)
+					restore_data["max_capacity"] = b_data.get("max_capacity", 100)
 				building_manager.place_building(grid_pos, b_type, restore_data)
 
 	for grid_pos in building_manager.buildings.keys():
