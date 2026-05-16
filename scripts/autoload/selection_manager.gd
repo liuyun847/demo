@@ -91,7 +91,10 @@ func _build_clipboard(cut: bool) -> Dictionary:
 	if cut:
 		var cmd := UndoCommand.new()
 		cmd.type = UndoCommand.Type.CUT
-		cmd.buildings = buildings_data
+		var cut_buildings: Dictionary = {}
+		for grid_pos in buildings_data.keys():
+			cut_buildings[grid_pos] = {"type": buildings_data[grid_pos]}
+		cmd.buildings = cut_buildings
 		push_undo_command(cmd)
 
 		for grid_pos in buildings_data.keys():
@@ -200,7 +203,7 @@ func perform_paste(anchor: Vector2i) -> void:
 		var grid_pos: Vector2i = anchor + item["offset"]
 		var building_type: String = item["type"]
 		building_manager.place_building(grid_pos, building_type)
-		placed_cells[grid_pos] = building_type
+		placed_cells[grid_pos] = {"type": building_type}
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()
@@ -228,7 +231,7 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 			if not building_manager.has_building(grid_pos):
 				var building_type: String = item["type"]
 				building_manager.place_building(grid_pos, building_type)
-				placed_cells[grid_pos] = building_type
+				placed_cells[grid_pos] = {"type": building_type}
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()

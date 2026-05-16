@@ -63,7 +63,7 @@ func test_source_to_container_via_pipe():
 	assert_eq(container.capacity, source.output_per_tick, "水源每 tick 产出应全部分配给容器")
 
 
-func test_non_adjacent_container_receives_no_water():
+func test_container_to_container_no_relay():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 2), GameConfig.container_type_id)
@@ -76,7 +76,7 @@ func test_non_adjacent_container_receives_no_water():
 	_coordinator._on_tick()
 
 	assert_eq(container_a.capacity, 30, "水源通过管道应只给直接相邻的容器A分配全部水量")
-	assert_eq(container_b.capacity, 0, "容器B不直接相邻水源/管道，不应接收水")
+	assert_eq(container_b.capacity, 0, "容器不能作为中继向另一个容器传输水")
 
 
 func test_only_directly_adjacent_containers_receive_water():

@@ -1,6 +1,6 @@
 extends VBoxContainer
 
-const MARGIN_TOP: int = 48
+const MARGIN_TOP: int = 148
 const MARGIN_RIGHT: int = 10
 const PANEL_WIDTH: int = 180
 

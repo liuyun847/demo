@@ -70,7 +70,7 @@ demo/
 │   ├── inventory_slot.tscn    # 建筑槽位场景
 │   └── building_tooltip.tscn  # 建筑悬停提示场景
 ├── save/                      # 持久化存储目录（运行时生成，gitignore）
-│   ├── buildings.json         # 建筑放置数据
+│   ├── buildings.json         # 建筑放置数据（运行时生成，初始不存在）
 │   ├── test_buildings.json    # 测试建筑数据
 │   ├── keybindings.json       # 按键配置数据
 │   ├── game_settings.json     # 游戏数值设置（滚轮缩放倍率、Shift加速倍率）
@@ -118,6 +118,7 @@ GameConfig (无依赖) → EventBus (无依赖) → KeybindManager (依赖 GameC
 | selection\_changed        | selected\_cells: Array[Vector2i] | 建筑选中状态变更时   |
 | paste\_mode\_changed       | active: bool        | 粘贴模式进入/退出时    |
 | fluid\_updated            | 无                  | 流体系统每 tick 有流量时 |
+| camera\_changed            | 无                  | 相机缩放或移动时     |
 | building\_hovered          | grid\_pos: Vector2i, node: Node2D | 鼠标悬停在建筑上时   |
 | building\_hover\_exited     | grid\_pos: Vector2i | 鼠标离开建筑悬停时    |
 

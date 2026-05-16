@@ -215,7 +215,7 @@ func test_hover_exited_signal():
 	_handler._handle_mouse_motion(motion_event2, get_viewport())
 	assert_signal_emitted(EventBus, "building_hover_exited", "鼠标移开建筑时应发射 building_hover_exited")
 
-func test_remove_does_not_record_capacity_in_undo():
+func test_remove_records_type_in_undo():
 	var grid_pos := Vector2i(7, 7)
 	_bm.place_building(grid_pos, GameConfig.container_type_id)
 	assert_true(_bm.has_building(grid_pos), "容器应放置成功")
@@ -235,6 +235,8 @@ func test_remove_does_not_record_capacity_in_undo():
 	for value in cmd.buildings.values():
 		assert_true(value is Dictionary, "撤销命令的 buildings 值应为字典类型")
 		assert_true(value.has("type"), "字典应包含 type 键")
+		assert_false(value.has("capacity"), "字典不应包含 capacity 键")
+		assert_false(value.has("max_capacity"), "字典不应包含 max_capacity 键")
 
 func test_copy_selection_fills_clipboard():
 	SelectionManager._building_manager = _bm
@@ -273,4 +275,5 @@ func test_cut_selection_records_undo_and_removes_building():
 	assert_eq(cmd.type, UndoCommand.Type.CUT, "撤销命令类型应为 CUT")
 	assert_true(cmd.buildings.has(grid_pos), "撤销命令应包含被剪切的格子")
 	for value in cmd.buildings.values():
-		assert_true(value is String, "撤销命令的 buildings 值应为纯字符串")
+		assert_true(value is Dictionary, "撤销命令的 buildings 值应为字典类型")
+		assert_true(value.has("type"), "字典应包含 type 键")

@@ -47,16 +47,12 @@ func _on_tick() -> void:
 		src.reset_output()
 
 	var has_flow := false
-	var pipes_in_network: Dictionary[int, bool] = {}
+	var pipe_states_accum: Dictionary[int, int] = {}
 
 	for network: Dictionary in _cached_networks:
-		has_flow = _process_network(network) or has_flow
-		for pipe in network.pipes:
-			pipes_in_network[pipe.get_instance_id()] = true
+		has_flow = _process_network(network, pipe_states_accum) or has_flow
 
-	for pipe in all_pipes:
-		if not pipes_in_network.has(pipe.get_instance_id()):
-			pipe.network_state = 0
+	_building_manager.batch_update_pipe_states(pipe_states_accum)
 
 	if has_flow:
 		EventBus.fluid_updated.emit()
@@ -157,7 +153,7 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 	}
 
 
-func _process_network(network: Dictionary) -> bool:
+func _process_network(network: Dictionary, pipe_states_out: Dictionary[int, int]) -> bool:
 	if _building_manager == null:
 		return false
 	var sources: Array[Node] = network.sources
@@ -168,7 +164,7 @@ func _process_network(network: Dictionary) -> bool:
 
 	if sources.is_empty() or all_containers.is_empty():
 		for pipe: PipeNode in pipes:
-			pipe.network_state = 0
+			pipe_states_out[pipe.get_instance_id()] = 0
 		return false
 
 	var total_output: int = 0
@@ -178,7 +174,7 @@ func _process_network(network: Dictionary) -> bool:
 
 	if total_output <= 0:
 		for pipe: PipeNode in pipes:
-			pipe.network_state = 0
+			pipe_states_out[pipe.get_instance_id()] = 0
 		return false
 
 	var candidates: Array[ContainerNode] = []
@@ -191,7 +187,7 @@ func _process_network(network: Dictionary) -> bool:
 
 	if candidates.is_empty():
 		for pipe: PipeNode in pipes:
-			pipe.network_state = 2
+			pipe_states_out[pipe.get_instance_id()] = 2
 		return false
 
 	var to_distribute: int = mini(total_output, total_space)
@@ -220,7 +216,7 @@ func _process_network(network: Dictionary) -> bool:
 			all_full = false
 			break
 	for pipe: PipeNode in pipes:
-		pipe.network_state = 2 if all_full else 1
+		pipe_states_out[pipe.get_instance_id()] = 2 if all_full else 1
 
 	return has_flow
 
