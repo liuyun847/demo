@@ -182,9 +182,9 @@ func bulk_clear() -> void:
 	_pipe_states.clear()
 	_pipe_ids.clear()
 	_pipe_index_map.clear()
-	var coordinator := get_node_or_null("FluidCoordinator")
+	var coordinator := get_node_or_null("FluidCoordinator") as FluidCoordinator
 	if coordinator:
-		coordinator._on_tick()
+		coordinator.mark_dirty()
 
 func show_ghost(cells: Array[Vector2i]) -> void:
 	ghost_cells = cells
@@ -529,7 +529,7 @@ func batch_update_pipe_states(pipe_states: Dictionary) -> void:
 			_pipe_states[i] = new_state
 			needs_redraw = true
 		var pipe := instance_from_id(id) as PipeNode
-		if pipe and pipe.network_state != new_state:
+		if is_instance_valid(pipe) and pipe.network_state != new_state:
 			pipe.network_state = new_state
 	_pipe_batch_mode = false
 	if needs_redraw:

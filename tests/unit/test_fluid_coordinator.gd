@@ -42,9 +42,9 @@ func test_empty_fluid_list_does_not_crash():
 func test_water_source_remaining_output_reset():
 	_bm.place_building(Vector2i(0, 0), GameConfig.water_source_type_id)
 	var source = _bm.get_node("Building_0_0")
-	source.remaining_output = 0
+	source._remaining_output = 0
 	_coordinator._on_tick()
-	assert_eq(source.remaining_output, source.output_per_tick, "水源每 tick 应重置 remaining_output")
+	assert_eq(source._remaining_output, source.output_per_tick, "水源每 tick 应重置 remaining_output")
 
 
 func test_source_to_container_via_pipe():
@@ -127,7 +127,7 @@ func test_flow_stops_when_containers_full():
 	_coordinator._on_tick()
 
 	assert_eq(container.capacity, container.max_capacity, "满容器不应再接收水")
-	assert_eq(source.remaining_output, source.output_per_tick, "水未分配时水源 remaining_output 应不变")
+	assert_eq(source._remaining_output, source.output_per_tick, "水未分配时水源 remaining_output 应不变")
 
 
 func test_fluid_updated_emitted_when_flow():

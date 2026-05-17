@@ -121,15 +121,12 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 	# 建筑悬停检测（仅在非拖拽状态下触发）
 	if not _is_dragging and not _is_removing and not _is_selecting and not _is_deselecting:
 		if grid_pos != _last_hovered_grid:
+			if building_manager.has_building(_last_hovered_grid):
+				EventBus.building_hover_exited.emit(_last_hovered_grid)
 			if building_manager.has_building(grid_pos):
 				var node: Node = building_manager.get_building_node(grid_pos)
 				if node:
 					EventBus.building_hovered.emit(grid_pos, node)
-				else:
-					EventBus.building_hover_exited.emit(_last_hovered_grid)
-			else:
-				if building_manager.has_building(_last_hovered_grid):
-					EventBus.building_hover_exited.emit(_last_hovered_grid)
 			_last_hovered_grid = grid_pos
 
 	if _is_paste_mode():

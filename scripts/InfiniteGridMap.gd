@@ -73,8 +73,6 @@ func _draw() -> void:
 	var top_left: Vector2 = GridCoordinate.screen_to_world(camera, view_rect.position)
 	var bottom_right: Vector2 = GridCoordinate.screen_to_world(camera, view_rect.end)
 	
-	draw_rect(Rect2(top_left, bottom_right - top_left), GameConfig.background_color)
-	
 	var current_zoom: float = camera.zoom.x
 	var adjusted_thin_width: float = GameConfig.thin_line_width / current_zoom
 	var adjusted_thick_width: float = GameConfig.thick_line_width / current_zoom

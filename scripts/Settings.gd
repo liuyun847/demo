@@ -23,7 +23,8 @@ func _ready() -> void:
 	_refresh_game_options()
 
 func _exit_tree() -> void:
-	EventBus.keybind_changed.disconnect(_on_keybind_changed)
+	if EventBus.keybind_changed.is_connected(_on_keybind_changed):
+		EventBus.keybind_changed.disconnect(_on_keybind_changed)
 
 func _input(event: InputEvent) -> void:
 	if not visible:
@@ -48,6 +49,8 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton:
 		if event is InputEventKey:
+			if event.keycode in [KEY_CTRL, KEY_SHIFT, KEY_ALT, KEY_META]:
+				return
 			var modifier_name := KeybindManager.get_action_combo_modifier(listening_action)
 			if modifier_name == "Ctrl":
 				var mod_event := InputEventKey.new()

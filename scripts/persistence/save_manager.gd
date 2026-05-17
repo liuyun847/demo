@@ -1,7 +1,9 @@
 class_name SaveManager
 extends Node
 
-@onready var building_manager: BuildingManager = get_node("../BuildingManager") as BuildingManager
+@onready var building_manager: BuildingManager = (
+	get_node("%BuildingManager") if has_node("%BuildingManager") else get_node("../BuildingManager")
+) as BuildingManager
 
 var _is_loading: bool = false
 var _save_pending: bool = false
@@ -80,7 +82,7 @@ func save_buildings() -> void:
 	var temp_path := GameConfig.save_file_path + ".tmp"
 	var file := FileAccess.open(temp_path, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(save_dict))
+		file.store_string(JSON.stringify(save_dict, "\t"))
 		file.close()
 		var rename_err := DirAccess.rename_absolute(temp_path, GameConfig.save_file_path)
 		if rename_err != OK:
@@ -142,6 +144,12 @@ func load_buildings() -> void:
 
 	if save_data.version != GameConfig.SAVE_VERSION:
 		push_warning("SaveManager: 存档版本不匹配，期望 %s，实际 %s" % [GameConfig.SAVE_VERSION, save_data.version])
+		var backup_path := GameConfig.save_file_path.replace(".json", "_v%s.json.bak" % save_data.version)
+		var backup_err := DirAccess.copy_absolute(GameConfig.save_file_path, backup_path)
+		if backup_err == OK:
+			push_warning("SaveManager: 已备份旧存档到: %s" % backup_path)
+		else:
+			push_warning("SaveManager: 无法备份旧存档（错误码: %d），将直接忽略" % backup_err)
 		EventBus.buildings_loaded.emit()
 		return
 
@@ -160,7 +168,10 @@ func load_buildings() -> void:
 					push_warning("SaveManager: 无效的格子坐标: %s，跳过" % key)
 					continue
 				var grid_pos: Vector2i = Vector2i(int(parts[0]), int(parts[1]))
-				var b_data: Dictionary = save_data.buildings[key]
+				var b_data = save_data.buildings[key]
+				if not b_data is Dictionary:
+					push_warning("SaveManager: 建筑数据格式无效，跳过: %s" % key)
+					continue
 				var b_type: String = b_data.get("type", "default")
 				var restore_data: Dictionary = {}
 				if BuildingData.has_capacity(b_type):
@@ -168,6 +179,9 @@ func load_buildings() -> void:
 					restore_data["max_capacity"] = b_data.get("max_capacity", 100)
 				building_manager.place_building(grid_pos, b_type, restore_data)
 
+	call_deferred("_finalize_loading")
+
+func _finalize_loading() -> void:
 	for grid_pos in building_manager.buildings.keys():
 		var node := building_manager.get_building_node(grid_pos)
 		if node is PipeNode:

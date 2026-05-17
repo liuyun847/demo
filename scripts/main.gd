@@ -45,14 +45,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			show_start_menu()
 		return
-	for i in SLOT_KEYS.size():
-		if event.is_action_pressed(SLOT_KEYS[i]):
-			inventory_bar.select_slot(i)
-			return
+	if not get_tree().paused:
+		for i in SLOT_KEYS.size():
+			if event.is_action_pressed(SLOT_KEYS[i]):
+				inventory_bar.select_slot(i)
+				return
 	if event.is_action_pressed("toggle_place_mode"):
 		if SelectionManager.is_paste_mode:
 			SelectionManager.cancel_paste_mode()
-		if is_instance_valid(inventory_bar):
+		elif is_instance_valid(inventory_bar):
 			inventory_bar.toggle_place_mode()
 		return
 	if event.is_action_pressed("ui_copy"):

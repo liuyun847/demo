@@ -8,8 +8,6 @@ func _ready() -> void:
 	zoom = Vector2(1.0, 1.0)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if get_tree().paused:
-		return
 	if event.is_action_pressed("zoom_in"):
 		zoom_at_position(event.position, 1 + GameConfig.zoom_speed)
 	elif event.is_action_pressed("zoom_out"):
@@ -30,6 +28,9 @@ func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
 	position += (world_pos - new_world_pos)
 	EventBus.camera_changed.emit()
 
+var _last_process_pos: Vector2
+var _last_zoom: Vector2
+
 func _process(delta: float) -> void:
 	var input_dir: Vector2 = Vector2.ZERO
 	if Input.is_action_pressed("move_right"):
@@ -47,4 +48,8 @@ func _process(delta: float) -> void:
 		if Input.is_action_pressed("speed_up"):
 			current_speed *= GameConfig.shift_speed_multiplier
 		position += input_dir * current_speed * delta / zoom.x
+
+	if position != _last_process_pos or zoom != _last_zoom:
+		_last_process_pos = position
+		_last_zoom = zoom
 		EventBus.camera_changed.emit()

@@ -162,7 +162,7 @@ func test_pipe_node_connection_mask_triggers_redraw():
 func test_water_source_node_defaults():
 	var node = autoqfree(WaterSourceNode.new())
 	assert_eq(node.output_per_tick, 30, "默认 output_per_tick 应为 30")
-	assert_eq(node.remaining_output, 0, "默认 remaining_output 应为 0")
+	assert_eq(node._remaining_output, 0, "默认 remaining_output 应为 0")
 
 func test_water_source_node_get_pressure():
 	var node = autoqfree(WaterSourceNode.new())
@@ -196,23 +196,23 @@ func test_water_source_node_no_capacity_props():
 
 func test_water_source_node_reset_output():
 	var node = autoqfree(WaterSourceNode.new())
-	node.remaining_output = 0
+	node._remaining_output = 0
 	node.reset_output()
-	assert_eq(node.remaining_output, node.output_per_tick, "reset_output 应将 remaining_output 重置为 output_per_tick")
+	assert_eq(node._remaining_output, node.output_per_tick, "reset_output 应将 remaining_output 重置为 output_per_tick")
 
 func test_water_source_node_consume_output():
 	var node = autoqfree(WaterSourceNode.new())
 	node.reset_output()
 	var consumed = node.consume_output(10)
 	assert_eq(consumed, 10, "应返回实际消耗量")
-	assert_eq(node.remaining_output, 20, "remaining_output 应减少 10")
+	assert_eq(node._remaining_output, 20, "remaining_output 应减少 10")
 
 func test_water_source_node_consume_output_exceed():
 	var node = autoqfree(WaterSourceNode.new())
 	node.reset_output()
 	var consumed = node.consume_output(100)
 	assert_eq(consumed, 30, "消耗量不应超过 remaining_output")
-	assert_eq(node.remaining_output, 0, "remaining_output 应为 0")
+	assert_eq(node._remaining_output, 0, "remaining_output 应为 0")
 
 func test_container_node_fill_ratio_safety():
 	var node = autoqfree(ContainerNode.new())
