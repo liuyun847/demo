@@ -136,6 +136,7 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 				building_manager.show_deselect_ghost(cells)
 			viewport.set_input_as_handled()
 		_InputStateMachine.State.PASTE_DRAGGING:
+			SelectionManager.paste_anchor = grid_pos
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
 			var unit_size := SelectionManager.get_effective_clipboard_unit_size()
 			var anchors := BuildingManager.get_paste_line_anchors(start_grid, grid_pos, unit_size.x, unit_size.y)

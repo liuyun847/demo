@@ -194,6 +194,22 @@ func test_mouse_motion_shows_paste_preview():
 
 	assert_eq(SelectionManager.paste_anchor, expected_anchor, "粘贴锚点应更新为鼠标所在网格坐标")
 
+func test_paste_drag_updates_anchor():
+	SelectionManager._building_manager = _bm
+	SelectionManager.clipboard = _make_clipboard()
+	SelectionManager.start_paste_mode()
+	assert_true(SelectionManager.is_paste_mode, "应进入粘贴模式")
+
+	var press_event := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	_handler._handle_paste_mode(press_event, Vector2i(5, 5), get_viewport())
+
+	var motion_event := InputEventMouseMotion.new()
+	motion_event.position = Vector2(400, 240)
+	_handler._handle_mouse_motion(motion_event, get_viewport())
+
+	var expected_anchor := _screen_to_grid(Vector2(400, 240))
+	assert_eq(SelectionManager.paste_anchor, expected_anchor, "拖拽过程中粘贴锚点应持续更新到当前鼠标位置")
+
 func test_hover_exited_signal():
 	var screen_pos := Vector2(64, 64)
 	var grid_pos := _screen_to_grid(screen_pos)
