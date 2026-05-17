@@ -1,23 +1,11 @@
 extends Node
 
+const _InputStateMachine = preload("res://scripts/grid/input_state_machine.gd")
+
 @export var building_manager: BuildingManager = null
 @export var inventory_bar: InventoryBar = null
 
-enum InteractionMode {NONE, PLACE, REMOVE, SELECT, DESELECT, PASTE}
-var _current_mode: InteractionMode = InteractionMode.NONE
-
-var _drag_start_grid: Vector2i = Vector2i.ZERO
-var _removing_start_grid: Vector2i = Vector2i.ZERO
-var _select_start_grid: Vector2i = Vector2i.ZERO
-var _deselect_start_grid: Vector2i = Vector2i.ZERO
-
-var _is_dragging: bool = false
-var _is_removing: bool = false
-var _is_selecting: bool = false
-var _is_deselecting: bool = false
-
-var _paste_drag_start: Vector2i = Vector2i.ZERO
-var _paste_is_dragging: bool = false
+var _state_machine: _InputStateMachine = _InputStateMachine.new()
 
 var _last_hovered_grid: Vector2i = Vector2i(-99999, -99999)
 var _has_camera: bool = false
@@ -40,20 +28,9 @@ func _on_paste_mode_changed(active: bool) -> void:
 	_cancel_all_dragging()
 
 func _cancel_all_dragging() -> void:
-	building_manager.clear_paste_preview()
-	if _is_dragging:
-		building_manager.hide_ghost()
-		_is_dragging = false
-	if _is_removing:
-		building_manager.hide_remove_ghost()
-		_is_removing = false
-	if _is_selecting:
-		building_manager.hide_select_ghost()
-		_is_selecting = false
-	if _is_deselecting:
-		building_manager.hide_deselect_ghost()
-		_is_deselecting = false
-	_paste_is_dragging = false
+	if building_manager:
+		building_manager.clear_paste_preview()
+	_state_machine.reset()
 
 func _get_grid_pos(event: InputEvent) -> Vector2i:
 	var viewport: Viewport = get_viewport()
@@ -118,8 +95,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> void:
 	var grid_pos: Vector2i = _get_grid_pos(event)
 
-	# 建筑悬停检测（仅在非拖拽状态下触发）
-	if not _is_dragging and not _is_removing and not _is_selecting and not _is_deselecting:
+	if _state_machine.current_state == _InputStateMachine.State.IDLE:
 		if grid_pos != _last_hovered_grid:
 			if building_manager.has_building(_last_hovered_grid):
 				EventBus.building_hover_exited.emit(_last_hovered_grid)
@@ -129,87 +105,85 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 					EventBus.building_hovered.emit(grid_pos, node)
 			_last_hovered_grid = grid_pos
 
-	if _is_paste_mode():
-		SelectionManager.paste_anchor = grid_pos
-		if _paste_is_dragging:
-			var unit_size := SelectionManager.get_effective_clipboard_unit_size()
-			var anchors := BuildingManager.get_paste_line_anchors(_paste_drag_start, grid_pos, unit_size.x, unit_size.y)
-			building_manager.set_paste_preview_line(anchors, SelectionManager.get_effective_clipboard())
-		else:
-			building_manager.set_paste_preview_line([grid_pos], SelectionManager.get_effective_clipboard())
-		viewport.set_input_as_handled()
-		return
-
-	if _is_building_placement_mode():
-		if _is_dragging:
-			if grid_pos != _drag_start_grid:
-				var cells: Array[Vector2i] = BuildingManager.get_line_cells(_drag_start_grid, grid_pos)
+	match _state_machine.current_state:
+		_InputStateMachine.State.IDLE:
+			if _is_paste_mode():
+				SelectionManager.paste_anchor = grid_pos
+				building_manager.set_paste_preview_line([grid_pos], SelectionManager.get_effective_clipboard())
+				viewport.set_input_as_handled()
+		_InputStateMachine.State.DRAGGING:
+			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+			if grid_pos != start_grid:
+				var cells: Array[Vector2i] = BuildingManager.get_line_cells(start_grid, grid_pos)
 				building_manager.show_ghost(cells)
 			viewport.set_input_as_handled()
-			return
-		if _is_removing:
-			if grid_pos != _removing_start_grid:
-				var cells: Array[Vector2i] = BuildingManager.get_rect_cells(_removing_start_grid, grid_pos)
+		_InputStateMachine.State.REMOVING:
+			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+			if grid_pos != start_grid:
+				var cells: Array[Vector2i] = BuildingManager.get_rect_cells(start_grid, grid_pos)
 				building_manager.show_remove_ghost(cells)
 			viewport.set_input_as_handled()
-			return
-
-	if _is_selection_mode():
-		if _is_selecting:
-			if grid_pos != _select_start_grid:
-				var cells: Array[Vector2i] = BuildingManager.get_rect_cells(_select_start_grid, grid_pos)
+		_InputStateMachine.State.SELECTING:
+			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+			if grid_pos != start_grid:
+				var cells: Array[Vector2i] = BuildingManager.get_rect_cells(start_grid, grid_pos)
 				building_manager.show_select_ghost(cells)
 			viewport.set_input_as_handled()
-			return
-		if _is_deselecting:
-			if grid_pos != _deselect_start_grid:
-				var cells: Array[Vector2i] = BuildingManager.get_rect_cells(_deselect_start_grid, grid_pos)
+		_InputStateMachine.State.DESELECTING:
+			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+			if grid_pos != start_grid:
+				var cells: Array[Vector2i] = BuildingManager.get_rect_cells(start_grid, grid_pos)
 				building_manager.show_deselect_ghost(cells)
 			viewport.set_input_as_handled()
-			return
+		_InputStateMachine.State.PASTE_DRAGGING:
+			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+			var unit_size := SelectionManager.get_effective_clipboard_unit_size()
+			var anchors := BuildingManager.get_paste_line_anchors(start_grid, grid_pos, unit_size.x, unit_size.y)
+			building_manager.set_paste_preview_line(anchors, SelectionManager.get_effective_clipboard())
+			viewport.set_input_as_handled()
 
 func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		_paste_drag_start = grid_pos
-		_paste_is_dragging = true
-		building_manager.set_paste_preview_line([grid_pos], SelectionManager.get_effective_clipboard())
+		_state_machine.transition_to(_InputStateMachine.State.PASTE_DRAGGING, {
+			"start_grid": grid_pos,
+			"building_manager": building_manager,
+			"clipboard": SelectionManager.get_effective_clipboard(),
+		})
 		viewport.set_input_as_handled()
 		return
 	if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		if _paste_is_dragging:
+		if _state_machine.current_state == _InputStateMachine.State.PASTE_DRAGGING:
+			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
 			var unit_size := SelectionManager.get_effective_clipboard_unit_size()
-			var anchors := BuildingManager.get_paste_line_anchors(_paste_drag_start, grid_pos, unit_size.x, unit_size.y)
+			var anchors := BuildingManager.get_paste_line_anchors(start_grid, grid_pos, unit_size.x, unit_size.y)
 			SelectionManager.perform_paste_batch(anchors)
-			_paste_is_dragging = false
+			_state_machine.transition_to(_InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
 	if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		SelectionManager.cancel_paste_mode()
-		building_manager.clear_paste_preview()
-		_paste_is_dragging = false
+		if building_manager:
+			building_manager.clear_paste_preview()
+		_state_machine.reset()
 		viewport.set_input_as_handled()
 		return
 
 func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.is_action("place_building") and event.pressed:
-		if _is_removing:
-			building_manager.hide_remove_ghost()
-			_is_removing = false
-		if _is_selecting:
-			building_manager.hide_select_ghost()
-			_is_selecting = false
-		if _is_deselecting:
-			building_manager.hide_deselect_ghost()
-			_is_deselecting = false
-		_is_dragging = true
-		_drag_start_grid = grid_pos
-		building_manager.show_ghost([grid_pos])
+		var building_type: String = inventory_bar.get_current_building_type() if inventory_bar else "default"
+		_state_machine.transition_to(_InputStateMachine.State.DRAGGING, {
+			"start_grid": grid_pos,
+			"building_manager": building_manager,
+			"building_type": building_type,
+		})
 		viewport.set_input_as_handled()
 		return
 
-	if event.is_action("place_building") and not event.pressed and _is_dragging:
-		var cells: Array[Vector2i] = BuildingManager.get_line_cells(_drag_start_grid, grid_pos)
-		var building_type: String = inventory_bar.get_current_building_type() if inventory_bar else "default"
+	if event.is_action("place_building") and not event.pressed and _state_machine.current_state == _InputStateMachine.State.DRAGGING:
+		var ctx: Dictionary = _state_machine.context
+		var start_grid: Vector2i = ctx.get("start_grid", Vector2i.ZERO)
+		var building_type: String = ctx.get("building_type", "default")
+		var cells: Array[Vector2i] = BuildingManager.get_line_cells(start_grid, grid_pos)
 		var placed: Dictionary = {}
 		for cell: Vector2i in cells:
 			if building_manager.place_building(cell, building_type):
@@ -219,34 +193,25 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 			cmd.type = UndoCommand.Type.PLACE
 			cmd.buildings = placed
 			SelectionManager.push_undo_command(cmd)
-		building_manager.hide_ghost()
-		_is_dragging = false
+		_state_machine.transition_to(_InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
 
 	if event.is_action("remove_building") and event.pressed:
-		if _is_dragging:
-			building_manager.hide_ghost()
-			_is_dragging = false
+		if _state_machine.current_state == _InputStateMachine.State.DRAGGING:
+			_state_machine.transition_to(_InputStateMachine.State.IDLE)
 			viewport.set_input_as_handled()
 			return
-		if _is_selecting:
-			building_manager.hide_select_ghost()
-			_is_selecting = false
-		if _is_deselecting:
-			building_manager.hide_deselect_ghost()
-			_is_deselecting = false
-		if _is_removing:
-			building_manager.hide_remove_ghost()
-			_is_removing = false
-		_is_removing = true
-		_removing_start_grid = grid_pos
-		building_manager.show_remove_ghost([grid_pos])
+		_state_machine.transition_to(_InputStateMachine.State.REMOVING, {
+			"start_grid": grid_pos,
+			"building_manager": building_manager,
+		})
 		viewport.set_input_as_handled()
 		return
 
-	if event.is_action("remove_building") and not event.pressed and _is_removing:
-		var cells: Array[Vector2i] = BuildingManager.get_rect_cells(_removing_start_grid, grid_pos)
+	if event.is_action("remove_building") and not event.pressed and _state_machine.current_state == _InputStateMachine.State.REMOVING:
+		var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+		var cells: Array[Vector2i] = BuildingManager.get_rect_cells(start_grid, grid_pos)
 		var removed: Dictionary = {}
 		for cell: Vector2i in cells:
 			if building_manager.has_building(cell):
@@ -257,8 +222,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 			cmd.type = UndoCommand.Type.REMOVE
 			cmd.buildings = removed
 			SelectionManager.push_undo_command(cmd)
-		building_manager.hide_remove_ghost()
-		_is_removing = false
+		_state_machine.transition_to(_InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
 
@@ -268,40 +232,33 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 
 func _handle_selection_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.is_action("place_building") and event.pressed:
-		if _is_removing:
-			building_manager.hide_remove_ghost()
-			_is_removing = false
-		if _is_deselecting:
-			building_manager.hide_deselect_ghost()
-			_is_deselecting = false
-		_is_selecting = true
-		_select_start_grid = grid_pos
-		building_manager.show_select_ghost([grid_pos])
+		_state_machine.transition_to(_InputStateMachine.State.SELECTING, {
+			"start_grid": grid_pos,
+			"building_manager": building_manager,
+		})
 		viewport.set_input_as_handled()
 		return
 
-	if event.is_action("place_building") and not event.pressed and _is_selecting:
-		var cells: Array[Vector2i] = BuildingManager.get_rect_cells(_select_start_grid, grid_pos)
+	if event.is_action("place_building") and not event.pressed and _state_machine.current_state == _InputStateMachine.State.SELECTING:
+		var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+		var cells: Array[Vector2i] = BuildingManager.get_rect_cells(start_grid, grid_pos)
 		SelectionManager.select_rect(cells)
-		building_manager.hide_select_ghost()
-		_is_selecting = false
+		_state_machine.transition_to(_InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
 
 	if event.is_action("remove_building") and event.pressed:
-		if _is_selecting:
-			building_manager.hide_select_ghost()
-			_is_selecting = false
-		_is_deselecting = true
-		_deselect_start_grid = grid_pos
-		building_manager.show_deselect_ghost([grid_pos])
+		_state_machine.transition_to(_InputStateMachine.State.DESELECTING, {
+			"start_grid": grid_pos,
+			"building_manager": building_manager,
+		})
 		viewport.set_input_as_handled()
 		return
 
-	if event.is_action("remove_building") and not event.pressed and _is_deselecting:
-		var cells: Array[Vector2i] = BuildingManager.get_rect_cells(_deselect_start_grid, grid_pos)
+	if event.is_action("remove_building") and not event.pressed and _state_machine.current_state == _InputStateMachine.State.DESELECTING:
+		var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+		var cells: Array[Vector2i] = BuildingManager.get_rect_cells(start_grid, grid_pos)
 		SelectionManager.deselect_rect(cells)
-		building_manager.hide_deselect_ghost()
-		_is_deselecting = false
+		_state_machine.transition_to(_InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
