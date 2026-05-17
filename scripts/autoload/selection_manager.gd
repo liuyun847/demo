@@ -133,6 +133,16 @@ func rotate_clipboard() -> void:
 	if not is_paste_mode:
 		return
 	_paste_rotation = (_paste_rotation + 1) % 4
+	_refresh_paste_preview()
+
+func _refresh_paste_preview() -> void:
+	var building_manager := _get_building_manager()
+	if not building_manager:
+		return
+	var effective := get_effective_clipboard()
+	if effective.is_empty() or not effective.has("buildings"):
+		return
+	building_manager.set_paste_preview_line([paste_anchor], effective)
 
 func get_effective_clipboard() -> Dictionary:
 	if _paste_rotation == 0 or clipboard.is_empty() or not clipboard.has("buildings"):

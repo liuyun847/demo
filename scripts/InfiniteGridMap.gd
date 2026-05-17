@@ -111,6 +111,10 @@ func _draw() -> void:
 		thick_points.append(Vector2(left, bottom))
 		thick_points.append(Vector2(left, top))
 		thick_points.append(Vector2(right, top))
+		thick_points.append(Vector2(right, top))
+		thick_points.append(Vector2(right, bottom))
+		thick_points.append(Vector2(left, bottom))
+		thick_points.append(Vector2(right, bottom))
 	draw_multiline(thick_points, GameConfig.line_color, adjusted_thick_width)
 	
 	var marker_size: float = GameConfig.cell_size * 2
