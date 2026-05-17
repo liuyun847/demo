@@ -1,7 +1,5 @@
 class_name BrickNode
-extends Node2D
-
-var grid_position: Vector2i
+extends BuildingBase
 
 func _ready() -> void:
 	add_to_group("brick")
