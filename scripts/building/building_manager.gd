@@ -86,6 +86,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 		var brick := BrickNode.new()
 		brick.name = node_name
 		brick.global_position = world_pos
+		brick.grid_position = grid_pos
 		add_child(brick)
 		building_node = brick
 	else:
