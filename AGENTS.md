@@ -36,7 +36,8 @@ demo/
 │   │   └── selection_manager.gd # 选中/剪贴板/撤销管理
 │   ├── building/              # 建筑系统模块
 │   │   ├── building_manager.gd # 建筑管理器（含管道批量绘制、幽灵预览等）
-│   │   ├── fluid_node_base.gd  # 流体节点基类（FluidNodeBase）
+│   │   ├── building_base.gd    # 建筑统一基类（BuildingBase）
+│   │   ├── fluid_node_base.gd  # 流体节点基类（FluidNodeBase，继承 BuildingBase）
 │   │   ├── container_node.gd   # 容器建筑（ContainerNode）
 │   │   ├── pipe_node.gd        # 管道建筑（PipeNode）
 │   │   ├── water_source_node.gd # 水源建筑（WaterSourceNode）
@@ -148,7 +149,8 @@ Root (Node2D) → main.gd                    # 主场景控制器
 - **细网格线自适应**：大格子数量≥6 时自动隐藏细网格线
 - **建筑放置/删除**：左键放置、右键删除，拖拽支持直线批量放置（`get_line_cells`）和矩形批量删除（`get_rect_cells`），拖拽时显示幽灵预览
 - **建筑类型选择**：底部 10 槽位，数字键 1~0 切换，选中槽位高亮；重复按下已选中槽位可取消选择；1 号=容器(ContainerNode)，2 号=管道(PipeNode)，3 号=水源(WaterSourceNode)，4 号=砖块(BrickNode)
-- **流体节点基类**：FluidNodeBase 抽象基类，定义 get_pressure / get_tooltip_summary 等接口，所有流体建筑继承自此基类
+- **建筑统一基类**：BuildingBase 抽象基类，定义 grid_position / get_building_name / get_tooltip_summary 等公共接口，所有建筑继承自此基类
+- **流体节点基类**：FluidNodeBase（继承 BuildingBase），额外定义 get_pressure 抽象接口，所有流体建筑继承自 FluidNodeBase
 - **容器建筑**：自定义 \_draw() 渲染填充条，带 capacity / max\_capacity 属性，数据持久化
 - **管道建筑**：ECS-Lite 架构——PipeNode 保留 Node2D 骨架用于交互，渲染逻辑移至 BuildingManager.\_draw\_pipes() 批量绘制（PackedVector2Array/PackedInt32Array 存储位置/连接掩码/网络状态）；自动检测邻居连接显示水平/垂直/多通，无容量纯导体，三档视觉状态（0=未连通水源-暗色 / 1=输送中-亮蓝 / 2=满载-绿色）
 - **水源建筑**：自定义 \_draw() 渲染石井水面效果，每 tick 产出固定水量（output\_per\_tick=30），BFS 网络中作为源点

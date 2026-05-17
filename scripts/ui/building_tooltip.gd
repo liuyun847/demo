@@ -101,14 +101,9 @@ func _update_content() -> void:
 	var building_name: String = "未知建筑"
 	var summary: Dictionary = {}
 
-	if _target_node is FluidNodeBase:
+	if _target_node is BuildingBase:
 		building_name = _target_node.get_building_name()
 		summary = _target_node.get_tooltip_summary()
-	elif "get_building_name" in _target_node:
-		building_name = _target_node.get_building_name()
-		summary = _target_node.get_tooltip_summary() if "get_tooltip_summary" in _target_node else {}
-	else:
-		building_name = _get_fallback_name(_target_node)
 
 	_name_label.text = building_name
 
@@ -136,7 +131,7 @@ func _update_details() -> void:
 		return
 
 	var details: Dictionary = {}
-	if _target_node is FluidNodeBase:
+	if _target_node is BuildingBase:
 		details = _target_node.get_tooltip_details()
 
 	for child in _details_container.get_children():
@@ -154,14 +149,6 @@ func _update_details() -> void:
 			label.add_theme_font_size_override("font_size", 12)
 			label.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
 			_details_container.add_child(label)
-
-func _get_fallback_name(node: Node) -> String:
-	if node.has_meta("building_type"):
-		var bt: String = node.get_meta("building_type")
-		if bt.begins_with("type_"):
-			var idx: int = bt.substr(5).to_int()
-			return "占位-%d" % idx
-	return "建筑"
 
 func _recalculate_size() -> void:
 	await get_tree().process_frame

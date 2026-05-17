@@ -30,7 +30,6 @@ static func _get_placeholder_label_settings() -> LabelSettings:
 	return _placeholder_label_settings
 
 
-
 func _ready() -> void:
 	EventBus.selection_changed.connect(_on_selection_changed)
 	_init_fluid_coordinator()
@@ -38,7 +37,7 @@ func _ready() -> void:
 func _init_fluid_coordinator() -> void:
 	var coordinator: FluidCoordinator = preload("res://scripts/fluid/fluid_coordinator.gd").new()
 	coordinator.name = "FluidCoordinator"
-	coordinator.init(self)
+	coordinator.init(self )
 	add_child(coordinator)
 
 func _on_selection_changed(cells: Array[Vector2i]) -> void:
@@ -87,7 +86,6 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 		var brick := BrickNode.new()
 		brick.name = node_name
 		brick.global_position = world_pos
-		brick.grid_position = grid_pos
 		add_child(brick)
 		building_node = brick
 	else:
