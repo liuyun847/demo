@@ -2,7 +2,7 @@ class_name WaterSourceNode
 extends FluidNodeBase
 
 var output_per_tick: int = 30
-var remaining_output: int = 0
+var _remaining_output: int = 0
 
 func _ready() -> void:
 	add_to_group("water_source")
@@ -12,12 +12,12 @@ func get_pressure() -> float:
 
 
 func reset_output() -> void:
-	remaining_output = output_per_tick
+	_remaining_output = output_per_tick
 
 
 func consume_output(amount: int) -> int:
-	var actual := mini(amount, remaining_output)
-	remaining_output -= actual
+	var actual := mini(amount, _remaining_output)
+	_remaining_output -= actual
 	return actual
 
 
@@ -32,7 +32,7 @@ func get_tooltip_summary() -> Dictionary:
 func get_tooltip_details() -> Dictionary:
 	return {
 		"压力": "1.0 (恒定)",
-		"剩余待输出": str(remaining_output),
+		"剩余待输出": str(_remaining_output),
 	}
 
 func _draw() -> void:

@@ -184,7 +184,10 @@ func save_keybindings() -> void:
 			keybind_data.keybindings[action] = [_serialize_event(events[0])]
 
 	var dir_path := GameConfig.keybind_file_path.get_base_dir()
-	DirAccess.make_dir_recursive_absolute(dir_path)
+	var dir_err := DirAccess.make_dir_recursive_absolute(dir_path)
+	if dir_err != OK:
+		push_error("KeybindManager: 无法创建按键配置目录: %s (错误码: %d)" % [dir_path, dir_err])
+		return
 
 	var file := FileAccess.open(GameConfig.keybind_file_path, FileAccess.WRITE)
 	if file:

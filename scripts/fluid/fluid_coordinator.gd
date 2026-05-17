@@ -27,6 +27,11 @@ func _exit_tree() -> void:
 
 func _on_topology_changed(_grid_pos: Vector2i) -> void:
 	_dirty = true
+	_cached_networks.clear()
+
+func mark_dirty() -> void:
+	_dirty = true
+	_cached_networks.clear()
 
 func _on_tick() -> void:
 	if not _building_manager:
@@ -170,7 +175,7 @@ func _process_network(network: Dictionary, pipe_states_out: Dictionary[int, int]
 	var total_output: int = 0
 	for src: Node in sources:
 		if src is WaterSourceNode:
-			total_output += src.remaining_output
+			total_output += src._remaining_output
 
 	if total_output <= 0:
 		for pipe: PipeNode in pipes:
@@ -194,17 +199,18 @@ func _process_network(network: Dictionary, pipe_states_out: Dictionary[int, int]
 
 	var per: int = to_distribute / candidates.size()
 	var extra: int = to_distribute % candidates.size()
+	var actual_distributed: int = 0
 
 	for i in range(candidates.size()):
 		var container: ContainerNode = candidates[i] as ContainerNode
 		var amount: int = per
 		if i < extra:
 			amount += 1
-		container.add(amount)
+		actual_distributed += container.add(amount)
 		_sync_building_data(container)
 		has_flow = true
 
-	var remaining: int = to_distribute
+	var remaining: int = actual_distributed
 	for src: Node in sources:
 		if src is WaterSourceNode:
 			var deducted: int = src.consume_output(remaining)
@@ -228,3 +234,4 @@ func _sync_building_data(node: Node) -> void:
 	if data == null:
 		return
 	data.capacity = node.capacity
+	data.max_capacity = node.max_capacity

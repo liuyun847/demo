@@ -8,8 +8,9 @@ func set_data_changed_callback(cb: Callable) -> void:
 
 var connection_mask: int = 0:
 	set(value):
-		connection_mask = value
-		_notify_bm_dirty()
+		if connection_mask != value:
+			connection_mask = value
+			_notify_bm_dirty()
 
 var network_state: int = 0:
 	set(value):
@@ -70,5 +71,4 @@ func get_tooltip_details() -> Dictionary:
 		"连接方向": conn_str,
 	}
 
-func _draw() -> void:
-	pass
+

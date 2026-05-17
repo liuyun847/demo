@@ -202,8 +202,8 @@ func perform_paste(anchor: Vector2i) -> void:
 	for item in valid_items:
 		var grid_pos: Vector2i = anchor + item["offset"]
 		var building_type: String = item["type"]
-		building_manager.place_building(grid_pos, building_type)
-		placed_cells[grid_pos] = {"type": building_type}
+		if building_manager.place_building(grid_pos, building_type):
+			placed_cells[grid_pos] = {"type": building_type}
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()
@@ -230,8 +230,8 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 			var grid_pos: Vector2i = anchor + item["offset"]
 			if not building_manager.has_building(grid_pos):
 				var building_type: String = item["type"]
-				building_manager.place_building(grid_pos, building_type)
-				placed_cells[grid_pos] = {"type": building_type}
+				if building_manager.place_building(grid_pos, building_type):
+					placed_cells[grid_pos] = {"type": building_type}
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()
@@ -245,20 +245,22 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 func undo() -> void:
 	if undo_stack.is_empty():
 		return
-	var cmd: UndoCommand = undo_stack.pop_back()
 	var building_manager := _get_building_manager()
-	if building_manager:
-		cmd.reverse(building_manager)
-		redo_stack.append(cmd)
+	if not building_manager:
+		return
+	var cmd: UndoCommand = undo_stack.pop_back()
+	cmd.reverse(building_manager)
+	redo_stack.append(cmd)
 
 func redo() -> void:
 	if redo_stack.is_empty():
 		return
-	var cmd: UndoCommand = redo_stack.pop_back()
 	var building_manager := _get_building_manager()
-	if building_manager:
-		cmd.forward(building_manager)
-		undo_stack.append(cmd)
+	if not building_manager:
+		return
+	var cmd: UndoCommand = redo_stack.pop_back()
+	cmd.forward(building_manager)
+	undo_stack.append(cmd)
 
 func push_undo_command(cmd: UndoCommand) -> void:
 	redo_stack.clear()

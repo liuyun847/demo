@@ -101,7 +101,7 @@ func _update_content() -> void:
 	var building_name: String = "未知建筑"
 	var summary: Dictionary = {}
 
-	if _target_node is ContainerNode or _target_node is PipeNode or _target_node is WaterSourceNode:
+	if _target_node is FluidNodeBase:
 		building_name = _target_node.get_building_name()
 		summary = _target_node.get_tooltip_summary()
 	else:
@@ -133,7 +133,7 @@ func _update_details() -> void:
 		return
 
 	var details: Dictionary = {}
-	if _target_node is ContainerNode or _target_node is PipeNode or _target_node is WaterSourceNode:
+	if _target_node is FluidNodeBase:
 		details = _target_node.get_tooltip_details()
 
 	for child in _details_container.get_children():

@@ -4,7 +4,7 @@ const MARGIN_TOP: int = 148
 const MARGIN_RIGHT: int = 10
 const PANEL_WIDTH: int = 180
 
-const EDIT_ACTIONS: Array[String] = ["ui_copy", "ui_cut", "ui_paste", "ui_undo"]
+const EDIT_ACTIONS: Array[String] = ["ui_copy", "ui_cut", "ui_paste", "ui_undo", "ui_redo"]
 
 var _keycap_labels: Array[Label] = []
 var _toggle_key_label: Label
@@ -37,9 +37,12 @@ func _ready() -> void:
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
 
 func _exit_tree() -> void:
-	EventBus.keybind_changed.disconnect(_on_keybind_changed)
-	_inventory_bar.slot_selected.disconnect(_on_slot_selected)
-	EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
+	if EventBus.keybind_changed.is_connected(_on_keybind_changed):
+		EventBus.keybind_changed.disconnect(_on_keybind_changed)
+	if _inventory_bar.slot_selected.is_connected(_on_slot_selected):
+		_inventory_bar.slot_selected.disconnect(_on_slot_selected)
+	if EventBus.paste_mode_changed.is_connected(_on_paste_mode_changed):
+		EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
 
 func _build_edit_section() -> void:
 	for action in EDIT_ACTIONS:
