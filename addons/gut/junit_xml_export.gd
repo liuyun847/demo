@@ -119,6 +119,9 @@ func get_results_xml(gut: GutMain) -> String:
 	to_return += _add_attr("failures", fail_count)
 	to_return += _add_attr('tests', test_count)
 	to_return += _add_attr('skipped', skip_count)
+	# allpass attribute: true when no failures and no pending tests
+	if fail_count == 0 and skip_count == 0:
+		to_return += _add_attr('allpass', 'true')
 	to_return += ">\n"
 
 	to_return += _strutils.indent_text(scripts_xml, 1, "  ")
