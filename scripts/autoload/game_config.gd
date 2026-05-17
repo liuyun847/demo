@@ -46,6 +46,9 @@ const pipe_type_id: String = "type_02"
 # 水源建筑类型标识
 const water_source_type_id: String = "type_03"
 
+# 砖块建筑类型标识
+const brick_type_id: String = "type_04"
+
 # 流体系统配置
 const fluid_tick_interval: float = 0.3 # 流体系统每 tick 间隔（秒）
 

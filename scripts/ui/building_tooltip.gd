@@ -104,6 +104,9 @@ func _update_content() -> void:
 	if _target_node is FluidNodeBase:
 		building_name = _target_node.get_building_name()
 		summary = _target_node.get_tooltip_summary()
+	elif "get_building_name" in _target_node:
+		building_name = _target_node.get_building_name()
+		summary = _target_node.get_tooltip_summary() if "get_tooltip_summary" in _target_node else {}
 	else:
 		building_name = _get_fallback_name(_target_node)
 

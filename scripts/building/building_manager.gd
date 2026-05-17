@@ -83,6 +83,13 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 		source.grid_position = grid_pos
 		add_child(source)
 		building_node = source
+	elif building_type == GameConfig.brick_type_id:
+		var brick := BrickNode.new()
+		brick.name = node_name
+		brick.global_position = world_pos
+		brick.grid_position = grid_pos
+		add_child(brick)
+		building_node = brick
 	else:
 		var idx := 0
 		if building_type.begins_with("type_"):
