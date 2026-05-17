@@ -6,6 +6,7 @@
 *.tmp
 *.uid
 save/
+docs/
 tools/
 export_presets.cfg
 .vs/
