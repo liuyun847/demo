@@ -7,6 +7,15 @@ const _WaterSourceNodeScript = preload("res://scripts/building/water_source_node
 const _BuildingData = preload("res://scripts/resources/building_data.gd")
 const _BM = preload("res://scripts/building/building_manager.gd")
 
+
+func _setup_bm():
+	var bm = autoqfree(_BM.new() as BuildingManager)
+	var pr = preload("res://scripts/building/pipe_render_system.gd").new()
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
+	add_child_autoqfree(bm)
+	return bm
+
 func test_building_data_creation():
 	var data = BuildingData.new()
 	data.grid_position = Vector2i(3, 5)
@@ -80,14 +89,12 @@ func test_undo_command_reverse_adds_building():
 		Vector2i(10, 20): {"type": "type_01"}
 	}
 
-	var bm = autoqfree(_BM.new() as BuildingManager)
-	add_child_autoqfree(bm)
+	var bm = _setup_bm()
 	cmd.reverse(bm)
 	assert_true(bm.has_building(Vector2i(10, 20)), "reverse 应在指定位置放置建筑")
 
 func test_undo_command_reverse_place_removes_building():
-	var bm = autoqfree(_BM.new() as BuildingManager)
-	add_child_autoqfree(bm)
+	var bm = _setup_bm()
 	bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 	var cmd = UndoCommand.new()
@@ -97,8 +104,7 @@ func test_undo_command_reverse_place_removes_building():
 	assert_false(bm.has_building(Vector2i(5, 5)), "reverse PLACE 应删除建筑")
 
 func test_undo_command_reverse_cut_restores_building():
-	var bm = autoqfree(_BM.new() as BuildingManager)
-	add_child_autoqfree(bm)
+	var bm = _setup_bm()
 	bm.place_building(Vector2i(3, 3), GameConfig.container_type_id)
 	assert_true(bm.has_building(Vector2i(3, 3)), "放置后应有建筑")
 	var cmd = UndoCommand.new()
@@ -110,8 +116,7 @@ func test_undo_command_reverse_cut_restores_building():
 	assert_true(bm.has_building(Vector2i(3, 3)), "reverse CUT 应恢复建筑")
 
 func test_undo_command_reverse_cut_does_not_restore_capacity():
-	var bm = autoqfree(_BM.new() as BuildingManager)
-	add_child_autoqfree(bm)
+	var bm = _setup_bm()
 	bm.place_building(Vector2i(8, 8), GameConfig.container_type_id, {"capacity": 50, "max_capacity": 100})
 	assert_true(bm.has_building(Vector2i(8, 8)), "放置后应有建筑")
 	var cmd = UndoCommand.new()
@@ -147,8 +152,7 @@ func test_is_container_building_with_null():
 	assert_false(BuildingData.is_container_building(null), "null 不应判定为容器建筑")
 
 func test_undo_command_forward_remove():
-	var bm = autoqfree(_BM.new() as BuildingManager)
-	add_child_autoqfree(bm)
+	var bm = _setup_bm()
 	bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 
@@ -160,8 +164,7 @@ func test_undo_command_forward_remove():
 	assert_false(bm.has_building(Vector2i(5, 5)), "forward REMOVE 应删除建筑")
 
 func test_undo_command_forward_cut():
-	var bm = autoqfree(_BM.new() as BuildingManager)
-	add_child_autoqfree(bm)
+	var bm = _setup_bm()
 	bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 

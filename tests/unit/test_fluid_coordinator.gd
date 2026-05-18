@@ -5,6 +5,9 @@ var _coordinator: Node = null
 
 func before_each():
 	_bm = autoqfree(BuildingManager.new())
+	var pr = preload("res://scripts/building/pipe_render_system.gd").new()
+	pr.name = "PipeRenderSystem"
+	_bm.add_child(pr)
 	add_child_autoqfree(_bm)
 	_coordinator = _bm.get_node("FluidCoordinator")
 	for conn in EventBus.fluid_updated.get_connections():

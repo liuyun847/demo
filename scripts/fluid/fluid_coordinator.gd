@@ -57,7 +57,7 @@ func _on_tick() -> void:
 	for network: Dictionary in _cached_networks:
 		has_flow = _process_network(network, pipe_states_accum) or has_flow
 
-	_building_manager.batch_update_pipe_states(pipe_states_accum)
+	_building_manager.pipe_render.batch_update_states(pipe_states_accum)
 
 	if has_flow:
 		EventBus.fluid_updated.emit()

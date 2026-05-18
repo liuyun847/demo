@@ -142,7 +142,9 @@ func _refresh_paste_preview() -> void:
 	var effective := get_effective_clipboard()
 	if effective.is_empty() or not effective.has("buildings"):
 		return
-	building_manager.set_paste_preview_line([paste_anchor], effective)
+	var gp = building_manager.get_node_or_null("GhostPreviewManager")
+	if gp:
+		gp.set_paste_preview_line([paste_anchor], effective)
 
 func get_effective_clipboard() -> Dictionary:
 	if _paste_rotation == 0 or clipboard.is_empty() or not clipboard.has("buildings"):
