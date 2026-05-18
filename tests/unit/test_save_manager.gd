@@ -5,7 +5,7 @@ var _sm: Node = null
 var _original_save_path: String = ""
 const SaveManagerScript := preload("res://scripts/persistence/save_manager.gd")
 
-func before_each():
+func before_each() -> void:
 	_original_save_path = GameConfig.save_file_path
 	GameConfig.save_file_path = "res://save/test_buildings.json"
 	_cleanup_test_file()
@@ -19,7 +19,7 @@ func before_each():
 	# @onready 在 _ready 中设置 building_manager，可能因路径问题失败，手动修正
 	_sm.building_manager = _bm
 
-func after_each():
+func after_each() -> void:
 	GameConfig.save_file_path = _original_save_path
 	_cleanup_test_file()
 
@@ -31,11 +31,11 @@ func _cleanup_test_file() -> void:
 		DirAccess.remove_absolute(tmp_path)
 
 
-func test_save_no_buildings():
+func test_save_no_buildings() -> void:
 	_sm.save_buildings()
 	assert_true(FileAccess.file_exists(GameConfig.save_file_path), "即使无建筑也应创建存档文件")
 
-func test_save_with_buildings():
+func test_save_with_buildings() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
 	_sm.save_buildings()
@@ -44,7 +44,7 @@ func test_save_with_buildings():
 	assert_true(content.has("version"), "应包含 version 字段")
 	assert_true(content.has("buildings"), "应包含 buildings 字段")
 
-func test_save_with_capacity_data():
+func test_save_with_capacity_data() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	var container = _bm.get_node("Building_0_0")
 	container.capacity = 50
@@ -56,19 +56,19 @@ func test_save_with_capacity_data():
 	assert_eq(content.buildings[key].capacity, 50.0, "存档应保存 capacity")
 	assert_eq(content.buildings[key].max_capacity, 100.0, "存档应保存 max_capacity")
 
-func test_save_atomic_write():
+func test_save_atomic_write() -> void:
 	_sm.save_buildings()
 	var tmp_path = GameConfig.save_file_path + ".tmp"
 	assert_false(FileAccess.file_exists(tmp_path), "临时文件应已被删除或重命名")
 
-func test_load_file_not_exists_does_not_crash():
+func test_load_file_not_exists_does_not_crash() -> void:
 	_bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	DirAccess.remove_absolute(GameConfig.save_file_path)
 	var build_count_before = _bm.buildings.size()
 	_sm.load_buildings()
 	assert_eq(_bm.buildings.size(), build_count_before, "文件不存在时加载后建筑数量应不变")
 
-func test_load_restores_buildings():
+func test_load_restores_buildings() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(2, 2), GameConfig.pipe_type_id)
 	_sm.save_buildings()
@@ -78,7 +78,7 @@ func test_load_restores_buildings():
 	assert_true(_bm.has_building(Vector2i(0, 0)), "加载后应恢复建筑 (0,0)")
 	assert_true(_bm.has_building(Vector2i(2, 2)), "加载后应恢复建筑 (2,2)")
 
-func test_load_restores_capacity():
+func test_load_restores_capacity() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	var container = _bm.get_node("Building_0_0")
 	container.capacity = 75
@@ -92,7 +92,7 @@ func test_load_restores_capacity():
 	var loaded_node = _bm.get_node("Building_0_0")
 	assert_eq(loaded_node.capacity, 75, "加载后节点容量应恢复为 75")
 
-func test_save_load_roundtrip():
+func test_save_load_roundtrip() -> void:
 	_bm.place_building(Vector2i(3, 4), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(1, 1), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(7, 0), GameConfig.water_source_type_id)
@@ -106,7 +106,7 @@ func test_save_load_roundtrip():
 		assert_true(data_after.has(grid_pos), "往返后应包含建筑 (%d, %d)" % [grid_pos.x, grid_pos.y])
 		assert_eq(data_after[grid_pos].building_type, data_before[grid_pos].building_type, "往返后建筑类型应一致")
 
-func test_loading_does_not_trigger_save():
+func test_loading_does_not_trigger_save() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	_sm.save_buildings()
 	_bm.clear_all_buildings()
@@ -114,7 +114,7 @@ func test_loading_does_not_trigger_save():
 	var data = _bm.get_all_buildings_data()
 	assert_eq(data.size(), 1, "加载后应有 1 个建筑")
 
-func test_debounce_prevents_double_save():
+func test_debounce_prevents_double_save() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	DirAccess.remove_absolute(GameConfig.save_file_path)
 	assert_false(FileAccess.file_exists(GameConfig.save_file_path), "开始前存档文件不应存在")
@@ -126,7 +126,7 @@ func test_debounce_prevents_double_save():
 	assert_false(_sm._save_pending, "call_deferred 执行后 _save_pending 应为 false")
 	assert_true(FileAccess.file_exists(GameConfig.save_file_path), "debounce 后应保存了一次")
 
-func test_fluid_updated_autosave():
+func test_fluid_updated_autosave() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	await get_tree().process_frame
 	DirAccess.remove_absolute(GameConfig.save_file_path)
