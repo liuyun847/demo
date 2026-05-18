@@ -103,6 +103,47 @@ func test_get_line_cells_single_point():
 	assert_eq(cells.size(), 1, "单点应返回 1 个格子")
 	assert_eq(cells[0], Vector2i(2, 2))
 
+func test_get_l_cells_horizontal_then_vertical():
+	var cells = _BM.get_l_cells(Vector2i(0, 0), Vector2i(3, 2), true)
+	assert_eq(cells.size(), 6, "L形先横后纵: (0,0)→(3,2) 应有6格")
+	assert_eq(cells[0], Vector2i(0, 0), "起点应为 (0,0)")
+	assert_eq(cells[1], Vector2i(1, 0))
+	assert_eq(cells[2], Vector2i(2, 0))
+	assert_eq(cells[3], Vector2i(3, 0), "拐角应为 (3,0)")
+	assert_eq(cells[4], Vector2i(3, 1))
+	assert_eq(cells[5], Vector2i(3, 2), "终点应为 (3,2)")
+
+func test_get_l_cells_vertical_then_horizontal():
+	var cells = _BM.get_l_cells(Vector2i(0, 0), Vector2i(3, 2), false)
+	assert_eq(cells.size(), 6, "L形先纵后横: (0,0)→(3,2) 应有6格")
+	assert_eq(cells[0], Vector2i(0, 0), "起点应为 (0,0)")
+	assert_eq(cells[1], Vector2i(0, 1))
+	assert_eq(cells[2], Vector2i(0, 2), "拐角应为 (0,2)")
+	assert_eq(cells[3], Vector2i(1, 2))
+	assert_eq(cells[4], Vector2i(2, 2))
+	assert_eq(cells[5], Vector2i(3, 2), "终点应为 (3,2)")
+
+func test_get_l_cells_reverse():
+	var cells = _BM.get_l_cells(Vector2i(3, 2), Vector2i(0, 0), true)
+	assert_eq(cells.size(), 6, "反向L形先横后纵: (3,2)→(0,0) 应有6格")
+	assert_has(cells, Vector2i(0, 0))
+	assert_has(cells, Vector2i(0, 1))
+	assert_has(cells, Vector2i(0, 2))
+	assert_has(cells, Vector2i(1, 2))
+	assert_has(cells, Vector2i(2, 2))
+	assert_has(cells, Vector2i(3, 2))
+
+func test_get_l_cells_straight_line():
+	var cells_h = _BM.get_l_cells(Vector2i(0, 0), Vector2i(5, 0), true)
+	assert_eq(cells_h.size(), 6, "水平线L形退化为直线: 应有6格")
+	var cells_v = _BM.get_l_cells(Vector2i(0, 0), Vector2i(0, 5), false)
+	assert_eq(cells_v.size(), 6, "垂直线L形退化为直线: 应有6格")
+
+func test_get_l_cells_single_point():
+	var cells = _BM.get_l_cells(Vector2i(2, 2), Vector2i(2, 2), true)
+	assert_eq(cells.size(), 1, "单点L形: 应有1格")
+	assert_eq(cells[0], Vector2i(2, 2))
+
 func test_get_rect_cells():
 	var cells = _bm.get_rect_cells(Vector2i(1, 1), Vector2i(3, 3))
 	assert_eq(cells.size(), 9, "3x3 矩形应有 9 个格子")
