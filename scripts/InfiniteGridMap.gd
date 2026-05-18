@@ -83,21 +83,31 @@ func _draw() -> void:
 	if show_thin_lines:
 		var thin_v_points := PackedVector2Array()
 		var thin_h_points := PackedVector2Array()
-		for block_coord: Vector2i in loaded_blocks:
-			var block_offset: Vector2 = Vector2(block_coord.x * block_pixel_size, block_coord.y * block_pixel_size)
-			var top: float = block_offset.y
-			var bottom: float = block_offset.y + block_pixel_size
-			var left: float = block_offset.x
-			var right: float = block_offset.x + block_pixel_size
-			
-			for x in range(1, GameConfig.big_cell_size):
-				var line_x: float = block_offset.x + x * GameConfig.cell_size
-				thin_v_points.append(Vector2(line_x, top))
-				thin_v_points.append(Vector2(line_x, bottom))
-			for y in range(1, GameConfig.big_cell_size):
-				var line_y: float = block_offset.y + y * GameConfig.cell_size
-				thin_h_points.append(Vector2(left, line_y))
-				thin_h_points.append(Vector2(right, line_y))
+		
+		var min_x: float = top_left.x
+		var max_x: float = bottom_right.x
+		var min_y: float = top_left.y
+		var max_y: float = bottom_right.y
+		
+		var start_cell_x: int = int(floor(min_x / GameConfig.cell_size))
+		var end_cell_x: int = int(ceil(max_x / GameConfig.cell_size))
+		var start_cell_y: int = int(floor(min_y / GameConfig.cell_size))
+		var end_cell_y: int = int(ceil(max_y / GameConfig.cell_size))
+		
+		for cell_x in range(start_cell_x, end_cell_x):
+			if cell_x % GameConfig.big_cell_size == 0:
+				continue
+			var line_x: float = cell_x * GameConfig.cell_size
+			thin_v_points.append(Vector2(line_x, min_y))
+			thin_v_points.append(Vector2(line_x, max_y))
+		
+		for cell_y in range(start_cell_y, end_cell_y):
+			if cell_y % GameConfig.big_cell_size == 0:
+				continue
+			var line_y: float = cell_y * GameConfig.cell_size
+			thin_h_points.append(Vector2(min_x, line_y))
+			thin_h_points.append(Vector2(max_x, line_y))
+		
 		draw_multiline(thin_v_points, GameConfig.line_color, adjusted_thin_width)
 		draw_multiline(thin_h_points, GameConfig.line_color, adjusted_thin_width)
 	
