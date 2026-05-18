@@ -144,12 +144,20 @@ func _refresh_paste_preview() -> void:
 		return
 	var gp = building_manager.get_node_or_null("GhostPreviewManager")
 	if gp:
-		gp.set_paste_preview_line([paste_anchor], effective)
+		var anchors: Array[Vector2i] = [paste_anchor]
+		gp.set_paste_preview_line(anchors, effective)
 
 func get_effective_clipboard() -> Dictionary:
 	if _paste_rotation == 0 or clipboard.is_empty() or not clipboard.has("buildings"):
 		return clipboard
-	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
+	var raw = clipboard["buildings"]
+	var clip_buildings: Array[Dictionary] = []
+	if raw is Array:
+		for item in raw:
+			if item is Dictionary:
+				clip_buildings.append(item)
+	if clip_buildings.is_empty():
+		return clipboard
 	var rotated: Array[Dictionary] = []
 	for item in clip_buildings:
 		var offset: Vector2i = item["offset"]
