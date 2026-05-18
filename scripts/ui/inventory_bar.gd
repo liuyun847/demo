@@ -96,11 +96,6 @@ func _init_default_types() -> void:
 			var tex_path: String = "res://resources/water_source_icon.svg"
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
-		elif i == 4:
-			data.display_name = "砖块"
-			var tex_path: String = "res://resources/brick_icon.svg"
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
 		else:
 			data.display_name = "占位-%d" % i
 		building_types.append(data)

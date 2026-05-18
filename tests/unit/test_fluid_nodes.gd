@@ -225,6 +225,9 @@ func test_pipe_node_refresh_connections_all_directions():
 	preload("res://scripts/building/container_node.gd")
 	preload("res://scripts/building/water_source_node.gd")
 	var bm = autoqfree(preload("res://scripts/building/building_manager.gd").new())
+	var pr = preload("res://scripts/building/pipe_render_system.gd").new()
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
 	add_child_autoqfree(bm)
 	# 断开 fluid_updated 信号连接，避免测试中触发流体系统
 	for conn in EventBus.fluid_updated.get_connections():
@@ -253,6 +256,9 @@ func test_pipe_node_refresh_connections_all_directions():
 func test_pipe_node_refresh_connections_none():
 	preload("res://scripts/building/fluid_node_base.gd")
 	var bm = autoqfree(preload("res://scripts/building/building_manager.gd").new())
+	var pr = preload("res://scripts/building/pipe_render_system.gd").new()
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
 	add_child_autoqfree(bm)
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
@@ -270,6 +276,9 @@ func test_pipe_node_refresh_connections_none():
 func test_pipe_node_refresh_connections_only_non_fluid():
 	preload("res://scripts/building/fluid_node_base.gd")
 	var bm = autoqfree(preload("res://scripts/building/building_manager.gd").new())
+	var pr = preload("res://scripts/building/pipe_render_system.gd").new()
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
 	add_child_autoqfree(bm)
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)

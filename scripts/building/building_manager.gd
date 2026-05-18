@@ -5,43 +5,26 @@ var buildings: Dictionary[Vector2i, BuildingData] = {} # key: Vector2i, value: B
 var _building_nodes: Dictionary[Vector2i, Node2D] = {} # key: Vector2i, value: Node2D
 var fluid_pipes: Array[PipeNode] = []
 var fluid_sources: Array[WaterSourceNode] = []
-var _pipe_positions: PackedVector2Array = PackedVector2Array()
-var _pipe_masks: PackedInt32Array = PackedInt32Array()
-var _pipe_states: PackedInt32Array = PackedInt32Array()
-var _pipe_ids: PackedInt64Array = PackedInt64Array()
-var _pipe_index_map: Dictionary[int, int] = {}
-var _pipe_batch_mode: bool = false
 
-var ghost_cells: Array[Vector2i] = []
-var remove_ghost_cells: Array[Vector2i] = []
-var selected_cells: Array[Vector2i] = []
-var paste_ghost_cells: Array[Vector2i] = []
-var paste_ghost_types: Dictionary[Vector2i, String] = {}
-var select_ghost_cells: Array[Vector2i] = []
-var deselect_ghost_cells: Array[Vector2i] = []
+const _GridUtils = preload("res://scripts/grid/grid_utils.gd")
+const _BuildingFactory = preload("res://scripts/building/building_factory.gd")
+const _FluidCoordinatorScript = preload("res://scripts/fluid/fluid_coordinator.gd")
 
-static var _placeholder_label_settings: LabelSettings
-
-static func _get_placeholder_label_settings() -> LabelSettings:
-	if _placeholder_label_settings == null:
-		_placeholder_label_settings = LabelSettings.new()
-		_placeholder_label_settings.font_size = 12
-		_placeholder_label_settings.font_color = Color.WHITE
-	return _placeholder_label_settings
+@onready var pipe_render = $PipeRenderSystem
 
 
 func _ready() -> void:
-	EventBus.selection_changed.connect(_on_selection_changed)
 	_init_fluid_coordinator()
 
 func _init_fluid_coordinator() -> void:
-	var coordinator: FluidCoordinator = preload("res://scripts/fluid/fluid_coordinator.gd").new()
+	if _FluidCoordinatorScript == null:
+		return
+	var coordinator = _FluidCoordinatorScript.new()
+	if coordinator == null:
+		return
 	coordinator.name = "FluidCoordinator"
-	coordinator.init(self )
+	coordinator.init(self)
 	add_child(coordinator)
-
-func _on_selection_changed(cells: Array[Vector2i]) -> void:
-	set_selected_cells(cells)
 
 func has_building(grid_pos: Vector2i) -> bool:
 	return buildings.has(grid_pos)
@@ -54,67 +37,11 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 	data.grid_position = grid_pos
 	data.building_type = building_type
 
-	var node_name := get_building_node_name(grid_pos)
-	var world_pos := GridCoordinate.grid_to_world(grid_pos)
+	var node_name = _GridUtils.get_building_node_name(grid_pos)
+	var world_pos = GridCoordinate.grid_to_world(grid_pos)
 
-	var building_node: Node2D
-
-	if building_type == GameConfig.container_type_id:
-		var container := ContainerNode.new()
-		container.name = node_name
-		container.global_position = world_pos
-		container.grid_position = grid_pos
-		add_child(container)
-		building_node = container
-		data.capacity = container.capacity
-		data.max_capacity = container.max_capacity
-	elif building_type == GameConfig.pipe_type_id:
-		var pipe := PipeNode.new()
-		pipe.name = node_name
-		pipe.global_position = world_pos
-		pipe.grid_position = grid_pos
-		add_child(pipe)
-		building_node = pipe
-	elif building_type == GameConfig.water_source_type_id:
-		var source := WaterSourceNode.new()
-		source.name = node_name
-		source.global_position = world_pos
-		source.grid_position = grid_pos
-		add_child(source)
-		building_node = source
-	elif building_type == GameConfig.brick_type_id:
-		var brick := BrickNode.new()
-		brick.name = node_name
-		brick.global_position = world_pos
-		brick.grid_position = grid_pos
-		add_child(brick)
-		building_node = brick
-	else:
-		var idx := 0
-		if building_type.begins_with("type_"):
-			idx = building_type.substr(5).to_int()
-		var placeholder := Node2D.new()
-		placeholder.name = node_name
-		placeholder.global_position = world_pos
-		placeholder.set_meta("building_type", building_type)
-		building_node = placeholder
-		var half_size := GameConfig.building_size / 2.0
-		var box := ColorRect.new()
-		box.size = Vector2(GameConfig.building_size, GameConfig.building_size)
-		box.position = Vector2(-half_size, -half_size)
-		var bg_color := _get_building_color(building_type)
-		bg_color.a = 0.3
-		box.color = bg_color
-		placeholder.add_child(box)
-		var label := Label.new()
-		label.text = "占位-%d" % idx if idx > 0 else "占位"
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.size = Vector2(GameConfig.building_size, GameConfig.building_size)
-		label.position = Vector2(-half_size, -half_size)
-		label.label_settings = _get_placeholder_label_settings()
-		placeholder.add_child(label)
-		add_child(placeholder)
+	var building_node = _BuildingFactory.create_building(building_type, grid_pos, world_pos, node_name)
+	add_child(building_node)
 
 	if BuildingData.is_container_building(building_node) and not restore_data.is_empty():
 		if restore_data.has("capacity"):
@@ -123,6 +50,9 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 		if restore_data.has("max_capacity"):
 			data.max_capacity = restore_data["max_capacity"]
 			building_node.max_capacity = restore_data["max_capacity"]
+	elif BuildingData.is_container_building(building_node):
+		data.capacity = building_node.capacity
+		data.max_capacity = building_node.max_capacity
 
 	_building_nodes[grid_pos] = building_node
 	if building_node is PipeNode:
@@ -183,86 +113,11 @@ func bulk_clear() -> void:
 	buildings.clear()
 	fluid_pipes.clear()
 	fluid_sources.clear()
-	_pipe_positions.clear()
-	_pipe_masks.clear()
-	_pipe_states.clear()
-	_pipe_ids.clear()
-	_pipe_index_map.clear()
+	if pipe_render:
+		pipe_render.clear_all()
 	var coordinator := get_node_or_null("FluidCoordinator") as FluidCoordinator
 	if coordinator:
 		coordinator.mark_dirty()
-
-func show_ghost(cells: Array[Vector2i]) -> void:
-	ghost_cells = cells
-	queue_redraw()
-
-func hide_ghost() -> void:
-	ghost_cells.clear()
-	queue_redraw()
-
-func show_remove_ghost(cells: Array[Vector2i]) -> void:
-	remove_ghost_cells = cells
-	queue_redraw()
-
-func hide_remove_ghost() -> void:
-	remove_ghost_cells.clear()
-	queue_redraw()
-
-func set_selected_cells(cells: Array[Vector2i]) -> void:
-	selected_cells = cells
-	queue_redraw()
-
-func set_paste_preview(anchor: Vector2i, clipboard: Dictionary) -> void:
-	paste_ghost_cells.clear()
-	paste_ghost_types.clear()
-	if clipboard.is_empty() or not clipboard.has("buildings"):
-		queue_redraw()
-		return
-	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
-	for item in clip_buildings:
-		var grid_pos: Vector2i = anchor + item["offset"]
-		var building_type: String = item["type"]
-		paste_ghost_cells.append(grid_pos)
-		paste_ghost_types[grid_pos] = building_type
-	queue_redraw()
-
-func set_paste_preview_line(anchors: Array[Vector2i], clipboard: Dictionary) -> void:
-	paste_ghost_cells.clear()
-	paste_ghost_types.clear()
-	if clipboard.is_empty() or not clipboard.has("buildings"):
-		queue_redraw()
-		return
-	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
-	var seen: Dictionary[Vector2i, bool] = {}
-	for anchor in anchors:
-		for item in clip_buildings:
-			var grid_pos: Vector2i = anchor + item["offset"]
-			if not seen.has(grid_pos):
-				seen[grid_pos] = true
-				paste_ghost_cells.append(grid_pos)
-				paste_ghost_types[grid_pos] = item["type"]
-	queue_redraw()
-
-func clear_paste_preview() -> void:
-	paste_ghost_cells.clear()
-	paste_ghost_types.clear()
-	queue_redraw()
-
-func show_select_ghost(cells: Array[Vector2i]) -> void:
-	select_ghost_cells = cells
-	queue_redraw()
-
-func hide_select_ghost() -> void:
-	select_ghost_cells.clear()
-	queue_redraw()
-
-func show_deselect_ghost(cells: Array[Vector2i]) -> void:
-	deselect_ghost_cells = cells
-	queue_redraw()
-
-func hide_deselect_ghost() -> void:
-	deselect_ghost_cells.clear()
-	queue_redraw()
 
 func get_buildings_in_cells(cells: Array[Vector2i]) -> Dictionary:
 	var result := {}
@@ -272,113 +127,20 @@ func get_buildings_in_cells(cells: Array[Vector2i]) -> Dictionary:
 			result[grid_pos] = data.building_type
 	return result
 
-func _get_building_color(building_type: String) -> Color:
-	if building_type == "default":
-		return GameConfig.building_default_color
-	if building_type.begins_with("type_"):
-		var idx := building_type.substr(5).to_int()
-		if idx >= 1 and idx <= 10:
-			return Color.from_hsv(float(idx - 1) / 10.0, 0.7, 0.9)
-	return GameConfig.building_default_color
-
-func _draw_cell_highlight(cells: Array[Vector2i], fill_color: Color, border_color: Color, use_building_size: bool = false, border_width: float = 2.0) -> void:
-	var cell_size := GameConfig.building_size if use_building_size else GameConfig.cell_size
-	var half_size := cell_size / 2.0
-	for grid_pos in cells:
-		var world_pos := GridCoordinate.grid_to_world(grid_pos)
-		var rect := Rect2(world_pos - Vector2(half_size, half_size), Vector2(cell_size, cell_size))
-		draw_rect(rect, fill_color, true)
-		draw_rect(rect, border_color, false, border_width)
-
-func _draw_pipes() -> void:
-	if _pipe_positions.is_empty():
-		return
-	var half := GameConfig.building_size / 2.0
-	var wall_w := 2.5
-	var color_wall := Color(0.25, 0.25, 0.25)
-	var passage_w := 14.0
-	var pw := passage_w / 2.0
-
-	for i in _pipe_positions.size():
-		var pos := _pipe_positions[i]
-		var mask := _pipe_masks[i]
-		var state := _pipe_states[i]
-		var cx := pos.x
-		var cy := pos.y
-
-		var color_bg: Color
-		var color_passage: Color
-		if state == 0:
-			color_bg = Color(0.12, 0.12, 0.12)
-			color_passage = Color(0.35, 0.35, 0.35)
-		elif state == 1:
-			color_bg = Color(0.12, 0.18, 0.25)
-			color_passage = Color(0.3, 0.75, 1.0)
-		else:
-			color_bg = Color(0.10, 0.20, 0.10)
-			color_passage = Color(0.2, 0.85, 0.2)
-
-		draw_rect(Rect2(cx - half, cy - half, GameConfig.building_size, GameConfig.building_size), color_bg)
-
-		if mask & GridCoordinate.DirFlag.LEFT:
-			draw_rect(Rect2(cx - half, cy - pw, half, passage_w), color_passage)
-		if mask & GridCoordinate.DirFlag.RIGHT:
-			draw_rect(Rect2(cx, cy - pw, half, passage_w), color_passage)
-		if mask & GridCoordinate.DirFlag.UP:
-			draw_rect(Rect2(cx - pw, cy - half, passage_w, half), color_passage)
-		if mask & GridCoordinate.DirFlag.DOWN:
-			draw_rect(Rect2(cx - pw, cy, passage_w, half), color_passage)
-
-		if mask != 0:
-			draw_rect(Rect2(cx - pw, cy - pw, passage_w, passage_w), color_passage)
-
-		draw_rect(Rect2(cx - half, cy - half, GameConfig.building_size, GameConfig.building_size), color_wall, false, wall_w)
-
-		if mask & GridCoordinate.DirFlag.LEFT:
-			draw_rect(Rect2(cx - half, cy - pw, wall_w, passage_w), color_passage)
-		if mask & GridCoordinate.DirFlag.RIGHT:
-			draw_rect(Rect2(cx + half - wall_w, cy - pw, wall_w, passage_w), color_passage)
-		if mask & GridCoordinate.DirFlag.UP:
-			draw_rect(Rect2(cx - pw, cy - half, passage_w, wall_w), color_passage)
-		if mask & GridCoordinate.DirFlag.DOWN:
-			draw_rect(Rect2(cx - pw, cy + half - wall_w, passage_w, wall_w), color_passage)
+func _register_pipe(pipe: PipeNode) -> void:
+	if pipe_render:
+		pipe_render.register_pipe(pipe)
 
 
-func _draw() -> void:
-	_draw_pipes()
+func _unregister_pipe(pipe: PipeNode) -> void:
+	if pipe_render:
+		pipe_render.unregister_pipe(pipe)
 
-	if not ghost_cells.is_empty():
-		var ghost_fill := Color(1, 1, 1, GameConfig.ghost_alpha)
-		var filtered_cells: Array[Vector2i] = []
-		for grid_pos in ghost_cells:
-			if not has_building(grid_pos):
-				filtered_cells.append(grid_pos)
-		_draw_cell_highlight(filtered_cells, ghost_fill, Color.WHITE, true, 2.0)
 
-	if not remove_ghost_cells.is_empty():
-		_draw_cell_highlight(remove_ghost_cells, Color(1, 0, 0, GameConfig.remove_ghost_alpha), Color.RED, false, 2.0)
+func batch_update_pipe_states(pipe_states: Dictionary) -> void:
+	if pipe_render:
+		pipe_render.batch_update_states(pipe_states)
 
-	if not select_ghost_cells.is_empty():
-		_draw_cell_highlight(select_ghost_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
-
-	if not deselect_ghost_cells.is_empty():
-		_draw_cell_highlight(deselect_ghost_cells, Color(0.6, 0.2, 0.2, 0.3), Color(0.6, 0.2, 0.2, 0.8), false, 2.0)
-
-	if not selected_cells.is_empty():
-		_draw_cell_highlight(selected_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
-
-	if not paste_ghost_cells.is_empty():
-		var alpha := GameConfig.paste_ghost_alpha
-		for grid_pos in paste_ghost_cells:
-			var building_type: String = paste_ghost_types.get(grid_pos, "default")
-			var color := _get_building_color(building_type)
-			color.a = alpha
-			var border_color := color
-			border_color.a = minf(alpha + 0.35, 1.0)
-			_draw_cell_highlight([grid_pos], color, border_color, true, 2.0)
-
-static func get_building_node_name(grid_pos: Vector2i) -> String:
-	return "Building_%d_%d" % [grid_pos.x, grid_pos.y]
 
 func get_building_type(grid_pos: Vector2i) -> String:
 	if buildings.has(grid_pos):
@@ -397,87 +159,12 @@ func is_fluid_building_at(grid_pos: Vector2i) -> bool:
 	var data: BuildingData = buildings[grid_pos] as BuildingData
 	return data != null and BuildingData.is_fluid_building(data.building_type)
 
-static func get_line_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
-	var cells: Array[Vector2i] = []
-	var dx := to_pos.x - from_pos.x
-	var dy := to_pos.y - from_pos.y
-
-	if abs(dx) >= abs(dy):
-		var y := from_pos.y
-		var start_x := mini(from_pos.x, to_pos.x)
-		var end_x := maxi(from_pos.x, to_pos.x)
-		for x in range(start_x, end_x + 1):
-			cells.append(Vector2i(x, y))
-	else:
-		var x := from_pos.x
-		var start_y := mini(from_pos.y, to_pos.y)
-		var end_y := maxi(from_pos.y, to_pos.y)
-		for y in range(start_y, end_y + 1):
-			cells.append(Vector2i(x, y))
-
-	return cells
-
-static func get_l_cells(from_pos: Vector2i, to_pos: Vector2i, corner_first_horizontal: bool) -> Array[Vector2i]:
-	var cells: Array[Vector2i] = []
-	var corner: Vector2i
-	if corner_first_horizontal:
-		corner = Vector2i(to_pos.x, from_pos.y)
-	else:
-		corner = Vector2i(from_pos.x, to_pos.y)
-
-	var seg1 := get_line_cells(from_pos, corner)
-	var seg2 := get_line_cells(corner, to_pos)
-	cells.append_array(seg1)
-	for pos in seg2:
-		if pos != corner:
-			cells.append(pos)
-	return cells
-
-static func get_paste_line_anchors(from_pos: Vector2i, to_pos: Vector2i, unit_width: int, unit_height: int) -> Array[Vector2i]:
-	var anchors: Array[Vector2i] = []
-	var dx := to_pos.x - from_pos.x
-	var dy := to_pos.y - from_pos.y
-
-	if abs(dx) >= abs(dy):
-		var y := from_pos.y
-		var start_x := mini(from_pos.x, to_pos.x)
-		var end_x := maxi(from_pos.x, to_pos.x)
-		var step := maxi(unit_width, 1)
-		var x := start_x
-		while x <= end_x:
-			anchors.append(Vector2i(x, y))
-			x += step
-	else:
-		var x := from_pos.x
-		var start_y := mini(from_pos.y, to_pos.y)
-		var end_y := maxi(from_pos.y, to_pos.y)
-		var step := maxi(unit_height, 1)
-		var y := start_y
-		while y <= end_y:
-			anchors.append(Vector2i(x, y))
-			y += step
-
-	return anchors
-
 func place_buildings_in_line(cells: Array[Vector2i], building_type: String = "default") -> int:
 	var placed_count := 0
 	for grid_pos in cells:
 		if place_building(grid_pos, building_type):
 			placed_count += 1
 	return placed_count
-
-static func get_rect_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
-	var cells: Array[Vector2i] = []
-	var min_x := mini(from_pos.x, to_pos.x)
-	var max_x := maxi(from_pos.x, to_pos.x)
-	var min_y := mini(from_pos.y, to_pos.y)
-	var max_y := maxi(from_pos.y, to_pos.y)
-
-	for x in range(min_x, max_x + 1):
-		for y in range(min_y, max_y + 1):
-			cells.append(Vector2i(x, y))
-
-	return cells
 
 func remove_buildings_in_rect(cells: Array[Vector2i]) -> int:
 	var removed_count := 0
@@ -499,60 +186,4 @@ func _refresh_pipe_connections(grid_pos: Vector2i) -> void:
 		self_node.refresh_connections(is_fluid_building_at)
 
 
-func _register_pipe(pipe: PipeNode) -> void:
-	pipe.set_data_changed_callback(_pipe_data_changed)
-	var id := pipe.get_instance_id()
-	_pipe_index_map[id] = _pipe_positions.size()
-	_pipe_positions.append(pipe.position)
-	_pipe_masks.append(pipe.connection_mask)
-	_pipe_states.append(pipe.network_state)
-	_pipe_ids.append(id)
 
-
-func _unregister_pipe(pipe: PipeNode) -> void:
-	pipe.set_data_changed_callback(Callable())
-	var id := pipe.get_instance_id()
-	var index: int = _pipe_index_map.get(id, -1)
-	if index < 0:
-		return
-	var last := _pipe_positions.size() - 1
-	if index != last:
-		_pipe_positions[index] = _pipe_positions[last]
-		_pipe_masks[index] = _pipe_masks[last]
-		_pipe_states[index] = _pipe_states[last]
-		var last_id := _pipe_ids[last]
-		_pipe_ids[index] = last_id
-		_pipe_index_map[last_id] = index
-	_pipe_positions.resize(last)
-	_pipe_masks.resize(last)
-	_pipe_states.resize(last)
-	_pipe_ids.resize(last)
-	_pipe_index_map.erase(id)
-	queue_redraw()
-
-
-func _pipe_data_changed(pipe: PipeNode) -> void:
-	var id := pipe.get_instance_id()
-	var index: int = _pipe_index_map.get(id, -1)
-	if index >= 0 and index < _pipe_positions.size():
-		_pipe_masks[index] = pipe.connection_mask
-		_pipe_states[index] = pipe.network_state
-	if not _pipe_batch_mode:
-		queue_redraw()
-
-
-func batch_update_pipe_states(pipe_states: Dictionary) -> void:
-	_pipe_batch_mode = true
-	var needs_redraw := false
-	for i in _pipe_ids.size():
-		var id := _pipe_ids[i]
-		var new_state: int = pipe_states.get(id, 0)
-		if _pipe_states[i] != new_state:
-			_pipe_states[i] = new_state
-			needs_redraw = true
-		var pipe := instance_from_id(id) as PipeNode
-		if is_instance_valid(pipe) and pipe.network_state != new_state:
-			pipe.network_state = new_state
-	_pipe_batch_mode = false
-	if needs_redraw:
-		queue_redraw()

@@ -22,54 +22,75 @@ func transition_to(new_state: State, new_context: Dictionary = {}) -> void:
 func reset() -> void:
 	transition_to(State.IDLE)
 
+func _get_ghost_preview(bm: BuildingManager) -> Node:
+	if bm == null:
+		return null
+	return bm.get_node_or_null("GhostPreviewManager")
+
+
 func _exit_state(state: State) -> void:
 	match state:
 		State.DRAGGING:
 			var bm := context.get("building_manager") as BuildingManager
-			if bm:
-				bm.hide_ghost()
+			var gp: Node = _get_ghost_preview(bm)
+			if gp:
+				gp.hide_ghost()
 		State.REMOVING:
 			var bm := context.get("building_manager") as BuildingManager
-			if bm:
-				bm.hide_remove_ghost()
+			var gp: Node = _get_ghost_preview(bm)
+			if gp:
+				gp.hide_remove_ghost()
 		State.SELECTING:
 			var bm := context.get("building_manager") as BuildingManager
-			if bm:
-				bm.hide_select_ghost()
+			var gp: Node = _get_ghost_preview(bm)
+			if gp:
+				gp.hide_select_ghost()
 		State.DESELECTING:
 			var bm := context.get("building_manager") as BuildingManager
-			if bm:
-				bm.hide_deselect_ghost()
+			var gp: Node = _get_ghost_preview(bm)
+			if gp:
+				gp.hide_deselect_ghost()
 		State.PASTE_DRAGGING:
 			var bm := context.get("building_manager") as BuildingManager
-			if bm:
-				bm.clear_paste_preview()
+			var gp: Node = _get_ghost_preview(bm)
+			if gp:
+				gp.clear_paste_preview()
 
 func _enter_state(state: State) -> void:
 	match state:
 		State.DRAGGING:
 			var bm := context.get("building_manager") as BuildingManager
+			var gp: Node = _get_ghost_preview(bm)
 			var start_grid: Vector2i = context.get("start_grid", Vector2i.ZERO)
-			if bm:
-				bm.show_ghost([start_grid])
+			var cells: Array[Vector2i] = [start_grid]
+			if gp:
+				gp.show_ghost(cells)
 		State.REMOVING:
 			var bm := context.get("building_manager") as BuildingManager
+			var gp: Node = _get_ghost_preview(bm)
 			var start_grid: Vector2i = context.get("start_grid", Vector2i.ZERO)
-			if bm:
-				bm.show_remove_ghost([start_grid])
+			var cells: Array[Vector2i] = [start_grid]
+			if gp:
+				gp.show_remove_ghost(cells)
 		State.SELECTING:
 			var bm := context.get("building_manager") as BuildingManager
+			var gp: Node = _get_ghost_preview(bm)
 			var start_grid: Vector2i = context.get("start_grid", Vector2i.ZERO)
-			if bm:
-				bm.show_select_ghost([start_grid])
+			var cells: Array[Vector2i] = [start_grid]
+			if gp:
+				gp.show_select_ghost(cells)
 		State.DESELECTING:
 			var bm := context.get("building_manager") as BuildingManager
+			var gp: Node = _get_ghost_preview(bm)
 			var start_grid: Vector2i = context.get("start_grid", Vector2i.ZERO)
-			if bm:
-				bm.show_deselect_ghost([start_grid])
+			var cells: Array[Vector2i] = [start_grid]
+			if gp:
+				gp.show_deselect_ghost(cells)
 		State.PASTE_DRAGGING:
 			var bm := context.get("building_manager") as BuildingManager
+			var gp: Node = _get_ghost_preview(bm)
 			var start_grid: Vector2i = context.get("start_grid", Vector2i.ZERO)
+			var cells: Array[Vector2i] = [start_grid]
 			var clipboard: Dictionary = context.get("clipboard", {})
-			if bm and not clipboard.is_empty():
-				bm.set_paste_preview_line([start_grid], clipboard)
+			if gp and not clipboard.is_empty():
+				gp.set_paste_preview_line(cells, clipboard)

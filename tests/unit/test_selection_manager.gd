@@ -120,9 +120,19 @@ func test_perform_paste_batch_with_building_manager():
 	load("res://scripts/building/pipe_node.gd")
 	load("res://scripts/building/water_source_node.gd")
 	load("res://scripts/building/fluid_node_base.gd")
+	load("res://scripts/building/ghost_preview_manager.gd")
+	load("res://scripts/grid/input_state_machine.gd")
+	load("res://scripts/grid/grid_coordinate.gd")
+	load("res://scripts/fluid/fluid_coordinator.gd")
 	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
-	add_child_autoqfree(bm)
 	bm.name = "BuildingManager"
+
+	var pipe_render = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
+	pipe_render.name = "PipeRenderSystem"
+	bm.add_child(pipe_render)
+	bm.unique_name_in_owner = true
+	add_child_autoqfree(bm)
+
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
@@ -149,9 +159,18 @@ func test_perform_paste_batch_skip_occupied():
 	load("res://scripts/building/pipe_node.gd")
 	load("res://scripts/building/water_source_node.gd")
 	load("res://scripts/building/fluid_node_base.gd")
+	load("res://scripts/building/ghost_preview_manager.gd")
+	load("res://scripts/grid/input_state_machine.gd")
+	load("res://scripts/grid/grid_coordinate.gd")
 	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
-	add_child_autoqfree(bm)
 	bm.name = "BuildingManager"
+
+	var pipe_render = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
+	pipe_render.name = "PipeRenderSystem"
+	bm.add_child(pipe_render)
+	bm.unique_name_in_owner = true
+	add_child_autoqfree(bm)
+
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
@@ -177,8 +196,14 @@ func test_perform_paste_batch_skip_occupied():
 
 func test_perform_paste_batch_empty_clipboard():
 	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
-	add_child_autoqfree(bm)
 	bm.name = "BuildingManager"
+
+	var pipe_render = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
+	pipe_render.name = "PipeRenderSystem"
+	bm.add_child(pipe_render)
+	bm.unique_name_in_owner = true
+	add_child_autoqfree(bm)
+
 	SelectionManager._building_manager = bm
 	SelectionManager.clipboard = {}
 
@@ -207,9 +232,18 @@ func test_redo_after_undo_restores_building():
 	load("res://scripts/building/pipe_node.gd")
 	load("res://scripts/building/water_source_node.gd")
 	load("res://scripts/building/fluid_node_base.gd")
+	load("res://scripts/building/ghost_preview_manager.gd")
+	load("res://scripts/grid/input_state_machine.gd")
+	load("res://scripts/grid/grid_coordinate.gd")
 	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
-	add_child_autoqfree(bm)
 	bm.name = "BuildingManager"
+
+	var pipe_render = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
+	pipe_render.name = "PipeRenderSystem"
+	bm.add_child(pipe_render)
+	bm.unique_name_in_owner = true
+	add_child_autoqfree(bm)
+
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
@@ -237,9 +271,19 @@ func test_redo_undo_cycle():
 	load("res://scripts/building/pipe_node.gd")
 	load("res://scripts/building/water_source_node.gd")
 	load("res://scripts/building/fluid_node_base.gd")
+	load("res://scripts/building/ghost_preview_manager.gd")
+	load("res://scripts/grid/input_state_machine.gd")
+	load("res://scripts/grid/grid_coordinate.gd")
+	load("res://scripts/fluid/fluid_coordinator.gd")
 	var bm = autoqfree(load("res://scripts/building/building_manager.gd").new())
-	add_child_autoqfree(bm)
 	bm.name = "BuildingManager"
+
+	var pipe_render = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
+	pipe_render.name = "PipeRenderSystem"
+	bm.add_child(pipe_render)
+	bm.unique_name_in_owner = true
+	add_child_autoqfree(bm)
+
 	for conn in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
