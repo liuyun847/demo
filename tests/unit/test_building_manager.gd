@@ -1,6 +1,7 @@
 extends GutTest
 
 const _BM = preload("res://scripts/building/building_manager.gd")
+const _GU = preload("res://scripts/grid/grid_utils.gd")
 
 var _bm = null
 
@@ -83,28 +84,28 @@ func test_clear_all_buildings():
 	assert_eq(_bm.get_all_buildings_data().size(), 0, "清除后应无建筑")
 
 func test_get_line_cells_horizontal():
-	var cells = _bm.get_line_cells(Vector2i(0, 5), Vector2i(4, 5))
+	var cells = _GU.get_line_cells(Vector2i(0, 5), Vector2i(4, 5))
 	assert_eq(cells.size(), 5, "水平线上应有 5 个格子")
 	assert_eq(cells[0], Vector2i(0, 5))
 	assert_eq(cells[4], Vector2i(4, 5))
 
 func test_get_line_cells_vertical():
-	var cells = _bm.get_line_cells(Vector2i(3, 0), Vector2i(3, 3))
+	var cells = _GU.get_line_cells(Vector2i(3, 0), Vector2i(3, 3))
 	assert_eq(cells.size(), 4, "垂直线上应有 4 个格子")
 	assert_eq(cells[0], Vector2i(3, 0))
 	assert_eq(cells[3], Vector2i(3, 3))
 
 func test_get_line_cells_reverse():
-	var cells = _bm.get_line_cells(Vector2i(4, 5), Vector2i(0, 5))
+	var cells = _GU.get_line_cells(Vector2i(4, 5), Vector2i(0, 5))
 	assert_eq(cells.size(), 5, "反向水平线也应有 5 个格子")
 
 func test_get_line_cells_single_point():
-	var cells = _bm.get_line_cells(Vector2i(2, 2), Vector2i(2, 2))
+	var cells = _GU.get_line_cells(Vector2i(2, 2), Vector2i(2, 2))
 	assert_eq(cells.size(), 1, "单点应返回 1 个格子")
 	assert_eq(cells[0], Vector2i(2, 2))
 
 func test_get_l_cells_horizontal_then_vertical():
-	var cells = _BM.get_l_cells(Vector2i(0, 0), Vector2i(3, 2), true)
+	var cells = _GU.get_l_cells(Vector2i(0, 0), Vector2i(3, 2), true)
 	assert_eq(cells.size(), 6, "L形先横后纵: (0,0)→(3,2) 应有6格")
 	assert_eq(cells[0], Vector2i(0, 0), "起点应为 (0,0)")
 	assert_eq(cells[1], Vector2i(1, 0))
@@ -114,7 +115,7 @@ func test_get_l_cells_horizontal_then_vertical():
 	assert_eq(cells[5], Vector2i(3, 2), "终点应为 (3,2)")
 
 func test_get_l_cells_vertical_then_horizontal():
-	var cells = _BM.get_l_cells(Vector2i(0, 0), Vector2i(3, 2), false)
+	var cells = _GU.get_l_cells(Vector2i(0, 0), Vector2i(3, 2), false)
 	assert_eq(cells.size(), 6, "L形先纵后横: (0,0)→(3,2) 应有6格")
 	assert_eq(cells[0], Vector2i(0, 0), "起点应为 (0,0)")
 	assert_eq(cells[1], Vector2i(0, 1))
@@ -124,7 +125,7 @@ func test_get_l_cells_vertical_then_horizontal():
 	assert_eq(cells[5], Vector2i(3, 2), "终点应为 (3,2)")
 
 func test_get_l_cells_reverse():
-	var cells = _BM.get_l_cells(Vector2i(3, 2), Vector2i(0, 0), true)
+	var cells = _GU.get_l_cells(Vector2i(3, 2), Vector2i(0, 0), true)
 	assert_eq(cells.size(), 6, "反向L形先横后纵: (3,2)→(0,0) 应有6格")
 	assert_has(cells, Vector2i(0, 0))
 	assert_has(cells, Vector2i(0, 1))
@@ -134,30 +135,30 @@ func test_get_l_cells_reverse():
 	assert_has(cells, Vector2i(3, 2))
 
 func test_get_l_cells_straight_line():
-	var cells_h = _BM.get_l_cells(Vector2i(0, 0), Vector2i(5, 0), true)
+	var cells_h = _GU.get_l_cells(Vector2i(0, 0), Vector2i(5, 0), true)
 	assert_eq(cells_h.size(), 6, "水平线L形退化为直线: 应有6格")
-	var cells_v = _BM.get_l_cells(Vector2i(0, 0), Vector2i(0, 5), false)
+	var cells_v = _GU.get_l_cells(Vector2i(0, 0), Vector2i(0, 5), false)
 	assert_eq(cells_v.size(), 6, "垂直线L形退化为直线: 应有6格")
 
 func test_get_l_cells_single_point():
-	var cells = _BM.get_l_cells(Vector2i(2, 2), Vector2i(2, 2), true)
+	var cells = _GU.get_l_cells(Vector2i(2, 2), Vector2i(2, 2), true)
 	assert_eq(cells.size(), 1, "单点L形: 应有1格")
 	assert_eq(cells[0], Vector2i(2, 2))
 
 func test_get_rect_cells():
-	var cells = _bm.get_rect_cells(Vector2i(1, 1), Vector2i(3, 3))
+	var cells = _GU.get_rect_cells(Vector2i(1, 1), Vector2i(3, 3))
 	assert_eq(cells.size(), 9, "3x3 矩形应有 9 个格子")
 
 func test_get_rect_cells_single():
-	var cells = _bm.get_rect_cells(Vector2i(5, 5), Vector2i(5, 5))
+	var cells = _GU.get_rect_cells(Vector2i(5, 5), Vector2i(5, 5))
 	assert_eq(cells.size(), 1, "单点矩形应返回 1 个格子")
 
 func test_get_rect_cells_reverse():
-	var cells = _bm.get_rect_cells(Vector2i(3, 3), Vector2i(1, 1))
+	var cells = _GU.get_rect_cells(Vector2i(3, 3), Vector2i(1, 1))
 	assert_eq(cells.size(), 9, "反向矩形也应有 9 个格子")
 
 func test_place_buildings_in_line():
-	var cells = _bm.get_line_cells(Vector2i(0, 0), Vector2i(4, 0))
+	var cells = _GU.get_line_cells(Vector2i(0, 0), Vector2i(4, 0))
 	var placed = _bm.place_buildings_in_line(cells, GameConfig.pipe_type_id)
 	assert_eq(placed, 5, "应成功放置 5 个建筑")
 	for i in range(5):
@@ -167,7 +168,7 @@ func test_remove_buildings_in_rect():
 	for x in range(3):
 		for y in range(3):
 			_bm.place_building(Vector2i(x, y), GameConfig.container_type_id)
-	var cells = _bm.get_rect_cells(Vector2i(0, 0), Vector2i(2, 2))
+	var cells = _GU.get_rect_cells(Vector2i(0, 0), Vector2i(2, 2))
 	var removed = _bm.remove_buildings_in_rect(cells)
 	assert_eq(removed, 9, "应成功删除 9 个建筑")
 
@@ -285,9 +286,9 @@ func test_get_building_node():
 	assert_null(_bm.get_building_node(Vector2i(99, 99)), "不存在的位置应返回 null")
 
 func test_get_building_node_name():
-	var name_str = _bm.get_building_node_name(Vector2i(3, 7))
+	var name_str = _GU.get_building_node_name(Vector2i(3, 7))
 	assert_eq(name_str, "Building_3_7", "节点名应为 Building_x_y 格式")
-	var name_str2 = _bm.get_building_node_name(Vector2i(-1, -5))
+	var name_str2 = _GU.get_building_node_name(Vector2i(-1, -5))
 	assert_eq(name_str2, "Building_-1_-5", "负坐标也应正确格式化")
 
 func test_set_paste_preview_empty_clipboard():
