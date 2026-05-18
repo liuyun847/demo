@@ -417,6 +417,22 @@ static func get_line_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector
 
 	return cells
 
+static func get_l_cells(from_pos: Vector2i, to_pos: Vector2i, corner_first_horizontal: bool) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	var corner: Vector2i
+	if corner_first_horizontal:
+		corner = Vector2i(to_pos.x, from_pos.y)
+	else:
+		corner = Vector2i(from_pos.x, to_pos.y)
+
+	var seg1 := get_line_cells(from_pos, corner)
+	var seg2 := get_line_cells(corner, to_pos)
+	cells.append_array(seg1)
+	for pos in seg2:
+		if pos != corner:
+			cells.append(pos)
+	return cells
+
 static func get_paste_line_anchors(from_pos: Vector2i, to_pos: Vector2i, unit_width: int, unit_height: int) -> Array[Vector2i]:
 	var anchors: Array[Vector2i] = []
 	var dx := to_pos.x - from_pos.x

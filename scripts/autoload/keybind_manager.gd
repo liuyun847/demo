@@ -18,7 +18,7 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	"ui_paste": "粘贴",
 	"ui_undo": "撤销",
 	"ui_redo": "重做",
-	"rotate_clipboard": "粘贴时旋转",
+	"rotate_clipboard": "旋转/切换",
 }
 
 const COMBO_MODIFIER: Dictionary = {

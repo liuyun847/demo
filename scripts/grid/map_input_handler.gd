@@ -9,6 +9,8 @@ var _state_machine: _InputStateMachine = _InputStateMachine.new()
 
 var _last_hovered_grid: Vector2i = Vector2i(-99999, -99999)
 var _has_camera: bool = false
+var _drag_corner_first_horizontal: bool = true
+var _last_drag_grid: Vector2i = Vector2i.ZERO
 
 func _ready() -> void:
 	if not building_manager:
@@ -49,6 +51,16 @@ func _is_selection_mode() -> bool:
 	return not _is_building_placement_mode() and not _is_paste_mode()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("rotate_clipboard") and not event.is_echo():
+		if _state_machine.current_state == _InputStateMachine.State.DRAGGING:
+			_drag_corner_first_horizontal = not _drag_corner_first_horizontal
+			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+			if start_grid != _last_drag_grid:
+				var cells: Array[Vector2i] = BuildingManager.get_l_cells(start_grid, _last_drag_grid, _drag_corner_first_horizontal)
+				building_manager.show_ghost(cells)
+			get_viewport().set_input_as_handled()
+			return
+
 	if not _has_camera:
 		return
 	var viewport: Viewport = get_viewport()
@@ -114,7 +126,8 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 		_InputStateMachine.State.DRAGGING:
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
 			if grid_pos != start_grid:
-				var cells: Array[Vector2i] = BuildingManager.get_line_cells(start_grid, grid_pos)
+				_last_drag_grid = grid_pos
+				var cells: Array[Vector2i] = BuildingManager.get_l_cells(start_grid, grid_pos, _drag_corner_first_horizontal)
 				building_manager.show_ghost(cells)
 			viewport.set_input_as_handled()
 		_InputStateMachine.State.REMOVING:
@@ -184,7 +197,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		var ctx: Dictionary = _state_machine.context
 		var start_grid: Vector2i = ctx.get("start_grid", Vector2i.ZERO)
 		var building_type: String = ctx.get("building_type", "default")
-		var cells: Array[Vector2i] = BuildingManager.get_line_cells(start_grid, grid_pos)
+		var cells: Array[Vector2i] = BuildingManager.get_l_cells(start_grid, grid_pos, _drag_corner_first_horizontal)
 		var placed: Dictionary = {}
 		for cell: Vector2i in cells:
 			if building_manager.place_building(cell, building_type):

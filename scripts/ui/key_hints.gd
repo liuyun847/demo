@@ -12,6 +12,7 @@ var _left_click_desc: Label
 var _right_click_desc: Label
 var _pipette_desc: Label
 var _rotate_row: HBoxContainer
+var _rotate_desc: Label
 
 @onready var _inventory_bar: InventoryBar = %InventoryBar
 
@@ -85,8 +86,8 @@ func _build_rotate_row() -> void:
 	var key_label := _make_keycap("rotate_clipboard")
 	_rotate_row.add_child(key_label)
 
-	var desc := _make_desc("粘贴时旋转")
-	_rotate_row.add_child(desc)
+	_rotate_desc = _make_desc("粘贴时旋转")
+	_rotate_row.add_child(_rotate_desc)
 
 	_rotate_row.hide()
 	add_child(_rotate_row)
@@ -209,11 +210,13 @@ func _refresh_click_rows() -> void:
 		"paste":
 			_left_click_desc.text = "粘贴"
 			_right_click_desc.text = "取消粘贴"
+			_rotate_desc.text = "粘贴时旋转"
 			_rotate_row.show()
 		"place":
-			_left_click_desc.text = "放置"
+			_left_click_desc.text = "放置/拖拽"
 			_right_click_desc.text = "删除"
-			_rotate_row.hide()
+			_rotate_desc.text = "拖拽时切换拐角"
+			_rotate_row.show()
 		"select":
 			_left_click_desc.text = "框选"
 			_right_click_desc.text = "取消框选"
