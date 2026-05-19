@@ -54,7 +54,7 @@ func _do_save() -> void:
 func _sync_container_data() -> void:
 	if not building_manager:
 		return
-	for grid_pos in building_manager.buildings.keys():
+	for grid_pos: Vector2i in building_manager.buildings.keys():
 		var data: BuildingData = building_manager.buildings[grid_pos]
 		if not BuildingData.has_capacity(data.building_type):
 			continue
@@ -98,7 +98,7 @@ func _build_save_dict() -> Dictionary:
 		"buildings": {}
 	}
 
-	for grid_pos in building_manager.buildings.keys():
+	for grid_pos: Vector2i in building_manager.buildings.keys():
 		var data: BuildingData = building_manager.buildings[grid_pos]
 
 		if BuildingData.has_capacity(data.building_type):
@@ -168,7 +168,7 @@ func load_buildings() -> void:
 					push_warning("SaveManager: 无效的格子坐标: %s，跳过" % key)
 					continue
 				var grid_pos: Vector2i = Vector2i(int(parts[0]), int(parts[1]))
-				var b_data = save_data.buildings[key]
+				var b_data: Variant = save_data.buildings[key]
 				if not b_data is Dictionary:
 					push_warning("SaveManager: 建筑数据格式无效，跳过: %s" % key)
 					continue
@@ -182,7 +182,7 @@ func load_buildings() -> void:
 	call_deferred("_finalize_loading")
 
 func _finalize_loading() -> void:
-	for grid_pos in building_manager.buildings.keys():
+	for grid_pos: Vector2i in building_manager.buildings.keys():
 		var node := building_manager.get_building_node(grid_pos)
 		if node is PipeNode:
 			node.refresh_connections(building_manager.is_fluid_building_at)

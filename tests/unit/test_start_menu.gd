@@ -12,18 +12,18 @@ func test_initial_state() -> void:
 	assert_not_null(_menu.find_child("btn_start", true, false), "应存在 btn_start")
 	assert_not_null(_menu.find_child("btn_settings", true, false), "应存在 btn_settings")
 	assert_not_null(_menu.find_child("btn_quit", true, false), "应存在 btn_quit")
-	var btn_start = _menu.find_child("btn_start", true, false) as Button
+	var btn_start: Button = _menu.find_child("btn_start", true, false) as Button
 	assert_eq(btn_start.text, "开始游戏", "开始按钮文本应为 '开始游戏'")
 
 func test_start_pressed_emits_signal() -> void:
 	watch_signals(EventBus)
-	var btn_start = _menu.find_child("btn_start", true, false) as Button
+	var btn_start: Button = _menu.find_child("btn_start", true, false) as Button
 	btn_start.pressed.emit()
 	assert_signal_emitted(EventBus, "start_game_requested", "点击开始按钮应发射 start_game_requested")
 
 func test_settings_pressed_emits_signal() -> void:
 	watch_signals(EventBus)
-	var btn_settings = _menu.find_child("btn_settings", true, false) as Button
+	var btn_settings: Button = _menu.find_child("btn_settings", true, false) as Button
 	btn_settings.pressed.emit()
 	assert_signal_emitted(EventBus, "show_settings_requested", "点击设置按钮应发射 show_settings_requested")
 

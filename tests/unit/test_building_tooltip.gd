@@ -47,8 +47,8 @@ func test_update_content_empty_summary_shows_placeholder() -> void:
 	var mock_node := Node2D.new()
 	add_child_autoqfree(mock_node)
 	_tooltip._on_building_hovered(Vector2i(0, 0), mock_node)
-	var found = false
-	for child in _tooltip._summary_container.get_children():
+	var found: bool = false
+	for child: Node in _tooltip._summary_container.get_children():
 		if child is Label and child.text == "暂无属性":
 			found = true
 			break

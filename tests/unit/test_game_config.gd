@@ -9,16 +9,16 @@ func test_fluid_config_constants() -> void:
 	assert_eq(GameConfig.fluid_tick_interval, 0.3, "fluid_tick_interval 应为 0.3")
 
 func test_block_pixel_size() -> void:
-	var expected = GameConfig.cell_size * GameConfig.big_cell_size
+	var expected: int = GameConfig.cell_size * GameConfig.big_cell_size
 	assert_eq(GameConfig.get_block_pixel_size(), expected, "get_block_pixel_size 应为 cell_size * big_cell_size")
 
 func test_save_and_load_settings() -> void:
-	var original_save_path = GameConfig.game_settings_file_path
+	var original_save_path: String = GameConfig.game_settings_file_path
 	GameConfig.game_settings_file_path = "res://save/test_game_settings.json"
 
 	_cleanup_test_settings()
-	var original_zoom = GameConfig.zoom_speed
-	var original_shift = GameConfig.shift_speed_multiplier
+	var original_zoom: float = GameConfig.zoom_speed
+	var original_shift: float = GameConfig.shift_speed_multiplier
 
 	GameConfig.zoom_speed = 0.15
 	GameConfig.shift_speed_multiplier = 3.0
@@ -71,10 +71,10 @@ func test_selection_constants() -> void:
 	assert_eq(GameConfig.paste_ghost_alpha, 0.45, "paste_ghost_alpha 应为 0.45")
 
 func test_load_settings_invalid_type_fallback() -> void:
-	var original_save_path = GameConfig.game_settings_file_path
+	var original_save_path: String = GameConfig.game_settings_file_path
 	GameConfig.game_settings_file_path = "res://save/test_game_settings_invalid.json"
 	_cleanup_invalid_test_settings()
-	var dir_path := "res://save"
+	var _dir_path := "res://save"
 	var file := FileAccess.open("res://save/test_game_settings_invalid.json", FileAccess.WRITE)
 	if file:
 		file.store_string('{"version":"1.0.0","zoom_speed":"invalid","shift_speed_multiplier":null}')

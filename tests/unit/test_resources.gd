@@ -9,15 +9,15 @@ const _BM = preload("res://scripts/building/building_manager.gd")
 
 
 func _setup_bm() -> BuildingManager:
-	var bm = autoqfree(_BM.new() as BuildingManager)
-	var pr = preload("res://scripts/building/pipe_render_system.gd").new()
+	var bm: BuildingManager = autoqfree(_BM.new() as BuildingManager)
+	var pr: PipeRenderSystem = preload("res://scripts/building/pipe_render_system.gd").new()
 	pr.name = "PipeRenderSystem"
 	bm.add_child(pr)
 	add_child_autoqfree(bm)
 	return bm
 
 func test_building_data_creation() -> void:
-	var data = BuildingData.new()
+	var data: BuildingData = BuildingData.new()
 	data.grid_position = Vector2i(3, 5)
 	data.building_type = "type_01"
 	data.capacity = 50
@@ -29,7 +29,7 @@ func test_building_data_creation() -> void:
 	assert_eq(data.max_capacity, 100, "max_capacity 应正确赋值")
 
 func test_building_data_defaults() -> void:
-	var data = BuildingData.new()
+	var data: BuildingData = BuildingData.new()
 	assert_eq(data.building_type, "default", "默认 building_type 应为 default")
 	assert_eq(data.capacity, 0, "默认 capacity 应为 0")
 	assert_eq(data.max_capacity, 100, "默认 max_capacity 应为 100")
@@ -63,7 +63,7 @@ func test_is_fluid_building_for_default() -> void:
 	assert_false(BuildingData.is_fluid_building("default"), "默认类型不应为流体建筑")
 
 func test_undo_command_place_type() -> void:
-	var cmd = UndoCommand.new()
+	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
 	cmd.buildings = {
 		Vector2i(0, 0): {"type": "type_01"}
@@ -72,7 +72,7 @@ func test_undo_command_place_type() -> void:
 	assert_eq(cmd.buildings.size(), 1, "应包含一个建筑记录")
 
 func test_undo_command_cut_type_as_dict() -> void:
-	var cmd = UndoCommand.new()
+	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
 	cmd.buildings = {
 		Vector2i(2, 3): {
@@ -83,31 +83,31 @@ func test_undo_command_cut_type_as_dict() -> void:
 	assert_eq(cmd.buildings.size(), 1)
 
 func test_undo_command_reverse_adds_building() -> void:
-	var cmd = UndoCommand.new()
+	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.REMOVE
 	cmd.buildings = {
 		Vector2i(10, 20): {"type": "type_01"}
 	}
 
-	var bm = _setup_bm()
+	var bm: BuildingManager = _setup_bm()
 	cmd.reverse(bm)
 	assert_true(bm.has_building(Vector2i(10, 20)), "reverse 应在指定位置放置建筑")
 
 func test_undo_command_reverse_place_removes_building() -> void:
-	var bm = _setup_bm()
+	var bm: BuildingManager = _setup_bm()
 	bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
-	var cmd = UndoCommand.new()
+	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
 	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.container_type_id}}
 	cmd.reverse(bm)
 	assert_false(bm.has_building(Vector2i(5, 5)), "reverse PLACE 应删除建筑")
 
 func test_undo_command_reverse_cut_restores_building() -> void:
-	var bm = _setup_bm()
+	var bm: BuildingManager = _setup_bm()
 	bm.place_building(Vector2i(3, 3), GameConfig.container_type_id)
 	assert_true(bm.has_building(Vector2i(3, 3)), "放置后应有建筑")
-	var cmd = UndoCommand.new()
+	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
 	cmd.buildings = {Vector2i(3, 3): {"type": GameConfig.container_type_id}}
 	bm.remove_building(Vector2i(3, 3))
@@ -116,16 +116,16 @@ func test_undo_command_reverse_cut_restores_building() -> void:
 	assert_true(bm.has_building(Vector2i(3, 3)), "reverse CUT 应恢复建筑")
 
 func test_undo_command_reverse_cut_does_not_restore_capacity() -> void:
-	var bm = _setup_bm()
+	var bm: BuildingManager = _setup_bm()
 	bm.place_building(Vector2i(8, 8), GameConfig.container_type_id, {"capacity": 50, "max_capacity": 100})
 	assert_true(bm.has_building(Vector2i(8, 8)), "放置后应有建筑")
-	var cmd = UndoCommand.new()
+	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
 	cmd.buildings = {Vector2i(8, 8): {"type": GameConfig.container_type_id}}
 	bm.remove_building(Vector2i(8, 8))
 	cmd.reverse(bm)
 	assert_true(bm.has_building(Vector2i(8, 8)), "reverse CUT 应恢复建筑")
-	var node = bm.get_building_node(Vector2i(8, 8))
+	var node: Node = bm.get_building_node(Vector2i(8, 8))
 	assert_not_null(node, "恢复后节点应存在")
 	assert_true(node is ContainerNode, "恢复后应为容器节点")
 	var container: ContainerNode = node as ContainerNode
@@ -152,11 +152,11 @@ func test_is_container_building_with_null() -> void:
 	assert_false(BuildingData.is_container_building(null), "null 不应判定为容器建筑")
 
 func test_undo_command_forward_remove() -> void:
-	var bm = _setup_bm()
+	var bm: BuildingManager = _setup_bm()
 	bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 
-	var cmd = UndoCommand.new()
+	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.REMOVE
 	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.container_type_id}}
 	cmd.forward(bm)
@@ -164,11 +164,11 @@ func test_undo_command_forward_remove() -> void:
 	assert_false(bm.has_building(Vector2i(5, 5)), "forward REMOVE 应删除建筑")
 
 func test_undo_command_forward_cut() -> void:
-	var bm = _setup_bm()
+	var bm: BuildingManager = _setup_bm()
 	bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 
-	var cmd = UndoCommand.new()
+	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
 	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.container_type_id}}
 	cmd.forward(bm)

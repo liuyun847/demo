@@ -15,16 +15,16 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # 在指定位置进行缩放
 func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
-	var view_size = get_viewport().get_visible_rect().size
-	var center = view_size / 2.0
+	var view_size: Vector2 = get_viewport().get_visible_rect().size
+	var center: Vector2 = view_size / 2.0
 	if screen_pos == Vector2.ZERO:
 		screen_pos = center
-	var world_pos = (screen_pos - center) / zoom + global_position
+	var world_pos: Vector2 = (screen_pos - center) / zoom + global_position
 	zoom *= factor
 	zoom = Vector2(clamp(zoom.x, 0.1, 10.0), clamp(zoom.y, 0.1, 10.0))
 
 	# 调整位置保持鼠标指向的位置不变
-	var new_world_pos = (screen_pos - center) / zoom + global_position
+	var new_world_pos: Vector2 = (screen_pos - center) / zoom + global_position
 	position += (world_pos - new_world_pos)
 	EventBus.camera_changed.emit()
 

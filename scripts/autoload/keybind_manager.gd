@@ -122,7 +122,7 @@ func get_event_display_text(event: InputEvent, include_modifiers: bool = true) -
 
 func get_keybind_info() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	for action in GAMEPLAY_ACTIONS:
+	for action: String in GAMEPLAY_ACTIONS:
 		if not InputMap.has_action(action):
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
@@ -147,11 +147,11 @@ func remap_action(action: String, new_event: InputEvent) -> void:
 		push_error("KeybindManager: 未知的动作: %s" % action)
 		return
 
-	for existing_action in GAMEPLAY_ACTIONS:
+	for existing_action: String in GAMEPLAY_ACTIONS:
 		if existing_action == action:
 			continue
 		var existing_events: Array[InputEvent] = InputMap.action_get_events(existing_action)
-		for ev in existing_events:
+		for ev: InputEvent in existing_events:
 			if _events_equal(ev, new_event):
 				push_error("KeybindManager: 按键 %s 已被「%s」使用" % [get_event_display_text(new_event), get_action_display_name(existing_action)])
 				return
@@ -173,7 +173,7 @@ func save_keybindings() -> void:
 		"keybindings": {},
 	}
 
-	for action in GAMEPLAY_ACTIONS:
+	for action: String in GAMEPLAY_ACTIONS:
 		if not InputMap.has_action(action):
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
@@ -226,11 +226,11 @@ func load_keybindings() -> void:
 		push_error("KeybindManager: 按键配置缺少 keybindings 字段")
 		return
 
-	for action in data.keybindings.keys():
+	for action: String in data.keybindings.keys():
 		if not InputMap.has_action(action):
 			push_warning("KeybindManager: 忽略未知动作: %s" % action)
 			continue
-		var raw = data.keybindings[action]
+		var raw: Variant = data.keybindings[action]
 		InputMap.action_erase_events(action)
 
 		var event_datas: Array = []
@@ -241,7 +241,7 @@ func load_keybindings() -> void:
 		else:
 			continue
 
-		for ev_data in event_datas:
+		for ev_data: Variant in event_datas:
 			var event: InputEvent = _deserialize_event(ev_data)
 			if event:
 				InputMap.action_add_event(action, event)
@@ -266,7 +266,7 @@ func _apply_default_keybindings() -> void:
 		"rotate_clipboard": _create_key_event(KEY_R),
 	}
 
-	for action in defaults.keys():
+	for action: String in defaults.keys():
 		if InputMap.has_action(action):
 			InputMap.action_erase_events(action)
 			InputMap.action_add_event(action, defaults[action])
@@ -325,7 +325,7 @@ func _serialize_event(event: InputEvent) -> Dictionary:
 		}
 	return {"type": "unknown"}
 
-func _deserialize_event(data) -> InputEvent:
+func _deserialize_event(data: Variant) -> InputEvent:
 	if not data is Dictionary:
 		return null
 	var type: String = data.get("type", "")

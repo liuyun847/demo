@@ -3,7 +3,7 @@ extends GutTest
 var _camera: Node = null
 
 func before_each() -> void:
-	var CameraControllerScript = load("res://scripts/CameraController.gd")
+	var CameraControllerScript: GDScript = load("res://scripts/CameraController.gd")
 	_camera = autoqfree(CameraControllerScript.new())
 	add_child_autoqfree(_camera)
 
@@ -12,7 +12,7 @@ func test_default_zoom() -> void:
 	assert_eq(_camera.zoom, Vector2(1.0, 1.0), "初始缩放应为 1.0")
 
 func test_zoom_increases_zoom() -> void:
-	var original = _camera.zoom.x
+	var original: float = _camera.zoom.x
 	_camera.zoom_at_position(Vector2(400, 300), 1 + GameConfig.zoom_speed)
 	assert_true(_camera.zoom.x > original, "放大后 zoom.x 应增大")
 
@@ -39,37 +39,37 @@ func test_zoom_preserves_aspect_ratio() -> void:
 func test_zoom_at_position_changes_position() -> void:
 	_camera.global_position = Vector2(100, 100)
 	_camera.zoom_at_position(Vector2(400, 300), 0.5)
-	var expected_zoom = Vector2(0.5, 0.5)
+	var expected_zoom: Vector2 = Vector2(0.5, 0.5)
 	assert_eq(_camera.zoom, expected_zoom, "缩放后 zoom 应为 0.5")
-	var view_size = get_viewport().get_visible_rect().size
-	var center = view_size / 2.0
-	var world_at_mouse = (Vector2(400, 300) - center) / expected_zoom + _camera.global_position
-	var expected_pos = Vector2(100, 100) + (Vector2(400, 300) - center) * (1.0 / 0.5 - 1.0)
+	var view_size: Vector2 = get_viewport().get_visible_rect().size
+	var center: Vector2 = view_size / 2.0
+	var _world_at_mouse: Vector2 = (Vector2(400, 300) - center) / expected_zoom + _camera.global_position
+	var _expected_pos: Vector2 = Vector2(100, 100) + (Vector2(400, 300) - center) * (1.0 / 0.5 - 1.0)
 	assert_ne(_camera.global_position, Vector2(100, 100), "缩放后 position 应发生调整")
 
 func test_move_right() -> void:
-	var start_pos = _camera.position.x
+	var start_pos: float = _camera.position.x
 	Input.action_press("move_right")
 	_camera._process(1.0)
 	Input.action_release("move_right")
 	assert_true(_camera.position.x > start_pos, "按下 move_right 后 position.x 应增大")
 
 func test_move_left() -> void:
-	var start_pos = _camera.position.x
+	var start_pos: float = _camera.position.x
 	Input.action_press("move_left")
 	_camera._process(1.0)
 	Input.action_release("move_left")
 	assert_true(_camera.position.x < start_pos, "按下 move_left 后 position.x 应减小")
 
 func test_move_down() -> void:
-	var start_pos = _camera.position.y
+	var start_pos: float = _camera.position.y
 	Input.action_press("move_down")
 	_camera._process(1.0)
 	Input.action_release("move_down")
 	assert_true(_camera.position.y > start_pos, "按下 move_down 后 position.y 应增大")
 
 func test_move_up() -> void:
-	var start_pos = _camera.position.y
+	var start_pos: float = _camera.position.y
 	Input.action_press("move_up")
 	_camera._process(1.0)
 	Input.action_release("move_up")
@@ -77,7 +77,7 @@ func test_move_up() -> void:
 
 func test_move_with_speed_up() -> void:
 	_camera.position = Vector2.ZERO
-	var original_mult = GameConfig.shift_speed_multiplier
+	var original_mult: float = GameConfig.shift_speed_multiplier
 	GameConfig.shift_speed_multiplier = 3.0
 	Input.action_press("move_right")
 	Input.action_press("speed_up")
@@ -90,9 +90,9 @@ func test_move_with_speed_up() -> void:
 func test_move_zoomed_in() -> void:
 	_camera.position = Vector2.ZERO
 	_camera.zoom = Vector2(0.5, 0.5)
-	var move_speed = _camera.move_speed
+	var move_speed: float = _camera.move_speed
 	Input.action_press("move_right")
 	_camera._process(1.0)
 	Input.action_release("move_right")
-	var expected_speed = move_speed / 0.5
+	var _expected_speed: float = move_speed / 0.5
 	assert_gt(_camera.position.x, move_speed * 0.5, "缩放 0.5 倍时移动速度应更快")

@@ -5,7 +5,7 @@ var _handler: Node = null
 var _bar: InventoryBar = null
 var _camera: Camera2D = null
 
-func before_each():
+func before_each() -> void:
 	preload("res://scripts/building/fluid_node_base.gd")
 	preload("res://scripts/building/container_node.gd")
 	preload("res://scripts/building/pipe_node.gd")
@@ -20,16 +20,16 @@ func before_each():
 	_camera.enabled = true
 	add_child_autoqfree(_camera)
 
-	var bm_script = preload("res://scripts/building/building_manager.gd")
+	var bm_script: GDScript = preload("res://scripts/building/building_manager.gd")
 	_bm = autoqfree(bm_script.new())
 	add_child_autoqfree(_bm)
 	_bm.name = "BuildingManager"
 
-	var pipe_render = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
+	var pipe_render: PipeRenderSystem = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
 	pipe_render.name = "PipeRenderSystem"
 	_bm.add_child(pipe_render)
 
-	var gp = autoqfree(load("res://scripts/building/ghost_preview_manager.gd").new())
+	var gp: GhostPreviewManager = autoqfree(load("res://scripts/building/ghost_preview_manager.gd").new())
 	gp.name = "GhostPreviewManager"
 	_bm.add_child(gp)
 	gp.owner = _bm
@@ -41,7 +41,7 @@ func before_each():
 	_bar.name = "InventoryBar"
 	add_child_autoqfree(_bar)
 
-	var handler_script = preload("res://scripts/grid/map_input_handler.gd")
+	var handler_script: GDScript = preload("res://scripts/grid/map_input_handler.gd")
 	_handler = autoqfree(handler_script.new())
 	_handler.building_manager = _bm
 	_handler.inventory_bar = _bar
@@ -50,7 +50,7 @@ func before_each():
 	SelectionManager.clear_selection()
 	SelectionManager.clipboard = {}
 
-func after_each():
+func after_each() -> void:
 	SelectionManager.clipboard = {}
 	SelectionManager.undo_stack.clear()
 	SelectionManager._building_manager = null
@@ -72,9 +72,9 @@ func _make_clipboard() -> Dictionary:
 	buildings.append({"offset": Vector2i(1, 0), "type": GameConfig.pipe_type_id})
 	return {"buildings": buildings}
 
-func test_place_single_building():
+func test_place_single_building() -> void:
 	_bar.select_slot(0)
-	var building_type = _bar.get_current_building_type()
+	var building_type: String = _bar.get_current_building_type()
 	assert_ne(building_type, "default", "选中槽位后应返回非 default 的类型")
 
 	var grid_pos := Vector2i(10, 10)
@@ -87,7 +87,7 @@ func test_place_single_building():
 	assert_true(_bm.has_building(grid_pos), "左键单击后建筑应放置在 (10, 10)")
 	assert_eq(_bm.buildings[grid_pos].building_type, building_type, "建筑类型应与选中槽位一致")
 
-func test_place_building_line_drag():
+func test_place_building_line_drag() -> void:
 	_bar.select_slot(1)
 
 	var start := Vector2i(0, 0)
@@ -103,7 +103,7 @@ func test_place_building_line_drag():
 	assert_true(_bm.has_building(Vector2i(2, 0)), "拖拽后中间点应有建筑")
 	assert_true(_bm.has_building(end), "拖拽后终点应有建筑")
 
-func test_remove_single_building():
+func test_remove_single_building() -> void:
 	_bm.place_building(Vector2i(5, 5), GameConfig.container_type_id)
 	assert_true(_bm.has_building(Vector2i(5, 5)), "放置后建筑应存在")
 
@@ -115,7 +115,7 @@ func test_remove_single_building():
 
 	assert_false(_bm.has_building(Vector2i(5, 5)), "右键单击后建筑应被删除")
 
-func test_selection_rect_selects_buildings():
+func test_selection_rect_selects_buildings() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
@@ -133,7 +133,7 @@ func test_selection_rect_selects_buildings():
 
 	assert_eq(SelectionManager.selected_cells.size(), 3, "框选后应选中 3 个建筑格")
 
-func test_hover_detects_building():
+func test_hover_detects_building() -> void:
 	var screen_pos := Vector2(64, 64)
 	var grid_pos := _screen_to_grid(screen_pos)
 	_bm.place_building(grid_pos, GameConfig.container_type_id)
@@ -145,7 +145,7 @@ func test_hover_detects_building():
 
 	assert_signal_emitted(EventBus, "building_hovered", "鼠标移动到建筑上时应发射 building_hovered 信号")
 
-func test_paste_mode_places_buildings():
+func test_paste_mode_places_buildings() -> void:
 	SelectionManager._building_manager = _bm
 	SelectionManager.clipboard = _make_clipboard()
 
@@ -158,7 +158,7 @@ func test_paste_mode_places_buildings():
 	assert_true(_bm.has_building(Vector2i(3, 3)), "松开左键后 (3, 3) 应有建筑")
 	assert_true(_bm.has_building(Vector2i(4, 3)), "松开左键后 (4, 3) 应有建筑")
 
-func test_paste_mode_drag_tiles_unit_horizontally():
+func test_paste_mode_drag_tiles_unit_horizontally() -> void:
 	SelectionManager._building_manager = _bm
 	SelectionManager.clipboard = _make_clipboard()
 
@@ -178,7 +178,7 @@ func test_paste_mode_drag_tiles_unit_horizontally():
 	assert_false(_bm.has_building(Vector2i(8, 0)), "锚点 (8,0) 不应有建筑（超出范围）")
 	assert_eq(SelectionManager.undo_stack.size(), 1, "一次拖拽应只产生一条撤销命令")
 
-func test_paste_mode_drag_tiles_unit_vertically():
+func test_paste_mode_drag_tiles_unit_vertically() -> void:
 	SelectionManager._building_manager = _bm
 	SelectionManager.clipboard = _make_clipboard()
 
@@ -195,7 +195,7 @@ func test_paste_mode_drag_tiles_unit_vertically():
 	assert_true(_bm.has_building(Vector2i(1, 2)), "锚点 (0,2) offset(1,0) 应有建筑")
 	assert_eq(SelectionManager.undo_stack.size(), 1, "一次拖拽应只产生一条撤销命令")
 
-func test_mouse_motion_shows_paste_preview():
+func test_mouse_motion_shows_paste_preview() -> void:
 	SelectionManager._building_manager = _bm
 	SelectionManager.clipboard = _make_clipboard()
 
@@ -210,7 +210,7 @@ func test_mouse_motion_shows_paste_preview():
 
 	assert_eq(SelectionManager.paste_anchor, expected_anchor, "粘贴锚点应更新为鼠标所在网格坐标")
 
-func test_paste_drag_updates_anchor():
+func test_paste_drag_updates_anchor() -> void:
 	SelectionManager._building_manager = _bm
 	SelectionManager.clipboard = _make_clipboard()
 	SelectionManager.start_paste_mode()
@@ -226,7 +226,7 @@ func test_paste_drag_updates_anchor():
 	var expected_anchor := _screen_to_grid(Vector2(400, 240))
 	assert_eq(SelectionManager.paste_anchor, expected_anchor, "拖拽过程中粘贴锚点应持续更新到当前鼠标位置")
 
-func test_hover_exited_signal():
+func test_hover_exited_signal() -> void:
 	var screen_pos := Vector2(64, 64)
 	var grid_pos := _screen_to_grid(screen_pos)
 	_bm.place_building(grid_pos, GameConfig.container_type_id)
@@ -247,7 +247,7 @@ func test_hover_exited_signal():
 	_handler._handle_mouse_motion(motion_event2, get_viewport())
 	assert_signal_emitted(EventBus, "building_hover_exited", "鼠标移开建筑时应发射 building_hover_exited")
 
-func test_remove_records_type_in_undo():
+func test_remove_records_type_in_undo() -> void:
 	var grid_pos := Vector2i(7, 7)
 	_bm.place_building(grid_pos, GameConfig.container_type_id)
 	assert_true(_bm.has_building(grid_pos), "容器应放置成功")
@@ -264,13 +264,13 @@ func test_remove_records_type_in_undo():
 	var cmd: UndoCommand = SelectionManager.undo_stack.back()
 	assert_eq(cmd.type, UndoCommand.Type.REMOVE, "撤销命令类型应为 REMOVE")
 
-	for value in cmd.buildings.values():
+	for value: Variant in cmd.buildings.values():
 		assert_true(value is Dictionary, "撤销命令的 buildings 值应为字典类型")
 		assert_true(value.has("type"), "字典应包含 type 键")
 		assert_false(value.has("capacity"), "字典不应包含 capacity 键")
 		assert_false(value.has("max_capacity"), "字典不应包含 max_capacity 键")
 
-func test_copy_selection_fills_clipboard():
+func test_copy_selection_fills_clipboard() -> void:
 	SelectionManager._building_manager = _bm
 	SelectionManager.clear_selection()
 	SelectionManager.clipboard = {}
@@ -290,7 +290,7 @@ func test_copy_selection_fills_clipboard():
 	var was_cut: bool = SelectionManager.clipboard.get("was_cut", true)
 	assert_false(was_cut, "复制操作的 was_cut 应为 false")
 
-func test_cut_selection_records_undo_and_removes_building():
+func test_cut_selection_records_undo_and_removes_building() -> void:
 	SelectionManager._building_manager = _bm
 	SelectionManager.clear_selection()
 	SelectionManager.clipboard = {}
@@ -306,6 +306,6 @@ func test_cut_selection_records_undo_and_removes_building():
 	var cmd: UndoCommand = SelectionManager.undo_stack.back()
 	assert_eq(cmd.type, UndoCommand.Type.CUT, "撤销命令类型应为 CUT")
 	assert_true(cmd.buildings.has(grid_pos), "撤销命令应包含被剪切的格子")
-	for value in cmd.buildings.values():
+	for value: Variant in cmd.buildings.values():
 		assert_true(value is Dictionary, "撤销命令的 buildings 值应为字典类型")
 		assert_true(value.has("type"), "字典应包含 type 键")

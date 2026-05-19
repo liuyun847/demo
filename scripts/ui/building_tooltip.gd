@@ -107,7 +107,7 @@ func _update_content() -> void:
 
 	_name_label.text = building_name
 
-	for child in _summary_container.get_children():
+	for child: Node in _summary_container.get_children():
 		child.queue_free()
 
 	if summary.is_empty():
@@ -116,7 +116,7 @@ func _update_content() -> void:
 		label.add_theme_color_override("font_color", Color(0.25, 0.25, 0.25))
 		_summary_container.add_child(label)
 	else:
-		for key in summary.keys():
+		for key: String in summary.keys():
 			var label: Label = Label.new()
 			label.text = "%s: %s" % [key, summary[key]]
 			label.add_theme_font_size_override("font_size", 13)
@@ -134,7 +134,7 @@ func _update_details() -> void:
 	if _target_node is BuildingBase:
 		details = _target_node.get_tooltip_details()
 
-	for child in _details_container.get_children():
+	for child: Node in _details_container.get_children():
 		child.queue_free()
 
 	if details.is_empty():
@@ -143,7 +143,7 @@ func _update_details() -> void:
 		label.add_theme_color_override("font_color", Color(0.25, 0.25, 0.25))
 		_details_container.add_child(label)
 	else:
-		for key in details.keys():
+		for key: String in details.keys():
 			var label: Label = Label.new()
 			label.text = "%s: %s" % [key, details[key]]
 			label.add_theme_font_size_override("font_size", 12)

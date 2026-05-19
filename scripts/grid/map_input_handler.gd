@@ -28,7 +28,7 @@ func _on_slot_selected(index: int, _type_id: String) -> void:
 	if index < 0:
 		_cancel_all_dragging()
 
-func _on_paste_mode_changed(active: bool) -> void:
+func _on_paste_mode_changed(_active: bool) -> void:
 	_cancel_all_dragging()
 
 func _cancel_all_dragging() -> void:
