@@ -12,7 +12,7 @@ func before_each() -> void:
 
 	_bm = autoqfree(BuildingManager.new())
 	_bm.name = "BuildingManager"
-	var pr: PipeRenderSystem = preload("res://scripts/building/pipe_render_system.gd").new()
+	var pr: PipeRenderSystem = autoqfree(preload("res://scripts/building/pipe_render_system.gd").new())
 	pr.name = "PipeRenderSystem"
 	_bm.add_child(pr)
 	add_child_autoqfree(_bm)
