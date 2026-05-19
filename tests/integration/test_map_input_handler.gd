@@ -22,8 +22,8 @@ func before_each() -> void:
 
 	var bm_script: GDScript = preload("res://scripts/building/building_manager.gd")
 	_bm = autoqfree(bm_script.new())
-	add_child_autoqfree(_bm)
 	_bm.name = "BuildingManager"
+	_bm.unique_name_in_owner = true
 
 	var pipe_render: PipeRenderSystem = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
 	pipe_render.name = "PipeRenderSystem"
@@ -32,10 +32,8 @@ func before_each() -> void:
 	var gp: GhostPreviewManager = autoqfree(load("res://scripts/building/ghost_preview_manager.gd").new())
 	gp.name = "GhostPreviewManager"
 	_bm.add_child(gp)
-	gp.owner = _bm
 
-	_bm.owner = get_tree().root
-	_bm.unique_name_in_owner = true
+	add_child_autoqfree(_bm)
 
 	_bar = autoqfree(preload("res://scripts/ui/inventory_bar.gd").new())
 	_bar.name = "InventoryBar"

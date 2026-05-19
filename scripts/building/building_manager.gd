@@ -23,7 +23,7 @@ func _init_fluid_coordinator() -> void:
 	if coordinator == null:
 		return
 	coordinator.name = "FluidCoordinator"
-	coordinator.init(self )
+	coordinator.init(self)
 	add_child(coordinator)
 
 func has_building(grid_pos: Vector2i) -> bool:
