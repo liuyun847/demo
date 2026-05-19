@@ -9,11 +9,11 @@ func before_each() -> void:
 	add_child_autoqfree(_settings)
 
 func test_initial_refresh_creates_keybind_rows() -> void:
-	var keybind_list: ItemList = _settings.find_child("KeybindList", true, false)
+	var keybind_list: VBoxContainer = _settings.find_child("KeybindList", true, false)
 	assert_true(keybind_list.get_child_count() > 0, "_ready 后 keybind_list 应有子节点")
 
 func test_initial_refresh_creates_game_options() -> void:
-	var game_options_list: ItemList = _settings.find_child("GameOptionsList", true, false)
+	var game_options_list: VBoxContainer = _settings.find_child("GameOptionsList", true, false)
 	assert_true(game_options_list.get_child_count() > 0, "_ready 后 game_options_list 应有子节点")
 
 func test_reset_restores_defaults() -> void:
@@ -43,7 +43,7 @@ func test_escape_cancels_listening() -> void:
 	assert_eq(_settings.listening_action, "", "ESC 后 listening_action 应被清除")
 
 func test_keybind_changed_refreshes_list() -> void:
-	var keybind_list: ItemList = _settings.find_child("KeybindList", true, false)
+	var keybind_list: VBoxContainer = _settings.find_child("KeybindList", true, false)
 	var original_count: int = keybind_list.get_child_count()
 	EventBus.keybind_changed.emit("move_up")
 	await get_tree().process_frame

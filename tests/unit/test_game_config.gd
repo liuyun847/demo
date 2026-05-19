@@ -74,7 +74,6 @@ func test_load_settings_invalid_type_fallback() -> void:
 	var original_save_path: String = GameConfig.game_settings_file_path
 	GameConfig.game_settings_file_path = "res://save/test_game_settings_invalid.json"
 	_cleanup_invalid_test_settings()
-	var _dir_path := "res://save"
 	var file := FileAccess.open("res://save/test_game_settings_invalid.json", FileAccess.WRITE)
 	if file:
 		file.store_string('{"version":"1.0.0","zoom_speed":"invalid","shift_speed_multiplier":null}')
