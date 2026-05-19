@@ -66,7 +66,7 @@ func test_select_out_of_range() -> void:
 
 func test_get_current_building_type() -> void:
 	_bar.select_slot(0)
-	var type_id = _bar.get_current_building_type()
+	var type_id: String = _bar.get_current_building_type()
 	assert_true(type_id.begins_with("type_"), "选中槽位应返回 type_xx 格式的类型 ID")
 
 func test_get_current_building_type_when_none_selected() -> void:
@@ -85,7 +85,7 @@ func test_deselect_signal_emitted() -> void:
 
 func test_slots_created_in_ready() -> void:
 	var slot_count := 0
-	for child in _bar.get_children():
+	for child: Node in _bar.get_children():
 		if child is InventorySlot:
 			slot_count += 1
 	assert_eq(slot_count, 10, "_ready 后应有 10 个 InventorySlot 子节点")

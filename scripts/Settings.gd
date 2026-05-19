@@ -69,12 +69,12 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _refresh_keybind_list() -> void:
-	for child in keybind_list.get_children():
+	for child: Node in keybind_list.get_children():
 		child.queue_free()
 
 	var keybind_info: Array[Dictionary] = KeybindManager.get_keybind_info()
 
-	for info in keybind_info:
+	for info: Dictionary in keybind_info:
 		var row := HBoxContainer.new()
 
 		var name_label := Label.new()
@@ -101,7 +101,7 @@ func _refresh_keybind_list() -> void:
 		keybind_list.add_child(row)
 
 func _refresh_game_options() -> void:
-	for child in game_options_list.get_children():
+	for child: Node in game_options_list.get_children():
 		child.queue_free()
 
 	game_options_list.add_child(_create_slider_option_row(
@@ -208,7 +208,7 @@ func _update_button_text(action: String, button: Button) -> void:
 	var text: String = KeybindManager.get_event_display_text(events[0], include_mod)
 	button.text = text if not text.is_empty() else "未绑定"
 
-func _on_keybind_changed(action: String) -> void:
+func _on_keybind_changed(_action: String) -> void:
 	_cancel_listening()
 	_refresh_keybind_list()
 

@@ -44,7 +44,7 @@ func select_rect(cells: Array[Vector2i]) -> void:
 	if not building_manager:
 		return
 	var old_size: int = selected_cells.size()
-	for grid_pos in cells:
+	for grid_pos: Vector2i in cells:
 		if building_manager.has_building(grid_pos):
 			selected_cells[grid_pos] = true
 	if selected_cells.size() != old_size:
@@ -52,7 +52,7 @@ func select_rect(cells: Array[Vector2i]) -> void:
 
 func deselect_rect(cells: Array[Vector2i]) -> void:
 	var old_size: int = selected_cells.size()
-	for grid_pos in cells:
+	for grid_pos: Vector2i in cells:
 		selected_cells.erase(grid_pos)
 	if selected_cells.size() != old_size:
 		EventBus.selection_changed.emit(_get_selected_cells_array())
@@ -92,12 +92,12 @@ func _build_clipboard(cut: bool) -> Dictionary:
 		var cmd := UndoCommand.new()
 		cmd.type = UndoCommand.Type.CUT
 		var cut_buildings: Dictionary = {}
-		for grid_pos in buildings_data.keys():
+		for grid_pos: Vector2i in buildings_data.keys():
 			cut_buildings[grid_pos] = {"type": buildings_data[grid_pos]}
 		cmd.buildings = cut_buildings
 		push_undo_command(cmd)
 
-		for grid_pos in buildings_data.keys():
+		for grid_pos: Vector2i in buildings_data.keys():
 			building_manager.remove_building(grid_pos)
 			selected_cells.erase(grid_pos)
 
@@ -116,7 +116,7 @@ func get_clipboard_unit_size() -> Vector2i:
 		return Vector2i(1, 1)
 	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
 	var max_off := Vector2i.ZERO
-	for item in clip_buildings:
+	for item: Dictionary in clip_buildings:
 		var off: Vector2i = item["offset"]
 		max_off.x = maxi(max_off.x, off.x)
 		max_off.y = maxi(max_off.y, off.y)
@@ -142,7 +142,7 @@ func _refresh_paste_preview() -> void:
 	var effective := get_effective_clipboard()
 	if effective.is_empty() or not effective.has("buildings"):
 		return
-	var gp = building_manager.get_node_or_null("GhostPreviewManager")
+	var gp: Node = building_manager.get_node_or_null("GhostPreviewManager")
 	if gp:
 		var anchors: Array[Vector2i] = [paste_anchor]
 		gp.set_paste_preview_line(anchors, effective)
@@ -150,26 +150,26 @@ func _refresh_paste_preview() -> void:
 func get_effective_clipboard() -> Dictionary:
 	if _paste_rotation == 0 or clipboard.is_empty() or not clipboard.has("buildings"):
 		return clipboard
-	var raw = clipboard["buildings"]
+	var raw: Variant = clipboard["buildings"]
 	var clip_buildings: Array[Dictionary] = []
 	if raw is Array:
-		for item in raw:
+		for item: Variant in raw:
 			if item is Dictionary:
 				clip_buildings.append(item)
 	if clip_buildings.is_empty():
 		return clipboard
 	var rotated: Array[Dictionary] = []
-	for item in clip_buildings:
+	for item: Dictionary in clip_buildings:
 		var offset: Vector2i = item["offset"]
 		var rotated_offset := _rotate_offset(offset, _paste_rotation)
 		rotated.append({"offset": rotated_offset, "type": item["type"]})
 	var min_x := 0
 	var min_y := 0
-	for item in rotated:
+	for item: Dictionary in rotated:
 		var off: Vector2i = item["offset"]
 		min_x = mini(min_x, off.x)
 		min_y = mini(min_y, off.y)
-	for item in rotated:
+	for item: Dictionary in rotated:
 		var off: Vector2i = item["offset"]
 		item["offset"] = Vector2i(off.x - min_x, off.y - min_y)
 	return {"buildings": rotated, "was_cut": clipboard.get("was_cut", false)}
@@ -180,7 +180,7 @@ func get_effective_clipboard_unit_size() -> Vector2i:
 		return Vector2i(1, 1)
 	var clip_buildings: Array[Dictionary] = effective["buildings"]
 	var max_off := Vector2i.ZERO
-	for item in clip_buildings:
+	for item: Dictionary in clip_buildings:
 		var off: Vector2i = item["offset"]
 		max_off.x = maxi(max_off.x, off.x)
 		max_off.y = maxi(max_off.y, off.y)
@@ -210,7 +210,7 @@ func perform_paste(anchor: Vector2i) -> void:
 	var paste_buildings: Array[Dictionary] = effective["buildings"]
 
 	var valid_items: Array[Dictionary] = []
-	for item in paste_buildings:
+	for item: Dictionary in paste_buildings:
 		var grid_pos: Vector2i = anchor + item["offset"]
 		if not building_manager.has_building(grid_pos):
 			valid_items.append(item)
@@ -219,7 +219,7 @@ func perform_paste(anchor: Vector2i) -> void:
 		return
 
 	var placed_cells := {}
-	for item in valid_items:
+	for item: Dictionary in valid_items:
 		var grid_pos: Vector2i = anchor + item["offset"]
 		var building_type: String = item["type"]
 		if building_manager.place_building(grid_pos, building_type):
@@ -245,8 +245,8 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 	var paste_buildings: Array[Dictionary] = effective["buildings"]
 	var placed_cells := {}
 
-	for anchor in anchors:
-		for item in paste_buildings:
+	for anchor: Vector2i in anchors:
+		for item: Dictionary in paste_buildings:
 			var grid_pos: Vector2i = anchor + item["offset"]
 			if not building_manager.has_building(grid_pos):
 				var building_type: String = item["type"]

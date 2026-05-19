@@ -8,8 +8,8 @@ func before_each() -> void:
 	_main = MAIN_SCENE.instantiate()
 	add_child_autoqfree(_main)
 
-func _find_node(name: String) -> Node:
-	return _main.find_child(name, true, true)
+func _find_node(node_name: String) -> Node:
+	return _main.find_child(node_name, true, true)
 
 func test_initial_state_all_hidden() -> void:
 	assert_false(_find_node("StartMenu").visible, "初始 start_menu 应隐藏")
@@ -18,16 +18,16 @@ func test_initial_state_all_hidden() -> void:
 	assert_false(get_tree().paused, "初始游戏不应暂停（等待 buildings_loaded 信号）")
 
 func test_start_game_hides_menu_shows_bar() -> void:
-	var inventory_bar = _find_node("InventoryBar")
-	var start_menu = _find_node("StartMenu")
+	var inventory_bar: Node = _find_node("InventoryBar")
+	var start_menu: Node = _find_node("StartMenu")
 	EventBus.start_game_requested.emit()
 	assert_false(start_menu.visible, "开始游戏后 start_menu 应隐藏")
 	assert_true(inventory_bar.visible, "开始游戏后 inventory_bar 应显示")
 	assert_false(get_tree().paused, "开始游戏后应取消暂停")
 
 func test_show_settings_hides_menu() -> void:
-	var settings_panel = _find_node("SettingsPanel")
-	var start_menu = _find_node("StartMenu")
+	var settings_panel: Node = _find_node("SettingsPanel")
+	var start_menu: Node = _find_node("StartMenu")
 	EventBus.show_settings_requested.emit()
 	assert_true(settings_panel.visible, "显示设置后 settings_panel 应可见")
 	assert_false(start_menu.visible, "显示设置后 start_menu 应隐藏")
@@ -53,7 +53,7 @@ func test_esc_toggles_start_menu() -> void:
 	assert_true(_find_node("StartMenu").visible, "ESC 后 start_menu 应显示")
 
 func test_slot_keys_select_inventory() -> void:
-	var bar = _find_node("InventoryBar") as InventoryBar
+	var bar: InventoryBar = _find_node("InventoryBar")
 	EventBus.start_game_requested.emit()
 	assert_true(bar.visible, "开始游戏后 inventory_bar 应显示")
 	var event := InputEventKey.new()

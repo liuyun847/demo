@@ -1,5 +1,7 @@
 extends GutTest
 
+const _SMScript = preload("res://scripts/autoload/selection_manager.gd")
+
 func test_select_cell() -> void:
 	SelectionManager.clear_selection()
 	SelectionManager.select_cell(Vector2i(1, 1))
@@ -41,7 +43,7 @@ func test_paste_mode_default() -> void:
 	assert_eq(SelectionManager.clipboard, {}, "默认剪贴板应为空")
 
 func test_paste_mode_start_and_cancel() -> void:
-	SelectionManager.clipboard = {"buildings": [{"offset": Vector2i(0, 0), "type": "type_01"}]}
+	SelectionManager.clipboard = {"buildings": [ {"offset": Vector2i(0, 0), "type": "type_01"}]}
 	SelectionManager.start_paste_mode()
 	assert_true(SelectionManager.is_paste_mode, "start_paste_mode 应激活粘贴模式")
 	SelectionManager.cancel_paste_mode()
@@ -73,7 +75,7 @@ func test_perform_paste_no_clipboard() -> void:
 
 func test_cancel_paste_emits_signal() -> void:
 	watch_signals(EventBus)
-	SelectionManager.clipboard = {"buildings": [{"offset": Vector2i(0, 0), "type": "type_01"}]}
+	SelectionManager.clipboard = {"buildings": [ {"offset": Vector2i(0, 0), "type": "type_01"}]}
 	SelectionManager.start_paste_mode()
 	assert_true(SelectionManager.is_paste_mode, "应进入粘贴模式")
 	SelectionManager.cancel_paste_mode()
@@ -87,7 +89,7 @@ func test_cut_undo_command_buildings_are_dictionaries() -> void:
 	SelectionManager.push_undo_command(cmd)
 	var stored_cmd: UndoCommand = SelectionManager.undo_stack.back()
 	assert_eq(stored_cmd.type, UndoCommand.Type.CUT, "撤销命令类型应为 CUT")
-	for value in stored_cmd.buildings.values():
+	for value: Dictionary in stored_cmd.buildings.values():
 		assert_true(value is Dictionary, "buildings 值应为 Dictionary 类型")
 		assert_true(value.has("type"), "Dictionary 应包含 type 键")
 
@@ -133,7 +135,7 @@ func test_perform_paste_batch_with_building_manager() -> void:
 	bm.unique_name_in_owner = true
 	add_child_autoqfree(bm)
 
-	for conn in EventBus.fluid_updated.get_connections():
+	for conn: Dictionary in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
 	SelectionManager.undo_stack.clear()
@@ -171,7 +173,7 @@ func test_perform_paste_batch_skip_occupied() -> void:
 	bm.unique_name_in_owner = true
 	add_child_autoqfree(bm)
 
-	for conn in EventBus.fluid_updated.get_connections():
+	for conn: Dictionary in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
 	SelectionManager.undo_stack.clear()
@@ -244,7 +246,7 @@ func test_redo_after_undo_restores_building() -> void:
 	bm.unique_name_in_owner = true
 	add_child_autoqfree(bm)
 
-	for conn in EventBus.fluid_updated.get_connections():
+	for conn: Dictionary in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
 	SelectionManager.undo_stack.clear()
@@ -284,7 +286,7 @@ func test_redo_undo_cycle() -> void:
 	bm.unique_name_in_owner = true
 	add_child_autoqfree(bm)
 
-	for conn in EventBus.fluid_updated.get_connections():
+	for conn: Dictionary in EventBus.fluid_updated.get_connections():
 		EventBus.fluid_updated.disconnect(conn.callable)
 
 	SelectionManager.undo_stack.clear()
@@ -321,7 +323,7 @@ func test_rotate_clipboard_90_degrees() -> void:
 	var effective := SelectionManager.get_effective_clipboard()
 	assert_true(effective.has("buildings"), "旋转后应有 buildings")
 	var offsets: Array[Vector2i] = []
-	for item in effective.buildings:
+	for item: Dictionary in effective.buildings:
 		offsets.append(item.offset)
 	assert_true(offsets.has(Vector2i(0, 0)), "90°旋转后 (0,0) 应不变")
 	assert_true(offsets.has(Vector2i(0, 1)), "90°旋转后 (1,0) 应变为 (0,1)（重新归一化后）")
@@ -341,7 +343,7 @@ func test_rotate_clipboard_180_degrees() -> void:
 	assert_eq(SelectionManager._paste_rotation, 2, "旋转 2 次后 _paste_rotation 应为 2（180°）")
 	var effective := SelectionManager.get_effective_clipboard()
 	var offsets: Array[Vector2i] = []
-	for item in effective.buildings:
+	for item: Dictionary in effective.buildings:
 		offsets.append(item.offset)
 	assert_true(offsets.has(Vector2i(0, 0)), "180°旋转后 (0,0) 不变")
 	assert_true(offsets.has(Vector2i(1, 0)), "180°旋转后 (1,0) 归一化为 (0,0) 和 (1,0)")
@@ -383,7 +385,7 @@ func test_rotate_clipboard_single_cell() -> void:
 	SelectionManager._paste_rotation = 0
 	SelectionManager.rotate_clipboard()
 	assert_eq(SelectionManager._paste_rotation, 1, "旋转后 _paste_rotation 应为 1")
-	var raw_offset := SelectionManager._rotate_offset(Vector2i(2, 3), 1)
+	var raw_offset := _SMScript._rotate_offset(Vector2i(2, 3), 1)
 	assert_eq(raw_offset, Vector2i(-3, 2), "_rotate_offset(2,3,1) 应返回 (-3,2)")
 	var effective := SelectionManager.get_effective_clipboard()
 	assert_true(effective.has("buildings"), "旋转后应有 buildings")

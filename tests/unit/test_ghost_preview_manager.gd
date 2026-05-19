@@ -2,7 +2,7 @@ extends GutTest
 
 var _gpm: GhostPreviewManager = null
 
-func before_each():
+func before_each() -> void:
 	if _gpm == null:
 		preload("res://scripts/building/ghost_preview_manager.gd")
 	_gpm = autoqfree(preload("res://scripts/building/ghost_preview_manager.gd").new())
