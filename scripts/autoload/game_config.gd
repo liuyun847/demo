@@ -46,8 +46,9 @@ const pipe_type_id: String = "type_02"
 # 砖块建筑类型标识
 const brick_type_id: String = "type_04"
 
-# 流体系统配置
-const fluid_tick_interval: float = 0.3 # 流体系统每 tick 间隔（秒）
+# 反应系统配置
+const reaction_tick_interval: float = 0.3 # 反应系统每 tick 间隔（秒）
+const diffusion_steps_per_tick: int = 3   # 每 tick 扩散步数
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"

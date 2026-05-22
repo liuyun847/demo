@@ -209,7 +209,7 @@ func test_bulk_clear_removes_all_buildings() -> void:
 func test_bulk_clear_clears_fluid_lists() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.bulk_clear()
-	assert_true(_bm.fluid_pipes.is_empty(), "bulk_clear 后 fluid_pipes 应为空")
+	assert_true(_bm.network_pipes.is_empty(), "bulk_clear 后 network_pipes 应为空")
 
 
 func test_bulk_clear_empty() -> void:

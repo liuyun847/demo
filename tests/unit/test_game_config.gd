@@ -5,7 +5,7 @@ func test_building_type_constants() -> void:
 	assert_eq(GameConfig.pipe_type_id, "type_02", "pipe_type_id 应为 type_02")
 
 func test_fluid_config_constants() -> void:
-	assert_eq(GameConfig.fluid_tick_interval, 0.3, "fluid_tick_interval 应为 0.3")
+	assert_eq(GameConfig.reaction_tick_interval, 0.3, "reaction_tick_interval 应为 0.3")
 
 func test_block_pixel_size() -> void:
 	var expected: int = GameConfig.cell_size * GameConfig.big_cell_size

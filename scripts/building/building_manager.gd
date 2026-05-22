@@ -3,11 +3,10 @@ extends Node2D
 
 var buildings: Dictionary[Vector2i, BuildingData] = {} # key: Vector2i, value: BuildingData
 var _building_nodes: Dictionary[Vector2i, Node2D] = {} # key: Vector2i, value: Node2D
-var fluid_pipes: Array[PipeNode] = []
+var network_pipes: Array[PipeNode] = []
 
 const _GridUtils: GDScript = preload("res://scripts/grid/grid_utils.gd")
 const _BuildingFactory: GDScript = preload("res://scripts/building/building_factory.gd")
-const _ReactionCoordinatorScript: GDScript = preload("res://scripts/fluid/fluid_coordinator.gd")
 
 @onready var pipe_render: PipeRenderSystem = $PipeRenderSystem
 
@@ -16,9 +15,10 @@ func _ready() -> void:
 	_init_reaction_coordinator()
 
 func _init_reaction_coordinator() -> void:
-	if _ReactionCoordinatorScript == null:
+	var ReactionCoordinatorScript: GDScript = load("res://scripts/reaction/reaction_coordinator.gd")
+	if ReactionCoordinatorScript == null:
 		return
-	var coordinator: ReactionCoordinator = _ReactionCoordinatorScript.new()
+	var coordinator: ReactionCoordinator = ReactionCoordinatorScript.new()
 	if coordinator == null:
 		return
 	coordinator.name = "ReactionCoordinator"
@@ -56,7 +56,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 	_building_nodes[grid_pos] = building_node
 	if building_node is PipeNode:
 		_register_pipe(building_node)
-		fluid_pipes.append(building_node)
+		network_pipes.append(building_node)
 	buildings[grid_pos] = data
 	EventBus.building_placed.emit(grid_pos)
 	_refresh_pipe_connections(grid_pos)
@@ -78,7 +78,7 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	var node_to_remove: Node2D = _building_nodes.get(grid_pos) as Node2D
 	if node_to_remove is PipeNode:
 		_unregister_pipe(node_to_remove)
-		fluid_pipes.erase(node_to_remove)
+		network_pipes.erase(node_to_remove)
 	_building_nodes.erase(grid_pos)
 	buildings.erase(grid_pos)
 	EventBus.building_removed.emit(grid_pos)
@@ -106,7 +106,7 @@ func bulk_clear() -> void:
 		node.queue_free()
 	_building_nodes.clear()
 	buildings.clear()
-	fluid_pipes.clear()
+	network_pipes.clear()
 	if pipe_render:
 		pipe_render.clear_all()
 	var coordinator := get_node_or_null("ReactionCoordinator") as ReactionCoordinator
