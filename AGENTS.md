@@ -35,15 +35,19 @@ demo/
 │   │   ├── keybind_manager.gd # 按键配置管理
 │   │   └── selection_manager.gd # 选中/剪贴板/撤销管理
 │   ├── building/              # 建筑系统模块
-│   │   ├── building_manager.gd # 建筑管理器（含管道批量绘制、幽灵预览等）
+│   │   ├── building_manager.gd # 建筑管理器（建筑增删改查、管线协调）
 │   │   ├── building_base.gd    # 建筑统一基类（BuildingBase）
 │   │   ├── fluid_node_base.gd  # 流体节点基类（FluidNodeBase，继承 BuildingBase）
 │   │   ├── container_node.gd   # 容器建筑（ContainerNode）
 │   │   ├── pipe_node.gd        # 管道建筑（PipeNode）
 │   │   ├── water_source_node.gd # 水源建筑（WaterSourceNode）
-│   │   └── brick_node.gd       # 砖块建筑（BrickNode）
+│   │   ├── brick_node.gd       # 砖块建筑（BrickNode）
+│   │   ├── building_factory.gd # 建筑工厂（BuildingFactory，根据类型创建实例）
+│   │   ├── pipe_render_system.gd # 管道批量渲染系统（PipeRenderSystem，ECS-Lite）
+│   │   └── ghost_preview_manager.gd # 幽灵预览管理器（GhostPreviewManager）
 │   ├── grid/                  # 网格系统模块
 │   │   ├── grid_coordinate.gd  # 网格坐标转换
+│   │   ├── grid_utils.gd       # 网格工具函数（直线/矩形/L形单元格计算）
 │   │   ├── map_input_handler.gd # 地图输入处理（状态机驱动）
 │   │   └── input_state_machine.gd # 输入状态机（IDLE / DRAGGING / REMOVING / SELECTING / DESELECTING / PASTE_DRAGGING）
 │   ├── persistence/           # 持久化模块
@@ -130,6 +134,8 @@ Root (Node2D) → main.gd                    # 主场景控制器
 ├── Camera2D (Camera2D) → CameraController.gd        # 当前激活相机
 ├── InfiniteGridMap (Node2D) → InfiniteGridMap.gd   # 无限方格地图
 ├── BuildingManager (Node2D) → BuildingManager.gd    # 建筑管理器
+│   ├── PipeRenderSystem (Node2D) → PipeRenderSystem.gd # 管道批量渲染
+│   ├── GhostPreviewManager (Node2D) → GhostPreviewManager.gd # 幽灵预览管理
 │   └── FluidCoordinator (Node) → FluidCoordinator.gd # 流体协调器（运行时动态创建）
 ├── SaveManager (Node) → SaveManager.gd              # 数据持久化管理
 ├── MapInputHandler (Node) → MapInputHandler.gd     # 地图输入处理
@@ -138,13 +144,14 @@ Root (Node2D) → main.gd                    # 主场景控制器
     ├── SettingsPanel (Control) → Settings.gd # 设置面板
     ├── InventoryBar (HBoxContainer) → InventoryBar.gd # 底部建筑类型选择栏
     ├── BuildingTooltip (Control) → BuildingTooltip.gd # 建筑悬停提示
-    └── KeyHints (VBoxContainer) → KeyHints.gd # 快捷键提示面板
+    ├── FPSDisplay (Label) → fps_display.gd # 帧率显示
+    └── KeyHints (VBoxContainer) → key_hints.gd # 快捷键提示面板
 ```
 
 # 核心功能说明
 
 - **输入状态机（InputStateMachine）**：`input_state_machine.gd` 定义 6 个状态（IDLE / DRAGGING / REMOVING / SELECTING / DESELECTING / PASTE_DRAGGING），`map_input_handler.gd` 根据当前模式（放置/删除/框选/粘贴）委托对应状态逻辑，状态切换时自动显示/隐藏对应幽灵预览
-- **幽灵预览系统**：BuildingManager 维护多组幽灵数组（ghost_cells / remove_ghost_cells / select_ghost_cells / deselect_ghost_cells / paste_ghost_cells），`_draw()` 统一绘制，`show_*`/`hide_*` 系列方法切换状态
+- **幽灵预览系统**：GhostPreviewManager 维护多组幽灵数组（ghost_cells / remove_ghost_cells / select_ghost_cells / deselect_ghost_cells / paste_ghost_cells / selected_cells），`_draw()` 统一绘制，`show_*`/`hide_*` 系列方法切换状态；作为 BuildingManager 的子节点管理所有预览渲染
 - **无限方格地图**：基于视口动态加载/卸载区块（640px/块），实现无缝漫游
 - **细网格线自适应**：大格子数量≥6 时自动隐藏细网格线
 - **建筑放置/删除**：左键放置、右键删除，拖拽支持直线批量放置（`get_line_cells`）和矩形批量删除（`get_rect_cells`），拖拽时显示幽灵预览
@@ -152,13 +159,17 @@ Root (Node2D) → main.gd                    # 主场景控制器
 - **建筑统一基类**：BuildingBase 抽象基类，定义 grid_position / get_building_name / get_tooltip_summary 等公共接口，所有建筑继承自此基类
 - **流体节点基类**：FluidNodeBase（继承 BuildingBase），额外定义 get_pressure 抽象接口，所有流体建筑继承自 FluidNodeBase
 - **容器建筑**：自定义 \_draw() 渲染填充条，带 capacity / max\_capacity 属性，数据持久化
-- **管道建筑**：ECS-Lite 架构——PipeNode 保留 Node2D 骨架用于交互，渲染逻辑移至 BuildingManager.\_draw\_pipes() 批量绘制（PackedVector2Array/PackedInt32Array 存储位置/连接掩码/网络状态）；自动检测邻居连接显示水平/垂直/多通，无容量纯导体，三档视觉状态（0=未连通水源-暗色 / 1=输送中-亮蓝 / 2=满载-绿色）
+- **管道建筑**：ECS-Lite 架构——PipeNode 保留 Node2D 骨架用于交互，渲染逻辑由 PipeRenderSystem 批量绘制（PackedVector2Array/PackedInt32Array 存储位置/连接掩码/网络状态）；自动检测邻居连接显示水平/垂直/多通，无容量纯导体，三档视觉状态（0=未连通水源-暗色 / 1=输送中-亮蓝 / 2=满载-绿色）
 - **水源建筑**：自定义 \_draw() 渲染石井水面效果，每 tick 产出固定水量（output\_per\_tick=30），BFS 网络中作为源点
 - **建筑悬停提示**：鼠标悬停建筑时显示浮动面板，展示建筑名称、摘要属性，支持展开查看详细信息
 - **吸管功能**：鼠标滚轮在已有建筑格子上按下时，自动切换为该建筑对应的建造类型
 - **框选与复制粘贴**：框选建筑（蓝色高亮），Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z 撤销，Ctrl+Shift+Z 或 Ctrl+Y 重做；粘贴模式下按 R 键可顺时针旋转剪贴板布局（0°→90°→180°→270° 循环），支持拖拽粘贴（`get_paste_line_anchors` 生成行列式锚点）；管道粘贴后自动重新检测邻居连接
 - **快捷键提示面板（KeyHints）**：右上角动态显示当前可用快捷键及模式说明（放置/删除/框选/粘贴/吸取），随当前模式变化实时更新
 - **流体系统**：FluidCoordinator 通过脏标记（\_dirty）缓存 BFS 连通网络结构，仅在建筑放置/删除时重建网络拓扑；每 tick 遍历缓存的网络执行水量分配（水源产出汇总 → 均分给所有有空位的容器）；管道视觉状态采用差分更新
+- **建筑工厂（BuildingFactory）**：静态工厂类，根据 building_type 字符串创建对应的建筑实例（ContainerNode / PipeNode / WaterSourceNode / BrickNode），统一管理建筑实例化逻辑
+- **管道渲染系统（PipeRenderSystem）**：ECS-Lite 数据批次渲染，管理所有 PipeNode 的位置/连接掩码/网络状态分组；支持单个管道注册/注销/逐位变更和批量更新两种模式；`_draw()` 中统一绘制线段和转角
+- **幽灵预览管理器（GhostPreviewManager）**：管理放置/删除/框选/粘贴/选中 5 类幽灵预览数组，提供 `show_*`/`hide_*` 方法和 `_draw()` 统一渲染；监听 `selection_changed` 信号同步选中状态
+- **网格工具类（GridUtils）**：提供 `get_line_cells`（直线格）、`get_rect_cells`（矩形格）、`get_l_cells`（L 形格）等静态坐标计算方法
 - **数据持久化**：建筑/按键/设置数据自动保存到 save/ 目录，启动自动加载
 - **MCP 调试工具**：集成 godot\_mcp 插件，支持场景运行、截图、输入模拟等调试
 - **事件驱动架构**：通过 EventBus 实现模块间松耦合通信
