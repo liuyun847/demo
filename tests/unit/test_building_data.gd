@@ -7,17 +7,17 @@ func test_has_capacity_non_container() -> void:
 	assert_false(BuildingData.has_capacity(GameConfig.pipe_type_id), "管道类型不应有容量")
 	assert_false(BuildingData.has_capacity("default"), "默认类型不应有容量")
 
-func test_is_fluid_building_container() -> void:
-	assert_true(BuildingData.is_fluid_building(GameConfig.container_type_id), "容器是流体建筑")
+func test_is_pipe_or_buffer_container() -> void:
+	assert_true(BuildingData.is_pipe_or_buffer(GameConfig.container_type_id), "容器是管道或缓存节点")
 
-func test_is_fluid_building_pipe() -> void:
-	assert_true(BuildingData.is_fluid_building(GameConfig.pipe_type_id), "管道是流体建筑")
+func test_is_pipe_or_buffer_pipe() -> void:
+	assert_true(BuildingData.is_pipe_or_buffer(GameConfig.pipe_type_id), "管道是管道或缓存节点")
 
-func test_is_fluid_building_default() -> void:
-	assert_false(BuildingData.is_fluid_building("default"), "默认类型不是流体建筑")
+func test_is_pipe_or_buffer_default() -> void:
+	assert_false(BuildingData.is_pipe_or_buffer("default"), "默认类型不是管道或缓存节点")
 
-func test_is_fluid_building_brick() -> void:
-	assert_false(BuildingData.is_fluid_building(GameConfig.brick_type_id), "砖块不是流体建筑")
+func test_is_pipe_or_buffer_brick() -> void:
+	assert_false(BuildingData.is_pipe_or_buffer(GameConfig.brick_type_id), "砖块不是管道或缓存节点")
 
 func test_is_container_building_with_container() -> void:
 	load("res://scripts/building/container_node.gd")

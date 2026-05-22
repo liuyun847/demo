@@ -146,7 +146,7 @@ func is_pipe_or_buffer_at(grid_pos: Vector2i) -> bool:
 	if not buildings.has(grid_pos):
 		return false
 	var data: BuildingData = buildings[grid_pos] as BuildingData
-	return data != null and BuildingData.is_fluid_building(data.building_type)
+	return data != null and BuildingData.is_pipe_or_buffer(data.building_type)
 
 func place_buildings_in_line(cells: Array[Vector2i], building_type: String = "default") -> int:
 	var placed_count := 0
