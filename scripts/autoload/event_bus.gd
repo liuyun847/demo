@@ -26,10 +26,6 @@ signal selection_changed(selected_cells: Array[Vector2i])
 @warning_ignore("unused_signal")
 signal paste_mode_changed(active: bool)
 
-# 流体系统信号
-@warning_ignore("unused_signal")
-signal fluid_updated
-
 # 摄像机变更信号
 @warning_ignore("unused_signal")
 signal camera_changed

@@ -5,7 +5,6 @@ func test_has_capacity_container() -> void:
 
 func test_has_capacity_non_container() -> void:
 	assert_false(BuildingData.has_capacity(GameConfig.pipe_type_id), "管道类型不应有容量")
-	assert_false(BuildingData.has_capacity(GameConfig.water_source_type_id), "水源类型不应有容量")
 	assert_false(BuildingData.has_capacity("default"), "默认类型不应有容量")
 
 func test_is_fluid_building_container() -> void:
@@ -13,9 +12,6 @@ func test_is_fluid_building_container() -> void:
 
 func test_is_fluid_building_pipe() -> void:
 	assert_true(BuildingData.is_fluid_building(GameConfig.pipe_type_id), "管道是流体建筑")
-
-func test_is_fluid_building_water_source() -> void:
-	assert_true(BuildingData.is_fluid_building(GameConfig.water_source_type_id), "水源是流体建筑")
 
 func test_is_fluid_building_default() -> void:
 	assert_false(BuildingData.is_fluid_building("default"), "默认类型不是流体建筑")

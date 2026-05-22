@@ -3,7 +3,6 @@ extends GutTest
 func test_building_type_constants() -> void:
 	assert_eq(GameConfig.container_type_id, "type_01", "container_type_id 应为 type_01")
 	assert_eq(GameConfig.pipe_type_id, "type_02", "pipe_type_id 应为 type_02")
-	assert_eq(GameConfig.water_source_type_id, "type_03", "water_source_type_id 应为 type_03")
 
 func test_fluid_config_constants() -> void:
 	assert_eq(GameConfig.fluid_tick_interval, 0.3, "fluid_tick_interval 应为 0.3")

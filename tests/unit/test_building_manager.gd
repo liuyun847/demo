@@ -7,18 +7,14 @@ var _bm: BuildingManager = null
 
 func before_each() -> void:
 	if _bm == null:
-		preload("res://scripts/building/fluid_node_base.gd")
 		preload("res://scripts/building/container_node.gd")
 		preload("res://scripts/building/pipe_node.gd")
-		preload("res://scripts/building/water_source_node.gd")
 		preload("res://scripts/resources/building_data.gd")
 	_bm = autoqfree(_BM.new())
 	var pr: PipeRenderSystem = preload("res://scripts/building/pipe_render_system.gd").new()
 	pr.name = "PipeRenderSystem"
 	_bm.add_child(pr)
 	add_child_autoqfree(_bm)
-	for conn: Dictionary in EventBus.fluid_updated.get_connections():
-		EventBus.fluid_updated.disconnect(conn.callable)
 
 func test_has_building_empty() -> void:
 	assert_false(_bm.has_building(Vector2i(0, 0)), "刚创建时不应有建筑")
@@ -44,10 +40,6 @@ func test_place_building_container_type() -> void:
 
 func test_place_building_pipe_type() -> void:
 	var result: bool = _bm.place_building(Vector2i(4, 1), GameConfig.pipe_type_id)
-	assert_true(result)
-
-func test_place_building_water_source_type() -> void:
-	var result: bool = _bm.place_building(Vector2i(0, 3), GameConfig.water_source_type_id)
 	assert_true(result)
 
 func test_place_building_default_type() -> void:
@@ -82,7 +74,6 @@ func test_get_all_buildings_data_isolation() -> void:
 func test_clear_all_buildings() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(1, 1), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(2, 2), GameConfig.water_source_type_id)
 	_bm.clear_all_buildings()
 	assert_eq(_bm.get_all_buildings_data().size(), 0, "清除后应无建筑")
 
@@ -208,66 +199,17 @@ func test_get_building_node_name() -> void:
 	var name_str2: String = _GU.get_building_node_name(Vector2i(-1, -5))
 	assert_eq(name_str2, "Building_-1_-5", "负坐标也应正确格式化")
 
-func test_batch_update_pipe_states_updates_network_state() -> void:
-	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
-
-	var pipe_0 := _bm.get_building_node(Vector2i(0, 0)) as PipeNode
-	var pipe_1 := _bm.get_building_node(Vector2i(1, 0)) as PipeNode
-	var pipe_2 := _bm.get_building_node(Vector2i(2, 0)) as PipeNode
-
-	var states := {
-		pipe_0.get_instance_id(): 1,
-		pipe_1.get_instance_id(): 2,
-		pipe_2.get_instance_id(): 1,
-	}
-	_bm.batch_update_pipe_states(states)
-
-	assert_true(true, "batch_update_pipe_states 不应崩溃（pipe_render 自动管理）")
-
-
-func test_batch_update_pipe_states_isolated_pipe_gets_zero() -> void:
-	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
-
-	var pipe_0 := _bm.get_building_node(Vector2i(0, 0)) as PipeNode
-	pipe_0.network_state = 1
-
-	_bm.batch_update_pipe_states({})
-
-	assert_true(true, "空字典时 batch_update_pipe_states 不应崩溃")
-
-
-func test_batch_update_pipe_states_empty_dict() -> void:
-	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-
-	_bm.batch_update_pipe_states({})
-
-	assert_true(true, "空字典时 batch_update_pipe_states 不应崩溃")
-
-
-func test_batch_update_pipe_states_no_pipes() -> void:
-	_bm.batch_update_pipe_states({1: 1, 2: 2})
-	assert_true(true, "无管道时 batch_update_pipe_states 不应崩溃")
-
-
 func test_bulk_clear_removes_all_buildings() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(2, 0), GameConfig.water_source_type_id)
 	_bm.bulk_clear()
 	assert_eq(_bm.get_all_buildings_data().size(), 0, "bulk_clear 后 buildings 应为空")
 
 
 func test_bulk_clear_clears_fluid_lists() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(1, 0), GameConfig.water_source_type_id)
 	_bm.bulk_clear()
 	assert_true(_bm.fluid_pipes.is_empty(), "bulk_clear 后 fluid_pipes 应为空")
-	assert_true(_bm.fluid_sources.is_empty(), "bulk_clear 后 fluid_sources 应为空")
 
 
 func test_bulk_clear_empty() -> void:
@@ -275,14 +217,14 @@ func test_bulk_clear_empty() -> void:
 	assert_true(true, "无建筑时 bulk_clear 不应崩溃")
 
 
-func test_bulk_clear_marks_fluid_coordinator_dirty() -> void:
+func test_bulk_clear_marks_reaction_coordinator_dirty() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
-	var coordinator: Node = _bm.get_node_or_null("FluidCoordinator")
+	var coordinator: Node = _bm.get_node_or_null("ReactionCoordinator")
 	if coordinator:
 		coordinator._dirty = false
 	_bm.bulk_clear()
 	if coordinator:
-		assert_true(coordinator._dirty, "bulk_clear 后 FluidCoordinator 的 _dirty 应为 true")
+		assert_true(coordinator._dirty, "bulk_clear 后 ReactionCoordinator 的 _dirty 应为 true")
 
 
 func test_refresh_pipe_connections_on_place() -> void:

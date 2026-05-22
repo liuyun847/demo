@@ -120,8 +120,6 @@ func test_undo_empty_stack_does_not_crash() -> void:
 func test_perform_paste_batch_with_building_manager() -> void:
 	load("res://scripts/building/container_node.gd")
 	load("res://scripts/building/pipe_node.gd")
-	load("res://scripts/building/water_source_node.gd")
-	load("res://scripts/building/fluid_node_base.gd")
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
 	load("res://scripts/grid/grid_coordinate.gd")
@@ -134,9 +132,6 @@ func test_perform_paste_batch_with_building_manager() -> void:
 	bm.add_child(pipe_render)
 	bm.unique_name_in_owner = true
 	add_child_autoqfree(bm)
-
-	for conn: Dictionary in EventBus.fluid_updated.get_connections():
-		EventBus.fluid_updated.disconnect(conn.callable)
 
 	SelectionManager.undo_stack.clear()
 	SelectionManager._building_manager = bm
@@ -159,8 +154,6 @@ func test_perform_paste_batch_with_building_manager() -> void:
 func test_perform_paste_batch_skip_occupied() -> void:
 	load("res://scripts/building/container_node.gd")
 	load("res://scripts/building/pipe_node.gd")
-	load("res://scripts/building/water_source_node.gd")
-	load("res://scripts/building/fluid_node_base.gd")
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
 	load("res://scripts/grid/grid_coordinate.gd")
@@ -173,12 +166,9 @@ func test_perform_paste_batch_skip_occupied() -> void:
 	bm.unique_name_in_owner = true
 	add_child_autoqfree(bm)
 
-	for conn: Dictionary in EventBus.fluid_updated.get_connections():
-		EventBus.fluid_updated.disconnect(conn.callable)
-
 	SelectionManager.undo_stack.clear()
 	SelectionManager._building_manager = bm
-	bm.place_building(Vector2i(3, 0), GameConfig.water_source_type_id)
+	bm.place_building(Vector2i(3, 0), GameConfig.container_type_id)
 
 	var buildings: Array[Dictionary] = [
 		{"offset": Vector2i(0, 0), "type": GameConfig.container_type_id},
@@ -193,7 +183,7 @@ func test_perform_paste_batch_skip_occupied() -> void:
 
 	assert_true(bm.has_building(Vector2i(0, 0)), "offset(0,0) 应放置")
 	assert_true(bm.has_building(Vector2i(1, 0)), "offset(1,0) 应放置")
-	assert_eq(bm.get_building_type(Vector2i(3, 0)), GameConfig.water_source_type_id, "已占用位置应保留原建筑")
+	assert_eq(bm.get_building_type(Vector2i(3, 0)), GameConfig.container_type_id, "已占用位置应保留原建筑")
 	assert_true(bm.has_building(Vector2i(4, 0)), "第二个锚点的 offset(1,0) 应放置")
 
 func test_perform_paste_batch_empty_clipboard() -> void:
@@ -232,8 +222,6 @@ func test_new_action_clears_redo_stack() -> void:
 func test_redo_after_undo_restores_building() -> void:
 	load("res://scripts/building/container_node.gd")
 	load("res://scripts/building/pipe_node.gd")
-	load("res://scripts/building/water_source_node.gd")
-	load("res://scripts/building/fluid_node_base.gd")
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
 	load("res://scripts/grid/grid_coordinate.gd")
@@ -245,9 +233,6 @@ func test_redo_after_undo_restores_building() -> void:
 	bm.add_child(pipe_render)
 	bm.unique_name_in_owner = true
 	add_child_autoqfree(bm)
-
-	for conn: Dictionary in EventBus.fluid_updated.get_connections():
-		EventBus.fluid_updated.disconnect(conn.callable)
 
 	SelectionManager.undo_stack.clear()
 	SelectionManager.redo_stack.clear()
@@ -271,12 +256,9 @@ func test_redo_after_undo_restores_building() -> void:
 func test_redo_undo_cycle() -> void:
 	load("res://scripts/building/container_node.gd")
 	load("res://scripts/building/pipe_node.gd")
-	load("res://scripts/building/water_source_node.gd")
-	load("res://scripts/building/fluid_node_base.gd")
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
 	load("res://scripts/grid/grid_coordinate.gd")
-	load("res://scripts/fluid/fluid_coordinator.gd")
 	var bm: BuildingManager = autoqfree(load("res://scripts/building/building_manager.gd").new())
 	bm.name = "BuildingManager"
 
@@ -285,9 +267,6 @@ func test_redo_undo_cycle() -> void:
 	bm.add_child(pipe_render)
 	bm.unique_name_in_owner = true
 	add_child_autoqfree(bm)
-
-	for conn: Dictionary in EventBus.fluid_updated.get_connections():
-		EventBus.fluid_updated.disconnect(conn.callable)
 
 	SelectionManager.undo_stack.clear()
 	SelectionManager.redo_stack.clear()

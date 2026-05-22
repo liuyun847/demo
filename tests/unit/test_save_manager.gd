@@ -19,7 +19,6 @@ func before_each() -> void:
 
 	_sm = autoqfree(SaveManagerScript.new())
 	add_child_autoqfree(_sm)
-	# @onready 在 _ready 中设置 building_manager，可能因路径问题失败，手动修正
 	_sm.building_manager = _bm
 
 func after_each() -> void:
@@ -98,7 +97,6 @@ func test_load_restores_capacity() -> void:
 func test_save_load_roundtrip() -> void:
 	_bm.place_building(Vector2i(3, 4), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(1, 1), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(7, 0), GameConfig.water_source_type_id)
 	_sm.save_buildings()
 	var data_before: Dictionary = _bm.get_all_buildings_data().duplicate(true)
 	_bm.clear_all_buildings()
@@ -128,17 +126,6 @@ func test_debounce_prevents_double_save() -> void:
 	await get_tree().process_frame
 	assert_false(_sm._save_pending, "call_deferred 执行后 _save_pending 应为 false")
 	assert_true(FileAccess.file_exists(GameConfig.save_file_path), "debounce 后应保存了一次")
-
-func test_fluid_updated_autosave() -> void:
-	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
-	await get_tree().process_frame
-	DirAccess.remove_absolute(GameConfig.save_file_path)
-	assert_false(FileAccess.file_exists(GameConfig.save_file_path), "开始前存档文件不应存在")
-	EventBus.fluid_updated.emit()
-	assert_true(_sm._fluid_autosave_timer.time_left > 0, "fluid_updated 后计时器应已启动")
-	_sm._fluid_autosave_timer.stop()
-	_sm._on_fluid_autosave_timeout()
-	assert_true(FileAccess.file_exists(GameConfig.save_file_path), "计时器超时后应执行保存")
 
 
 func _read_save_file() -> Dictionary:

@@ -32,7 +32,7 @@ func test_update_content_shows_building_name() -> void:
 	mock_node.set_script(preload("res://scripts/building/container_node.gd"))
 	add_child_autoqfree(mock_node)
 	_tooltip._on_building_hovered(Vector2i(0, 0), mock_node)
-	assert_eq(_tooltip._name_label.text, "容器", "应显示建筑名称 '容器'")
+	assert_eq(_tooltip._name_label.text, "缓存节点", "应显示建筑名称 '缓存节点'")
 
 
 func test_update_content_shows_summary() -> void:

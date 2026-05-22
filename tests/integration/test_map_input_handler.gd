@@ -6,10 +6,8 @@ var _bar: InventoryBar = null
 var _camera: Camera2D = null
 
 func before_each() -> void:
-	preload("res://scripts/building/fluid_node_base.gd")
 	preload("res://scripts/building/container_node.gd")
 	preload("res://scripts/building/pipe_node.gd")
-	preload("res://scripts/building/water_source_node.gd")
 	preload("res://scripts/resources/building_data.gd")
 	preload("res://scripts/resources/undo_command.gd")
 	preload("res://scripts/grid/input_state_machine.gd")

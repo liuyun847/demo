@@ -1,9 +1,7 @@
 extends GutTest
 
-const _FluidNodeBase = preload("res://scripts/building/fluid_node_base.gd")
 const _ContainerNode = preload("res://scripts/building/container_node.gd")
 const _PipeNodeScript = preload("res://scripts/building/pipe_node.gd")
-const _WaterSourceNodeScript = preload("res://scripts/building/water_source_node.gd")
 const _BuildingData = preload("res://scripts/resources/building_data.gd")
 const _BM = preload("res://scripts/building/building_manager.gd")
 
@@ -40,9 +38,6 @@ func test_has_capacity_for_container() -> void:
 func test_has_capacity_for_pipe() -> void:
 	assert_false(BuildingData.has_capacity(GameConfig.pipe_type_id), "管道类型不应有容量属性")
 
-func test_has_capacity_for_water_source() -> void:
-	assert_false(BuildingData.has_capacity(GameConfig.water_source_type_id), "水源类型不应有容量属性")
-
 func test_has_capacity_for_default() -> void:
 	assert_false(BuildingData.has_capacity("default"), "默认类型不应有容量属性")
 
@@ -55,9 +50,6 @@ func test_is_fluid_building_for_container() -> void:
 
 func test_is_fluid_building_for_pipe() -> void:
 	assert_true(BuildingData.is_fluid_building(GameConfig.pipe_type_id), "管道应为流体建筑")
-
-func test_is_fluid_building_for_water_source() -> void:
-	assert_true(BuildingData.is_fluid_building(GameConfig.water_source_type_id), "水源应为流体建筑")
 
 func test_is_fluid_building_for_default() -> void:
 	assert_false(BuildingData.is_fluid_building("default"), "默认类型不应为流体建筑")
@@ -143,10 +135,6 @@ func test_is_container_building_with_other() -> void:
 func test_is_container_building_with_pipe() -> void:
 	var node: PipeNode = autoqfree(_PipeNodeScript.new())
 	assert_false(BuildingData.is_container_building(node), "PipeNode 不应判定为容器建筑")
-
-func test_is_container_building_with_water_source() -> void:
-	var node: WaterSourceNode = autoqfree(_WaterSourceNodeScript.new())
-	assert_false(BuildingData.is_container_building(node), "WaterSourceNode 不应判定为容器建筑")
 
 func test_is_container_building_with_null() -> void:
 	assert_false(BuildingData.is_container_building(null), "null 不应判定为容器建筑")

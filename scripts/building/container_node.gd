@@ -1,5 +1,5 @@
 class_name ContainerNode
-extends FluidNodeBase
+extends BuildingBase
 
 var _redraw_pending: bool = false
 
@@ -28,14 +28,10 @@ func _do_redraw() -> void:
 
 
 func _ready() -> void:
-	add_to_group("container")
+	add_to_group("buffer")
 
 func get_fill_ratio() -> float:
 	return float(capacity) / float(max_capacity)
-
-
-func get_pressure() -> float:
-	return 0.0
 
 
 func add(amount: int) -> int:
@@ -51,7 +47,7 @@ func remove(amount: int) -> int:
 
 
 func get_building_name() -> String:
-	return "容器"
+	return "缓存节点"
 
 func get_tooltip_summary() -> Dictionary:
 	return {
@@ -61,7 +57,6 @@ func get_tooltip_summary() -> Dictionary:
 func get_tooltip_details() -> Dictionary:
 	return {
 		"填充率": "%d%%" % int(get_fill_ratio() * 100.0),
-		"压力": "%.2f" % get_pressure(),
 	}
 
 func _draw() -> void:
