@@ -45,14 +45,14 @@ func test_has_capacity_for_other_types() -> void:
 	assert_false(BuildingData.has_capacity("type_04"), "type_04 不应有容量属性")
 	assert_false(BuildingData.has_capacity("type_10"), "type_10 不应有容量属性")
 
-func test_is_fluid_building_for_container() -> void:
-	assert_true(BuildingData.is_fluid_building(GameConfig.container_type_id), "容器应为流体建筑")
+func test_is_pipe_or_buffer_for_container() -> void:
+	assert_true(BuildingData.is_pipe_or_buffer(GameConfig.container_type_id), "容器应为管道或缓存节点")
 
-func test_is_fluid_building_for_pipe() -> void:
-	assert_true(BuildingData.is_fluid_building(GameConfig.pipe_type_id), "管道应为流体建筑")
+func test_is_pipe_or_buffer_for_pipe() -> void:
+	assert_true(BuildingData.is_pipe_or_buffer(GameConfig.pipe_type_id), "管道应为管道或缓存节点")
 
-func test_is_fluid_building_for_default() -> void:
-	assert_false(BuildingData.is_fluid_building("default"), "默认类型不应为流体建筑")
+func test_is_pipe_or_buffer_for_default() -> void:
+	assert_false(BuildingData.is_pipe_or_buffer("default"), "默认类型不应为管道或缓存节点")
 
 func test_undo_command_place_type() -> void:
 	var cmd: UndoCommand = UndoCommand.new()
