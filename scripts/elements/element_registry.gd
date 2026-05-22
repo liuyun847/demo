@@ -18,7 +18,7 @@ func get_reaction(reactant_a_id: String, reactant_b_id: String) -> String:
 	return ""
 
 func calculate_complexity(complexity_a: int, complexity_b: int) -> int:
-	return maxi(complexity_a, complexity_b) + 1
+	return max(complexity_a, complexity_b) + 1
 
 func calculate_value(element_type: ElementTypeData, complexity: int) -> float:
 	return element_type.base_value * get_step_coefficient(complexity)

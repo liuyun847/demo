@@ -53,13 +53,13 @@ func _get_weighted_directions(element_type: ElementTypeData) -> Array[Dictionary
 func _weighted_random(choices: Array[Dictionary]) -> Vector2i:
 	var total_weight: float = 0.0
 	for choice: Dictionary in choices:
-		total_weight += choice.weight
+		total_weight += choice["weight"]
 
 	var roll: float = randf_range(0.0, total_weight)
 	var cumulative: float = 0.0
 	for choice: Dictionary in choices:
-		cumulative += choice.weight
+		cumulative += choice["weight"]
 		if roll < cumulative:
-			return choice.dir
+			return choice["dir"]
 
-	return choices.back().dir
+	return choices.back()["dir"]
