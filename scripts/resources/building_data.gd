@@ -11,8 +11,7 @@ static func has_capacity(type_id: String) -> bool:
 
 static func is_fluid_building(type_id: String) -> bool:
 	return type_id == GameConfig.container_type_id or \
-		   type_id == GameConfig.pipe_type_id or \
-		   type_id == GameConfig.water_source_type_id
+		   type_id == GameConfig.pipe_type_id
 
 static func is_container_building(node: Node) -> bool:
 	return node is ContainerNode

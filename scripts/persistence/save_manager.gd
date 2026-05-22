@@ -8,14 +8,9 @@ extends Node
 var _is_loading: bool = false
 var _save_pending: bool = false
 
-var _fluid_autosave_timer: Timer = null
-const FLUID_AUTOSAVE_DELAY: float = 3.0
-
 func _ready() -> void:
 	EventBus.building_placed.connect(_on_building_changed)
 	EventBus.building_removed.connect(_on_building_changed)
-	EventBus.fluid_updated.connect(_on_fluid_updated)
-	_init_fluid_autosave_timer()
 	load_buildings()
 
 func _exit_tree() -> void:
@@ -23,22 +18,6 @@ func _exit_tree() -> void:
 		EventBus.building_placed.disconnect(_on_building_changed)
 	if EventBus.building_removed.is_connected(_on_building_changed):
 		EventBus.building_removed.disconnect(_on_building_changed)
-	if EventBus.fluid_updated.is_connected(_on_fluid_updated):
-		EventBus.fluid_updated.disconnect(_on_fluid_updated)
-
-func _init_fluid_autosave_timer() -> void:
-	_fluid_autosave_timer = Timer.new()
-	_fluid_autosave_timer.one_shot = true
-	_fluid_autosave_timer.timeout.connect(_on_fluid_autosave_timeout)
-	add_child(_fluid_autosave_timer)
-
-func _on_fluid_updated() -> void:
-	if _is_loading or _save_pending:
-		return
-	_fluid_autosave_timer.start(FLUID_AUTOSAVE_DELAY)
-
-func _on_fluid_autosave_timeout() -> void:
-	_do_save()
 
 func _on_building_changed(_grid_pos: Vector2i) -> void:
 	if _is_loading:
@@ -185,11 +164,8 @@ func _finalize_loading() -> void:
 	for grid_pos: Vector2i in building_manager.buildings.keys():
 		var node := building_manager.get_building_node(grid_pos)
 		if node is PipeNode:
-			node.refresh_connections(building_manager.is_fluid_building_at)
+			node.refresh_connections(building_manager.is_pipe_or_buffer_at)
 		elif node is ContainerNode:
-			node.queue_redraw()
-		elif node is WaterSourceNode:
-			node.reset_output()
 			node.queue_redraw()
 
 	_is_loading = false

@@ -1,5 +1,5 @@
 class_name PipeNode
-extends FluidNodeBase
+extends BuildingBase
 
 var _data_changed_callback: Callable
 
@@ -10,12 +10,6 @@ var connection_mask: int = 0:
 	set(value):
 		if connection_mask != value:
 			connection_mask = value
-			_notify_bm_dirty()
-
-var network_state: int = 0:
-	set(value):
-		if network_state != value:
-			network_state = value
 			_notify_bm_dirty()
 
 
@@ -41,20 +35,12 @@ func refresh_connections(is_connectable: Callable) -> void:
 
 	connection_mask = mask
 
-func get_pressure() -> float:
-	return 0.0
-
 
 func get_building_name() -> String:
 	return "管道"
 
 func get_tooltip_summary() -> Dictionary:
-	var state_text := "未连通"
-	if network_state == 1:
-		state_text = "输送中"
-	elif network_state == 2:
-		state_text = "已满载"
-	return {"网络状态": state_text}
+	return {}
 
 func get_tooltip_details() -> Dictionary:
 	var connections: Array[String] = []
@@ -70,5 +56,3 @@ func get_tooltip_details() -> Dictionary:
 	return {
 		"连接方向": conn_str,
 	}
-
-

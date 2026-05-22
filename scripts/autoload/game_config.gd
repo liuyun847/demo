@@ -43,9 +43,6 @@ const container_type_id: String = "type_01"
 # 管道建筑类型标识
 const pipe_type_id: String = "type_02"
 
-# 水源建筑类型标识
-const water_source_type_id: String = "type_03"
-
 # 砖块建筑类型标识
 const brick_type_id: String = "type_04"
 

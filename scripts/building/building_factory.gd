@@ -27,12 +27,6 @@ static func create_building(building_type: String, grid_pos: Vector2i, world_pos
 		pipe.global_position = world_pos
 		pipe.grid_position = grid_pos
 		building_node = pipe
-	elif building_type == GameConfig.water_source_type_id:
-		var source := WaterSourceNode.new()
-		source.name = node_name
-		source.global_position = world_pos
-		source.grid_position = grid_pos
-		building_node = source
 	elif building_type == GameConfig.brick_type_id:
 		var brick := BrickNode.new()
 		brick.name = node_name
