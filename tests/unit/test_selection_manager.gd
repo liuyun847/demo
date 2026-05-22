@@ -123,7 +123,7 @@ func test_perform_paste_batch_with_building_manager() -> void:
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
 	load("res://scripts/grid/grid_coordinate.gd")
-	load("res://scripts/fluid/fluid_coordinator.gd")
+	load("res://scripts/reaction/reaction_coordinator.gd")
 	var bm: BuildingManager = autoqfree(load("res://scripts/building/building_manager.gd").new())
 	bm.name = "BuildingManager"
 

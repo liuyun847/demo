@@ -7,6 +7,10 @@ var _building_manager: BuildingManager = null
 var _dirty: bool = true
 var _cached_networks: Array[Dictionary] = []
 
+var _element_grid: ElementGrid = null
+var _element_diffusion: ElementDiffusion = null
+var _element_reaction: ElementReaction = null
+
 func init(building_manager: BuildingManager) -> void:
 	_building_manager = building_manager
 
@@ -14,10 +18,20 @@ func _ready() -> void:
 	EventBus.building_placed.connect(_on_topology_changed)
 	EventBus.building_removed.connect(_on_topology_changed)
 	_timer = Timer.new()
-	_timer.wait_time = GameConfig.fluid_tick_interval
+	_timer.wait_time = GameConfig.reaction_tick_interval
 	_timer.autostart = true
 	_timer.timeout.connect(_on_tick)
 	add_child(_timer)
+
+	_element_grid = ElementGrid.new()
+	_element_grid.building_manager_ref = _building_manager
+	add_child(_element_grid)
+
+	_element_diffusion = ElementDiffusion.new()
+	add_child(_element_diffusion)
+
+	_element_reaction = ElementReaction.new()
+	add_child(_element_reaction)
 
 func _exit_tree() -> void:
 	if EventBus.building_placed.is_connected(_on_topology_changed):
@@ -36,7 +50,7 @@ func mark_dirty() -> void:
 func _on_tick() -> void:
 	if not _building_manager:
 		return
-	var all_pipes: Array[PipeNode] = _building_manager.fluid_pipes
+	var all_pipes: Array[PipeNode] = _building_manager.network_pipes
 
 	if all_pipes.is_empty():
 		_cached_networks.clear()
@@ -46,6 +60,10 @@ func _on_tick() -> void:
 	if _dirty:
 		_rebuild_networks(all_pipes)
 		_dirty = false
+
+	_element_diffusion.diffuse_all(_element_grid, GameConfig.diffusion_steps_per_tick)
+
+	_element_reaction.process_all(_element_grid, ElementRegistry)
 
 func _rebuild_networks(pipes: Array[PipeNode]) -> void:
 	_cached_networks.clear()
