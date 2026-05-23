@@ -20,6 +20,35 @@ func try_output(element_grid: ElementGrid) -> bool:
 
 	return element_grid.set_element(target_pos, element)
 
+func _draw() -> void:
+	var half := GameConfig.building_size / 2.0
+	var size := float(GameConfig.building_size)
+
+	var element_type := ElementRegistry.get_element_type(element_type_id)
+	var elem_color: Color
+	if element_type:
+		elem_color = element_type.color
+	else:
+		elem_color = Color.WHITE
+
+	draw_rect(Rect2(-half, -half, size, size), Color(elem_color, 0.7))
+
+	var dir := output_direction
+	if dir == Vector2i.ZERO:
+		dir = get_default_direction()
+
+	var arrow_size := half * 0.55
+	var arrow_center := Vector2(dir) * arrow_size * 0.25
+	var arrow_tip := arrow_center + Vector2(dir) * arrow_size * 0.55
+	var perp := Vector2(-dir.y, dir.x)
+	var arrow_left := arrow_center + perp * arrow_size * 0.35
+	var arrow_right := arrow_center - perp * arrow_size * 0.35
+
+	draw_colored_polygon(PackedVector2Array([arrow_tip, arrow_left, arrow_right]), Color.WHITE)
+	draw_colored_polygon(PackedVector2Array([arrow_tip, arrow_left, arrow_right]), Color(elem_color, 0.85))
+
+	draw_rect(Rect2(-half, -half, size, size), Color(0.25, 0.25, 0.25), false, 1.5)
+
 func get_building_name() -> String:
 	match element_type_id:
 		"water":
