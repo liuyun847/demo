@@ -26,6 +26,37 @@ func try_collect(element_grid: ElementGrid) -> float:
 
 	return total_essence
 
+func _draw() -> void:
+	var half := GameConfig.building_size / 2.0
+	var size := float(GameConfig.building_size)
+
+	var color_bg := Color(0.4, 0.2, 0.7)
+	var color_inner := Color(0.55, 0.3, 0.85)
+
+	var inset := 4.0
+	var diamond := PackedVector2Array([
+		Vector2(0, -half + inset),
+		Vector2(half - inset, 0),
+		Vector2(0, half - inset),
+		Vector2(-half + inset, 0),
+	])
+	draw_colored_polygon(diamond, color_bg)
+
+	var inner_inset := inset + 6.0
+	var inner_diamond := PackedVector2Array([
+		Vector2(0, -half + inner_inset),
+		Vector2(half - inner_inset, 0),
+		Vector2(0, half - inner_inset),
+		Vector2(-half + inner_inset, 0),
+	])
+	draw_colored_polygon(inner_diamond, color_inner)
+
+	var center := Vector2.ZERO
+	var circle_radius := half * 0.2
+	draw_circle(center, circle_radius, Color.WHITE)
+
+	draw_rect(Rect2(-half, -half, size, size), Color(0.25, 0.25, 0.25), false, 1.5)
+
 func get_building_name() -> String:
 	return "收集器"
 
