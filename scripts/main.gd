@@ -84,8 +84,8 @@ func _on_game_started() -> void:
 	EssencePool.set_value(GameConfig.initial_essence)
 	var essence_display := EssenceDisplay.new()
 	essence_display.name = "EssenceDisplay"
-	essence_display.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	essence_display.position = Vector2(-220, 8)
+	essence_display.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	essence_display.position = Vector2(8, -8)
 	$UIOverlay.add_child(essence_display)
 
 func _on_start_game_requested() -> void:

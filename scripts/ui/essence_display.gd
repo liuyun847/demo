@@ -7,7 +7,7 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(200, 32)
 	_label = Label.new()
 	add_child(_label)
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var ls := LabelSettings.new()
