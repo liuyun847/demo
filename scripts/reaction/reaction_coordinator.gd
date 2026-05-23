@@ -52,18 +52,50 @@ func _on_tick() -> void:
 		return
 	var all_pipes: Array[PipeNode] = _building_manager.network_pipes
 
-	if all_pipes.is_empty():
-		_cached_networks.clear()
-		_dirty = false
-		return
-
 	if _dirty:
 		_rebuild_networks(all_pipes)
 		_dirty = false
 
+	_process_emitters()
+
 	_element_diffusion.diffuse_all(_element_grid, GameConfig.diffusion_steps_per_tick)
 
 	_element_reaction.process_all(_element_grid, ElementRegistry)
+
+	_process_collectors()
+
+func _process_emitters() -> void:
+	var total_cost: float = 0.0
+	var all_emitters: Array[EmitterNode] = []
+
+	for network: Dictionary in _cached_networks:
+		for emitter: EmitterNode in network.emitters:
+			all_emitters.append(emitter)
+			total_cost += emitter.essence_cost_per_tick
+
+	if all_emitters.is_empty() or total_cost <= 0.0:
+		return
+
+	var actual_cost: float = EssencePool.subtract(total_cost)
+	if actual_cost <= 0.0:
+		return
+
+	var ratio: float = actual_cost / total_cost
+	for emitter: EmitterNode in all_emitters:
+		if randf() < ratio:
+			emitter.try_output(_element_grid)
+
+func _process_collectors() -> void:
+	var collector_dict: Dictionary[int, bool] = {}
+	for network: Dictionary in _cached_networks:
+		for collector: CollectorNode in network.collectors:
+			var cid: int = collector.get_instance_id()
+			if collector_dict.has(cid):
+				continue
+			collector_dict[cid] = true
+			var collected: float = collector.try_collect(_element_grid)
+			if collected > 0.0:
+				EssencePool.add(collected)
 
 func _rebuild_networks(pipes: Array[PipeNode]) -> void:
 	_cached_networks.clear()
@@ -78,16 +110,22 @@ func _rebuild_networks(pipes: Array[PipeNode]) -> void:
 		if visited.has(node.get_instance_id()):
 			continue
 		var network := _bfs_network(node, visited)
-		if network.pipes.size() > 0 or network.containers.size() > 0:
+		if network.pipes.size() > 0 or network.containers.size() > 0 or \
+		   network.emitters.size() > 0 or network.collectors.size() > 0:
 			_cached_networks.append(network)
 
 
 func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionary:
 	if _building_manager == null:
-		return {"pipes": [], "containers": []}
+		return {"pipes": [], "containers": [], "emitters": [], "collectors": []}
+
 	var pipes: Array[Node] = []
 	var containers: Array[Node] = []
 	var container_dict: Dictionary[int, bool] = {}
+	var emitters: Array[EmitterNode] = []
+	var emitter_dict: Dictionary[int, bool] = {}
+	var collectors: Array[CollectorNode] = []
+	var collector_dict: Dictionary[int, bool] = {}
 
 	var queue: Array[Node] = [start_node]
 	var head: int = 0
@@ -116,7 +154,6 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 					continue
 
 			var neighbor_pos: Vector2i = node.grid_position + dirs[dir_idx]
-
 			var neighbor: Node = _building_manager.get_building_node(neighbor_pos)
 			if neighbor == null:
 				continue
@@ -129,7 +166,6 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 				var opposite_dir: int = dir_idx ^ 2
 				if (neighbor_pipe.connection_mask & (1 << opposite_dir)) == 0:
 					continue
-
 				if not visited.has(neighbor.get_instance_id()):
 					visited[neighbor.get_instance_id()] = true
 					queue.append(neighbor)
@@ -140,8 +176,20 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 				if not visited.has(neighbor.get_instance_id()):
 					visited[neighbor.get_instance_id()] = true
 					queue.append(neighbor)
+			elif neighbor is EmitterNode:
+				var nid: int = neighbor.get_instance_id()
+				if not emitter_dict.has(nid):
+					emitter_dict[nid] = true
+					emitters.append(neighbor)
+			elif neighbor is CollectorNode:
+				var nid: int = neighbor.get_instance_id()
+				if not collector_dict.has(nid):
+					collector_dict[nid] = true
+					collectors.append(neighbor)
 
 	return {
 		"pipes": pipes,
 		"containers": containers,
+		"emitters": emitters,
+		"collectors": collectors,
 	}

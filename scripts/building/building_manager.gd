@@ -10,9 +10,22 @@ const _BuildingFactory: GDScript = preload("res://scripts/building/building_fact
 
 @onready var pipe_render: PipeRenderSystem = $PipeRenderSystem
 
+var element_renderer: Node2D = null
 
 func _ready() -> void:
+	_init_element_renderer()
 	_init_reaction_coordinator()
+
+func _init_element_renderer() -> void:
+	var ElementRendererScript: GDScript = load("res://scripts/reaction/element_renderer.gd")
+	if ElementRendererScript == null:
+		return
+	var renderer: Node2D = ElementRendererScript.new() as Node2D
+	if renderer == null:
+		return
+	renderer.name = "ElementRenderer"
+	element_renderer = renderer
+	add_child(renderer)
 
 func _init_reaction_coordinator() -> void:
 	var ReactionCoordinatorScript: GDScript = load("res://scripts/reaction/reaction_coordinator.gd")
@@ -31,6 +44,11 @@ func has_building(grid_pos: Vector2i) -> bool:
 func place_building(grid_pos: Vector2i, building_type: String = "default", restore_data: Dictionary = {}) -> bool:
 	if has_building(grid_pos):
 		return false
+
+	if building_type == GameConfig.brick_type_id and restore_data.is_empty():
+		if not EssencePool.has(GameConfig.brick_essence_cost):
+			return false
+		EssencePool.subtract(GameConfig.brick_essence_cost)
 
 	var data := BuildingData.new()
 	data.grid_position = grid_pos
@@ -109,6 +127,8 @@ func bulk_clear() -> void:
 	network_pipes.clear()
 	if pipe_render:
 		pipe_render.clear_all()
+	if element_renderer:
+		element_renderer.clear_all()
 	var coordinator := get_node_or_null("ReactionCoordinator") as ReactionCoordinator
 	if coordinator:
 		coordinator.mark_dirty()

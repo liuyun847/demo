@@ -188,6 +188,8 @@ func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewpo
 func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.is_action("place_building") and event.pressed:
 		var building_type: String = inventory_bar.get_current_building_type() if inventory_bar else "default"
+		if not ProgressSystem.is_building_unlocked(building_type):
+			return
 		_state_machine.transition_to(InputStateMachine.State.DRAGGING, {
 			"start_grid": grid_pos,
 			"building_manager": building_manager,

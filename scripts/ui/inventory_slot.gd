@@ -9,9 +9,11 @@ signal clicked(index: int)
 @onready var selection_border: Panel = $SelectionBorder
 @onready var placeholder_bg: ColorRect = $PlaceholderBg
 @onready var placeholder_label: Label = $PlaceholderLabel
+@onready var locked_overlay: ColorRect = $LockedOverlay
 
 var _type_data: BuildingTypeData
 var _slot_index: int
+var _locked: bool = false
 
 func setup_slot(index: int, type_data: BuildingTypeData) -> void:
 	_slot_index = index
@@ -42,7 +44,20 @@ func _setup_placeholder_visual(type_data: BuildingTypeData) -> void:
 func set_selected(selected: bool) -> void:
 	selection_border.visible = selected
 
+func set_locked(locked: bool) -> void:
+	_locked = locked
+	locked_overlay.visible = locked
+	if locked:
+		modulate = Color(0.5, 0.5, 0.5, 0.7)
+	else:
+		modulate = Color.WHITE
+
+func is_locked() -> bool:
+	return _locked
+
 func _gui_input(event: InputEvent) -> void:
+	if _locked:
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		clicked.emit(_slot_index)
 		accept_event()
