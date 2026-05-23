@@ -74,6 +74,7 @@ func _build_save_dict() -> Dictionary:
 	var save_dict := {
 		"version": GameConfig.SAVE_VERSION,
 		"saved_at": Time.get_datetime_string_from_system(true),
+		"essence": EssencePool.essence,
 		"buildings": {}
 	}
 
@@ -138,6 +139,9 @@ func load_buildings() -> void:
 
 	_is_loading = true
 	building_manager.bulk_clear()
+
+	if save_data.has("essence") and save_data.essence is float:
+		EssencePool.set_value(save_data.essence)
 
 	if save_data.has("buildings") and save_data.buildings is Dictionary:
 		for key: String in save_data.buildings.keys():

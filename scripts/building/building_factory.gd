@@ -12,6 +12,25 @@ static func _get_placeholder_label_settings() -> LabelSettings:
 	return _placeholder_label_settings
 
 
+static func _create_emitter(type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> EmitterNode:
+	var emitter := EmitterNode.new()
+	emitter.name = node_name
+	emitter.global_position = world_pos
+	emitter.grid_position = grid_pos
+
+	match type_id:
+		GameConfig.emitter_water_type_id:
+			emitter.element_type_id = "water"
+			emitter.output_direction = emitter.get_default_direction()
+		GameConfig.emitter_fire_type_id:
+			emitter.element_type_id = "fire"
+			emitter.output_direction = emitter.get_default_direction()
+		GameConfig.emitter_earth_type_id:
+			emitter.element_type_id = "earth"
+			emitter.output_direction = emitter.get_default_direction()
+
+	return emitter
+
 static func create_building(building_type: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
 	var building_node: Node2D
 
@@ -33,6 +52,14 @@ static func create_building(building_type: String, grid_pos: Vector2i, world_pos
 		brick.global_position = world_pos
 		brick.grid_position = grid_pos
 		building_node = brick
+	elif BuildingData.is_emitter(building_type):
+		building_node = _create_emitter(building_type, grid_pos, world_pos, node_name)
+	elif BuildingData.is_collector(building_type):
+		var collector := CollectorNode.new()
+		collector.name = node_name
+		collector.global_position = world_pos
+		collector.grid_position = grid_pos
+		building_node = collector
 	else:
 		var idx := 0
 		if building_type.begins_with("type_"):

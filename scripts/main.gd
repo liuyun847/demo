@@ -29,6 +29,7 @@ func _ready() -> void:
 	settings_panel.hide()
 	inventory_bar.hide()
 	_pause_game(false)
+	EventBus.start_game_requested.connect(_on_game_started)
 
 func _exit_tree() -> void:
 	EventBus.buildings_loaded.disconnect(_on_buildings_loaded)
@@ -78,6 +79,14 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_buildings_loaded() -> void:
 	if is_inside_tree():
 		show_start_menu.call_deferred()
+
+func _on_game_started() -> void:
+	EssencePool.set_value(GameConfig.initial_essence)
+	var essence_display := EssenceDisplay.new()
+	essence_display.name = "EssenceDisplay"
+	essence_display.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	essence_display.position = Vector2(-220, 8)
+	$UIOverlay.add_child(essence_display)
 
 func _on_start_game_requested() -> void:
 	hide_start_menu()

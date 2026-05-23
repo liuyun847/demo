@@ -22,6 +22,8 @@ EventBus="*res://scripts/autoload/event_bus.gd"
 KeybindManager="*res://scripts/autoload/keybind_manager.gd"
 SelectionManager="*res://scripts/autoload/selection_manager.gd"
 ElementRegistry="*res://scripts/elements/element_registry.gd"
+EssencePool="*res://scripts/autoload/essence_pool.gd"
+ProgressSystem="*res://scripts/autoload/progress_system.gd"
 MCPRuntime="*res://addons/godot_mcp/runtime/mcp_runtime.gd"
 
 [debug]

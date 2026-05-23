@@ -46,9 +46,29 @@ const pipe_type_id: String = "type_02"
 # 砖块建筑类型标识
 const brick_type_id: String = "type_04"
 
+# 发射器建筑类型标识
+const emitter_water_type_id: String = "type_03"
+const emitter_fire_type_id: String = "type_05"
+const emitter_earth_type_id: String = "type_06"
+
+# 收集器建筑类型标识
+const collector_type_id: String = "type_07"
+
+# 砖块放置消耗源质
+const brick_essence_cost: float = 1.0
+
+# 发射器每 tick 消耗源质
+const emitter_essence_cost_per_tick: float = 1.0
+
+# 收集器默认收集半径
+const collector_default_radius: int = 1
+
+# 初始源质
+const initial_essence: float = 10.0
+
 # 反应系统配置
-const reaction_tick_interval: float = 0.3 # 反应系统每 tick 间隔（秒）
-const diffusion_steps_per_tick: int = 3   # 每 tick 扩散步数
+const reaction_tick_interval: float = 0.3
+const diffusion_steps_per_tick: int = 3
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"

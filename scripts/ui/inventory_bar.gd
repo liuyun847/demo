@@ -21,11 +21,15 @@ func _ready() -> void:
 	_init_default_types()
 	_setup_slots()
 	_update_mode_indicator()
+	_update_all_locks()
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
+	EventBus.essence_threshold_reached.connect(_on_threshold_reached)
 
 func _exit_tree() -> void:
 	if EventBus.paste_mode_changed.is_connected(_on_paste_mode_changed):
 		EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
+	if EventBus.essence_threshold_reached.is_connected(_on_threshold_reached):
+		EventBus.essence_threshold_reached.disconnect(_on_threshold_reached)
 
 func _create_mode_indicator() -> void:
 	var indicator: Control = Control.new()
@@ -77,6 +81,17 @@ func _update_mode_indicator() -> void:
 func _on_paste_mode_changed(_active: bool) -> void:
 	_update_mode_indicator()
 
+func _on_threshold_reached(_threshold: float, _unlocks: Dictionary) -> void:
+	_update_all_locks()
+
+func _update_all_locks() -> void:
+	for i in range(_slots.size()):
+		var slot: InventorySlot = _slots[i]
+		if i < building_types.size():
+			var type_id: String = building_types[i].type_id
+			var unlocked: bool = ProgressSystem.is_building_unlocked(type_id)
+			slot.set_locked(not unlocked)
+
 func _init_default_types() -> void:
 	for i in range(1, MAX_BUILDING_TYPES + 1):
 		var data: BuildingTypeData = BuildingTypeData.new()
@@ -91,9 +106,29 @@ func _init_default_types() -> void:
 			var tex_path: String = "res://resources/pipe_icon.svg"
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
+		elif i == 3:
+			data.display_name = "水喷口"
+			var tex_path: String = "res://resources/emitter_water_icon.svg"
+			if ResourceLoader.exists(tex_path):
+				data.icon_texture = load(tex_path)
 		elif i == 4:
 			data.display_name = "砖块"
 			var tex_path: String = "res://resources/brick_icon.svg"
+			if ResourceLoader.exists(tex_path):
+				data.icon_texture = load(tex_path)
+		elif i == 5:
+			data.display_name = "火喷口"
+			var tex_path: String = "res://resources/emitter_fire_icon.svg"
+			if ResourceLoader.exists(tex_path):
+				data.icon_texture = load(tex_path)
+		elif i == 6:
+			data.display_name = "土喷口"
+			var tex_path: String = "res://resources/emitter_earth_icon.svg"
+			if ResourceLoader.exists(tex_path):
+				data.icon_texture = load(tex_path)
+		elif i == 7:
+			data.display_name = "收集器"
+			var tex_path: String = "res://resources/collector_icon.svg"
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
 		else:
@@ -110,6 +145,8 @@ func _setup_slots() -> void:
 
 func select_slot(index: int) -> void:
 	if index < 0 or index >= _slots.size():
+		return
+	if _slots[index].is_locked():
 		return
 	if index == current_slot_index:
 		deselect()
@@ -144,6 +181,8 @@ func get_current_building_type() -> String:
 func select_by_type_id(type_id: String) -> bool:
 	for i in range(building_types.size()):
 		if building_types[i].type_id == type_id:
+			if not ProgressSystem.is_building_unlocked(type_id):
+				return false
 			select_slot(i)
 			return true
 	return false
