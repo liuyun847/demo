@@ -210,7 +210,7 @@ Root (Node2D) → main.gd                    # 主场景控制器
 # 开发规范
 
 - 对于不确定的接口，先查询，禁止猜测用法
-- 修改后使用 godot-debug 技能或 mcp 工具进行代码静态检查和运行时错误检测，确保无错误
+- 修改后使用 godot-debug 技能进行代码静态检查和运行时错误检测，确保无错误
 - 修改后运行测试：`& "C:\Users\MLTZ\Desktop\Godot_v4.6.1-stable_win64.exe" --headless '--path' 'C:\Users\MLTZ\Desktop\程序\godot\bili游戏大赛\demo' '--script' 'res://addons/gut/gut_cmdln.gd'`，结果导出至 save/test\_results.xml（disable\_colors 和 junit\_xml\_file 已在 .gutconfig.json 中配置）
 - **验证测试结果无需查看完整输出**：检查命令退出码（exit\_code == 0 = 全部通过）和 save/test\_results.xml 的 failures 属性（failures="0" = 全部通过）
 - 使用事件总线(EventBus)进行模块间松耦合通信；同场景内兄弟节点允许通过 get\_node() 直接引用，跨场景通信必须通过 EventBus

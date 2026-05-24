@@ -5,7 +5,10 @@ extends Node
 
 @onready var ghost_preview: GhostPreviewManager = %BuildingManager/GhostPreviewManager
 
+const EMITTER_PANEL_SCENE := preload("res://scenes/emitter_type_panel.tscn")
+
 var _state_machine: InputStateMachine = InputStateMachine.new()
+var _current_emitter_panel: Control = null
 
 var _last_hovered_grid: Vector2i = Vector2i(-99999, -99999)
 var _has_camera: bool = false
@@ -185,8 +188,25 @@ func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewpo
 		viewport.set_input_as_handled()
 		return
 
+func _open_emitter_type_panel(emitter_node: EmitterNode) -> void:
+	if is_instance_valid(_current_emitter_panel):
+		_current_emitter_panel.queue_free()
+		_current_emitter_panel = null
+
+	var panel: Control = EMITTER_PANEL_SCENE.instantiate()
+	panel.target_emitter = emitter_node
+	var ui_overlay := get_node("../UIOverlay")
+	ui_overlay.add_child(panel)
+	_current_emitter_panel = panel
+
 func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.is_action("place_building") and event.pressed:
+		if building_manager.has_building(grid_pos):
+			var node := building_manager.get_building_node(grid_pos)
+			if node is EmitterNode:
+				_open_emitter_type_panel(node)
+				viewport.set_input_as_handled()
+				return
 		var building_type: String = inventory_bar.get_current_building_type() if inventory_bar else "default"
 		if not ProgressSystem.is_building_unlocked(building_type):
 			return

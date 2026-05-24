@@ -47,9 +47,7 @@ const pipe_type_id: String = "type_02"
 const brick_type_id: String = "type_04"
 
 # 发射器建筑类型标识
-const emitter_water_type_id: String = "type_03"
-const emitter_fire_type_id: String = "type_05"
-const emitter_earth_type_id: String = "type_06"
+const emitter_type_id: String = "type_03"
 
 # 收集器建筑类型标识
 const collector_type_id: String = "type_07"

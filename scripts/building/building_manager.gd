@@ -60,16 +60,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 	var building_node: Node2D = _BuildingFactory.create_building(building_type, grid_pos, world_pos, node_name)
 	add_child(building_node)
 
-	if BuildingData.is_container_building(building_node) and not restore_data.is_empty():
-		if restore_data.has("capacity"):
-			data.capacity = restore_data["capacity"]
-			building_node.capacity = restore_data["capacity"]
-		if restore_data.has("max_capacity"):
-			data.max_capacity = restore_data["max_capacity"]
-			building_node.max_capacity = restore_data["max_capacity"]
-	elif BuildingData.is_container_building(building_node):
-		data.capacity = building_node.capacity
-		data.max_capacity = building_node.max_capacity
+	BuildingData.sync_capacity_from_node(data, building_node, restore_data)
 
 	_building_nodes[grid_pos] = building_node
 	if building_node is PipeNode:
@@ -89,8 +80,7 @@ func remove_building(grid_pos: Vector2i) -> bool:
 		return false
 	if BuildingData.is_container_building(node):
 		var data: BuildingData = buildings[grid_pos]
-		data.capacity = node.capacity
-		data.max_capacity = node.max_capacity
+		BuildingData.sync_capacity_from_node(data, node)
 	node.queue_free()
 
 	var node_to_remove: Node2D = _building_nodes.get(grid_pos) as Node2D

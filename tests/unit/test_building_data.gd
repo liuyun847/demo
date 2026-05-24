@@ -29,14 +29,8 @@ func test_is_container_building_with_pipe() -> void:
 	var node: PipeNode = autoqfree(load("res://scripts/building/pipe_node.gd").new())
 	assert_false(BuildingData.is_container_building(node), "PipeNode 应返回 false")
 
-func test_is_emitter_water() -> void:
-	assert_true(BuildingData.is_emitter(GameConfig.emitter_water_type_id), "水喷口是 emitter")
-
-func test_is_emitter_fire() -> void:
-	assert_true(BuildingData.is_emitter(GameConfig.emitter_fire_type_id), "火喷口是 emitter")
-
-func test_is_emitter_earth() -> void:
-	assert_true(BuildingData.is_emitter(GameConfig.emitter_earth_type_id), "土喷口是 emitter")
+func test_is_emitter() -> void:
+	assert_true(BuildingData.is_emitter(GameConfig.emitter_type_id), "喷口是 emitter")
 
 func test_is_emitter_non_emitter() -> void:
 	assert_false(BuildingData.is_emitter(GameConfig.pipe_type_id), "管道不是 emitter")

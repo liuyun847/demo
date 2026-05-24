@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/inventory_slot.gd" id="1_abc12"]
 
@@ -17,12 +17,16 @@ border_color = Color(1, 0.84, 0, 1)
 font_size = 12
 font_color = Color(1, 1, 1, 1)
 
+[sub_resource type="LabelSettings" id="LabelSettings_name"]
+font_size = 10
+font_color = Color(1, 1, 1, 0.9)
+
 [sub_resource type="LabelSettings" id="LabelSettings_lock"]
 font_size = 20
 font_color = Color(1, 1, 1, 0.7)
 
 [node name="InventorySlot" type="Control"]
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(64, 84)
 script = ExtResource("1_abc12")
 
 [node name="Background" type="Panel" parent="."]
@@ -42,7 +46,7 @@ anchor_bottom = 1.0
 offset_left = 4.0
 offset_top = 4.0
 offset_right = -4.0
-offset_bottom = -4.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 1
@@ -57,7 +61,7 @@ anchor_bottom = 1.0
 offset_left = 4.0
 offset_top = 4.0
 offset_right = -4.0
-offset_bottom = -4.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.3, 0.3, 0.3, 0.5)
@@ -71,7 +75,7 @@ anchor_bottom = 1.0
 offset_left = 4.0
 offset_top = 4.0
 offset_right = -4.0
-offset_bottom = -4.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_alignment = 1
@@ -112,6 +116,23 @@ offset_right = -4.0
 offset_bottom = 20.0
 grow_horizontal = 0
 label_settings = SubResource("LabelSettings_key")
+
+[node name="NameLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = -20.0
+offset_right = -2.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1
+vertical_alignment = 1
+label_settings = SubResource("LabelSettings_name")
 
 [node name="SelectionBorder" type="Panel" parent="."]
 visible = false
