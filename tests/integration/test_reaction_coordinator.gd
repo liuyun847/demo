@@ -32,10 +32,16 @@ func before_each() -> void:
 func _grid() -> ElementGrid:
 	return _reactor._element_grid
 
+func _setup_emitter_with_type(emitter_pos: Vector2i, type_id: String) -> void:
+	_bm.place_building(emitter_pos, GameConfig.emitter_type_id)
+	var node: Node = _bm.get_building_node(emitter_pos)
+	if node is EmitterNode:
+		node.set_element_type(type_id)
+
 func test_emitter_outputs_element_when_connected() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_bm.place_building(Vector2i(0, 2), GameConfig.emitter_water_type_id)
+	_setup_emitter_with_type(Vector2i(0, 2), "water")
 
 	_reactor._on_tick()
 
@@ -50,7 +56,7 @@ func test_emitter_reduces_essence_on_output() -> void:
 	EssencePool.set_value(10.0)
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_bm.place_building(Vector2i(0, 2), GameConfig.emitter_water_type_id)
+	_setup_emitter_with_type(Vector2i(0, 2), "water")
 
 	_reactor._on_tick()
 
@@ -74,7 +80,7 @@ func test_full_chain_emitter_to_collector() -> void:
 
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_bm.place_building(Vector2i(1, 1), GameConfig.emitter_water_type_id)
+	_setup_emitter_with_type(Vector2i(1, 1), "water")
 	_bm.place_building(Vector2i(0, 2), GameConfig.collector_type_id)
 
 	_reactor._on_tick()
@@ -89,7 +95,7 @@ func test_insufficient_essence_scales_output() -> void:
 	EssencePool.set_value(0.5)
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_bm.place_building(Vector2i(0, 2), GameConfig.emitter_water_type_id)
+	_setup_emitter_with_type(Vector2i(0, 2), "water")
 
 	_reactor._on_tick()
 
@@ -99,7 +105,7 @@ func test_emitter_does_not_output_to_building_cell() -> void:
 	EssencePool.set_value(100.0)
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_bm.place_building(Vector2i(0, 2), GameConfig.emitter_water_type_id)
+	_setup_emitter_with_type(Vector2i(0, 2), "water")
 	_bm.place_building(Vector2i(0, 3), GameConfig.brick_type_id)
 
 	_reactor._on_tick()

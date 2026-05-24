@@ -49,3 +49,9 @@ signal reaction_occurred(grid_pos: Vector2i, reactant_a_id: String, reactant_b_i
 signal essence_changed(new_value: float)
 @warning_ignore("unused_signal")
 signal essence_threshold_reached(threshold: float, unlocks: Dictionary)
+
+# 喷口类型选择面板信号
+@warning_ignore("unused_signal")
+signal emitter_type_panel_opened
+@warning_ignore("unused_signal")
+signal emitter_type_panel_closed

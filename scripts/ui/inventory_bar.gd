@@ -89,8 +89,12 @@ func _update_all_locks() -> void:
 		var slot: InventorySlot = _slots[i]
 		if i < building_types.size():
 			var type_id: String = building_types[i].type_id
-			var unlocked: bool = ProgressSystem.is_building_unlocked(type_id)
-			slot.set_locked(not unlocked)
+			var is_empty_slot: bool = building_types[i].display_name.is_empty()
+			if is_empty_slot:
+				slot.set_locked(true)
+			else:
+				var unlocked: bool = ProgressSystem.is_building_unlocked(type_id)
+				slot.set_locked(not unlocked)
 
 func _init_default_types() -> void:
 	for i in range(1, MAX_BUILDING_TYPES + 1):
@@ -107,7 +111,7 @@ func _init_default_types() -> void:
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
 		elif i == 3:
-			data.display_name = "水喷口"
+			data.display_name = "喷口"
 			var tex_path: String = "res://resources/emitter_water_icon.svg"
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
@@ -117,15 +121,9 @@ func _init_default_types() -> void:
 			if ResourceLoader.exists(tex_path):
 				data.icon_texture = load(tex_path)
 		elif i == 5:
-			data.display_name = "火喷口"
-			var tex_path: String = "res://resources/emitter_fire_icon.svg"
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
+			data.display_name = ""
 		elif i == 6:
-			data.display_name = "土喷口"
-			var tex_path: String = "res://resources/emitter_earth_icon.svg"
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
+			data.display_name = ""
 		elif i == 7:
 			data.display_name = "收集器"
 			var tex_path: String = "res://resources/collector_icon.svg"

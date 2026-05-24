@@ -6,6 +6,7 @@ signal clicked(index: int)
 @onready var background: Panel = $Background
 @onready var icon_texture_rect: TextureRect = $IconTextureRect
 @onready var key_label: Label = $KeyLabel
+@onready var name_label: Label = $NameLabel
 @onready var selection_border: Panel = $SelectionBorder
 @onready var placeholder_bg: ColorRect = $PlaceholderBg
 @onready var placeholder_label: Label = $PlaceholderLabel
@@ -20,6 +21,7 @@ func setup_slot(index: int, type_data: BuildingTypeData) -> void:
 	_type_data = type_data
 	key_label.text = str((index + 1) % 10)
 	if type_data:
+		name_label.text = type_data.display_name
 		if type_data.icon_texture:
 			icon_texture_rect.texture = type_data.icon_texture
 			icon_texture_rect.show()

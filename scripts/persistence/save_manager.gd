@@ -35,15 +35,9 @@ func _sync_container_data() -> void:
 		return
 	for grid_pos: Vector2i in building_manager.buildings.keys():
 		var data: BuildingData = building_manager.buildings[grid_pos]
-		if not BuildingData.has_capacity(data.building_type):
-			continue
 		var node := building_manager.get_building_node(grid_pos)
-		if node == null:
-			continue
-		if "capacity" in node:
-			data.capacity = node.capacity
-		if "max_capacity" in node:
-			data.max_capacity = node.max_capacity
+		if node:
+			BuildingData.sync_capacity_from_node(data, node)
 
 func save_buildings() -> void:
 	if not building_manager:
@@ -83,11 +77,13 @@ func _build_save_dict() -> Dictionary:
 
 		if BuildingData.has_capacity(data.building_type):
 			var node := building_manager.get_building_node(grid_pos)
-			if node != null:
-				if "capacity" in node:
-					data.capacity = node.capacity
-				if "max_capacity" in node:
-					data.max_capacity = node.max_capacity
+			if node:
+				BuildingData.sync_capacity_from_node(data, node)
+
+		if BuildingData.is_emitter(data.building_type):
+			var node := building_manager.get_building_node(grid_pos)
+			if node:
+				BuildingData.sync_emitter_type_from_node(data, node)
 
 		var key := "%d,%d" % [grid_pos.x, grid_pos.y]
 		var entry := {
@@ -96,6 +92,8 @@ func _build_save_dict() -> Dictionary:
 		if BuildingData.has_capacity(data.building_type):
 			entry["capacity"] = data.capacity
 			entry["max_capacity"] = data.max_capacity
+		if BuildingData.is_emitter(data.building_type) and not data.element_type_id.is_empty():
+			entry["element_type_id"] = data.element_type_id
 		save_dict.buildings[key] = entry
 
 	return save_dict
@@ -161,6 +159,12 @@ func load_buildings() -> void:
 					restore_data["capacity"] = b_data.get("capacity", 0)
 					restore_data["max_capacity"] = b_data.get("max_capacity", 100)
 				building_manager.place_building(grid_pos, b_type, restore_data)
+				if BuildingData.is_emitter(b_type) and b_data.has("element_type_id"):
+					var node := building_manager.get_building_node(grid_pos)
+					if node is EmitterNode:
+						var elem_id: String = b_data.element_type_id
+						if not elem_id.is_empty():
+							node.set_element_type(elem_id)
 
 	call_deferred("_finalize_loading")
 

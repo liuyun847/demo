@@ -8,6 +8,7 @@ const MIN_HEIGHT: float = 60.0
 var _target_node: Node2D = null
 var _is_expanded: bool = false
 var _hovered_grid_pos: Vector2i = Vector2i.MIN
+var _panel_open: bool = false
 
 @onready var _panel: Panel = $Panel
 @onready var _name_label: Label = $Panel/MarginContainer/VBoxContainer/NameLabel
@@ -37,6 +38,8 @@ func _ready() -> void:
 	EventBus.building_hover_exited.connect(_on_building_hover_exited)
 	EventBus.building_removed.connect(_on_building_removed)
 	EventBus.camera_changed.connect(_update_position)
+	EventBus.emitter_type_panel_opened.connect(_on_emitter_panel_opened)
+	EventBus.emitter_type_panel_closed.connect(_on_emitter_panel_closed)
 
 func _exit_tree() -> void:
 	if EventBus.building_hovered.is_connected(_on_building_hovered):
@@ -47,6 +50,10 @@ func _exit_tree() -> void:
 		EventBus.building_removed.disconnect(_on_building_removed)
 	if EventBus.camera_changed.is_connected(_update_position):
 		EventBus.camera_changed.disconnect(_update_position)
+	if EventBus.emitter_type_panel_opened.is_connected(_on_emitter_panel_opened):
+		EventBus.emitter_type_panel_opened.disconnect(_on_emitter_panel_opened)
+	if EventBus.emitter_type_panel_closed.is_connected(_on_emitter_panel_closed):
+		EventBus.emitter_type_panel_closed.disconnect(_on_emitter_panel_closed)
 
 func _create_styles() -> void:
 	_panel_style = StyleBoxFlat.new()
@@ -67,7 +74,16 @@ func _apply_styles() -> void:
 	_panel.set(&"theme_override_styles/panel", _panel_style)
 	_panel.queue_redraw()
 
+func _on_emitter_panel_opened() -> void:
+	_panel_open = true
+	hide()
+
+func _on_emitter_panel_closed() -> void:
+	_panel_open = false
+
 func _on_building_hovered(grid_pos: Vector2i, node: Node2D) -> void:
+	if _panel_open:
+		return
 	_hovered_grid_pos = grid_pos
 	_target_node = node
 	_is_expanded = false

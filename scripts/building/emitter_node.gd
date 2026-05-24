@@ -1,11 +1,23 @@
 class_name EmitterNode
 extends BuildingBase
 
-var element_type_id: String = "water"
+var element_type_id: String = ""
 var output_direction: Vector2i = Vector2i(0, 1)
 var essence_cost_per_tick: float = GameConfig.emitter_essence_cost_per_tick
 
+func set_element_type(type_id: String) -> void:
+	element_type_id = type_id
+	if has_type_selected():
+		output_direction = get_default_direction()
+	queue_redraw()
+
+func has_type_selected() -> bool:
+	return not element_type_id.is_empty()
+
 func try_output(element_grid: ElementGrid) -> bool:
+	if not has_type_selected():
+		return false
+
 	var target_pos: Vector2i = grid_position + output_direction
 	if not element_grid.is_position_available(target_pos):
 		return false
@@ -23,6 +35,12 @@ func try_output(element_grid: ElementGrid) -> bool:
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0
 	var size := float(GameConfig.building_size)
+
+	if not has_type_selected():
+		draw_rect(Rect2(-half, -half, size, size), Color(0.5, 0.5, 0.5, 0.4))
+		draw_circle(Vector2.ZERO, half * 0.3, Color(0.7, 0.7, 0.7, 0.8))
+		draw_rect(Rect2(-half, -half, size, size), Color(0.3, 0.3, 0.3), false, 1.5)
+		return
 
 	var element_type := ElementRegistry.get_element_type(element_type_id)
 	var elem_color: Color
@@ -50,15 +68,12 @@ func _draw() -> void:
 	draw_rect(Rect2(-half, -half, size, size), Color(0.25, 0.25, 0.25), false, 1.5)
 
 func get_building_name() -> String:
-	match element_type_id:
-		"water":
-			return "水喷口"
-		"fire":
-			return "火喷口"
-		"earth":
-			return "土喷口"
-		_:
-			return "发射器"
+	if not has_type_selected():
+		return "喷口(未选择)"
+	var element_type: ElementTypeData = ElementRegistry.get_element_type(element_type_id)
+	if element_type:
+		return "喷口(%s)" % element_type.display_name
+	return "喷口(未知)"
 
 func get_default_direction() -> Vector2i:
 	var element_type: ElementTypeData = ElementRegistry.get_element_type(element_type_id)
@@ -67,6 +82,12 @@ func get_default_direction() -> Vector2i:
 	return Vector2i(0, 1)
 
 func get_tooltip_summary() -> Dictionary:
+	if not has_type_selected():
+		return {
+			"name": get_building_name(),
+			"type": "A 型 - 发射器",
+			"状态": "未选择类型",
+		}
 	return {
 		"name": get_building_name(),
 		"type": "A 型 - 发射器",
@@ -74,8 +95,14 @@ func get_tooltip_summary() -> Dictionary:
 	}
 
 func get_tooltip_details() -> Dictionary:
+	if not has_type_selected():
+		return {
+			"元素类型": "未选择",
+			"消耗": "%.1f 源质/tick" % essence_cost_per_tick,
+			"操作": "左键点击选择类型",
+		}
 	return {
 		"元素类型": element_type_id,
-		"消耗": "%.1f 源质/ tick" % essence_cost_per_tick,
+		"消耗": "%.1f 源质/tick" % essence_cost_per_tick,
 		"方向": "上" if output_direction == Vector2i(0, -1) else "下" if output_direction == Vector2i(0, 1) else "左" if output_direction == Vector2i(-1, 0) else "右",
 	}
