@@ -61,6 +61,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 	add_child(building_node)
 
 	BuildingData.sync_capacity_from_node(data, building_node, restore_data)
+	BuildingData.sync_emitter_type_from_node(data, building_node)
 
 	_building_nodes[grid_pos] = building_node
 	if building_node is PipeNode:
