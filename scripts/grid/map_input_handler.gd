@@ -287,7 +287,6 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 					var placed_node := building_manager.get_building_node(cell)
 					if placed_node is EmitterNode:
 						placed_node.set_element_type("water")
-						break
 		_state_machine.transition_to(InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
