@@ -146,6 +146,9 @@ func _create_slider_option_row(label_text: String, min_val: float, max_val: floa
 			edit.text = format_str % slider.value
 			return
 		var val := text.to_float()
+		if not is_finite(val):
+			edit.text = format_str % slider.value
+			return
 		val = clampf(val, min_val, max_val)
 		slider.value = val
 		edit.text = format_str % val
@@ -157,6 +160,9 @@ func _create_slider_option_row(label_text: String, min_val: float, max_val: floa
 			edit.text = format_str % slider.value
 			return
 		var val := text.to_float()
+		if not is_finite(val):
+			edit.text = format_str % slider.value
+			return
 		val = clampf(val, min_val, max_val)
 		slider.value = val
 		edit.text = format_str % val
