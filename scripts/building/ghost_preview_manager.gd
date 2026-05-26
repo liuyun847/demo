@@ -8,6 +8,7 @@ var paste_ghost_cells: Array[Vector2i] = []
 var paste_ghost_types: Dictionary[Vector2i, String] = {}
 var select_ghost_cells: Array[Vector2i] = []
 var deselect_ghost_cells: Array[Vector2i] = []
+var emitter_ghost_direction: Vector2i = Vector2i.ZERO
 
 
 func _ready() -> void:
@@ -103,6 +104,16 @@ func hide_deselect_ghost() -> void:
 	queue_redraw()
 
 
+func set_emitter_ghost_direction(dir: Vector2i) -> void:
+	emitter_ghost_direction = dir
+	queue_redraw()
+
+
+func hide_emitter_ghost_direction() -> void:
+	emitter_ghost_direction = Vector2i.ZERO
+	queue_redraw()
+
+
 func _draw_cell_highlight(cells: Array[Vector2i], fill_color: Color, border_color: Color, use_building_size: bool = false, border_width: float = 2.0) -> void:
 	var cell_size := GameConfig.building_size if use_building_size else GameConfig.cell_size
 	var half_size := cell_size / 2.0
@@ -121,6 +132,25 @@ func _get_building_color(building_type: String) -> Color:
 		if idx >= 1 and idx <= 10:
 			return Color.from_hsv(float(idx - 1) / 10.0, 0.7, 0.9)
 	return GameConfig.building_default_color
+
+
+func _draw_emitter_arrow_at(grid_pos: Vector2i, direction: Vector2i) -> void:
+	var half := GameConfig.building_size / 2.0
+	var world_pos := GridCoordinate.grid_to_world(grid_pos + direction)
+	var dir := direction
+	var arrow_size := half * 0.65
+	var center_offset := Vector2(dir) * arrow_size * 0.2
+	var tip_offset := Vector2(dir) * arrow_size * 0.55
+	var perp := Vector2(-dir.y, dir.x)
+
+	var tip := world_pos + center_offset + tip_offset
+	var left := world_pos + center_offset + perp * arrow_size * 0.3
+	var right := world_pos + center_offset - perp * arrow_size * 0.3
+
+	var vertices := PackedVector2Array([tip, left, right])
+	draw_colored_polygon(vertices, Color(1, 1, 1, GameConfig.ghost_alpha))
+	draw_polyline(vertices, Color.WHITE, 1.5)
+	draw_line(vertices[2], vertices[0], Color.WHITE, 1.5)
 
 
 func _draw() -> void:
@@ -154,6 +184,10 @@ func _draw() -> void:
 			var border_color := color
 			border_color.a = minf(alpha + 0.35, 1.0)
 			_draw_cell_highlight([grid_pos], color, border_color, true, 2.0)
+
+	if emitter_ghost_direction != Vector2i.ZERO and not ghost_cells.is_empty():
+		for grid_pos in ghost_cells:
+			_draw_emitter_arrow_at(grid_pos, emitter_ghost_direction)
 
 
 func _get_building_manager() -> BuildingManager:

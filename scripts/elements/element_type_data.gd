@@ -6,5 +6,4 @@ extends Resource
 @export var color: Color
 @export var gravity: float = 1.0
 @export var diffusion_rate: float = 0.0
-@export var lateral_priority: float = 0.5
 @export var base_value: float = 1.0

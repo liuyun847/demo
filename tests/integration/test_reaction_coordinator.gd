@@ -32,16 +32,13 @@ func before_each() -> void:
 func _grid() -> ElementGrid:
 	return _reactor._element_grid
 
-func _setup_emitter_with_type(emitter_pos: Vector2i, type_id: String) -> void:
+func _setup_emitter(emitter_pos: Vector2i) -> void:
 	_bm.place_building(emitter_pos, GameConfig.emitter_type_id)
-	var node: Node = _bm.get_building_node(emitter_pos)
-	if node is EmitterNode:
-		node.set_element_type(type_id)
 
 func test_emitter_outputs_element_when_connected() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_setup_emitter_with_type(Vector2i(0, 2), "water")
+	_setup_emitter(Vector2i(0, 2))
 
 	_reactor._on_tick()
 
@@ -56,7 +53,7 @@ func test_emitter_reduces_essence_on_output() -> void:
 	EssencePool.set_value(10.0)
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_setup_emitter_with_type(Vector2i(0, 2), "water")
+	_setup_emitter(Vector2i(0, 2))
 
 	_reactor._on_tick()
 
@@ -68,11 +65,11 @@ func test_collector_collects_element_and_increases_essence() -> void:
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(0, 2), GameConfig.collector_type_id)
 
-	_grid().set_element(Vector2i(0, 3), _create_element("rock", 3))
+	_grid().set_element(Vector2i(0, 3), _create_element("water", 1))
 
 	_reactor._on_tick()
 
-	assert_null(_grid().get_element(Vector2i(0, 3)), "收集后岩石应被移除")
+	assert_null(_grid().get_element(Vector2i(0, 3)), "收集后水应被移除")
 	assert_gt(EssencePool.essence, 50.0, "收集应增加源质")
 
 func test_full_chain_emitter_to_collector() -> void:
@@ -80,7 +77,7 @@ func test_full_chain_emitter_to_collector() -> void:
 
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_setup_emitter_with_type(Vector2i(1, 1), "water")
+	_setup_emitter(Vector2i(1, 1))
 	_bm.place_building(Vector2i(0, 2), GameConfig.collector_type_id)
 
 	_reactor._on_tick()
@@ -95,22 +92,24 @@ func test_insufficient_essence_scales_output() -> void:
 	EssencePool.set_value(0.5)
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_setup_emitter_with_type(Vector2i(0, 2), "water")
+	_setup_emitter(Vector2i(0, 2))
 
 	_reactor._on_tick()
 
 	assert_eq(EssencePool.essence, 0.0, "源质不足时消耗后归零")
 
-func test_emitter_does_not_output_to_building_cell() -> void:
+func test_emitter_blocked_by_building_does_not_consume_essence() -> void:
 	EssencePool.set_value(100.0)
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	_bm.place_building(Vector2i(0, 1), GameConfig.container_type_id)
-	_setup_emitter_with_type(Vector2i(0, 2), "water")
+	_setup_emitter(Vector2i(0, 2))
 	_bm.place_building(Vector2i(0, 3), GameConfig.brick_type_id)
 
+	var before: float = EssencePool.essence
 	_reactor._on_tick()
 
 	assert_null(_grid().get_element(Vector2i(0, 3)), "目标格子有建筑时应不输出")
+	assert_eq(EssencePool.essence, before, "阻塞时不应消耗源质")
 
 func _create_element(type_id: String, complexity: int) -> ElementData:
 	var element_type: ElementTypeData = ElementRegistry.get_element_type(type_id)

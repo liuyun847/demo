@@ -61,7 +61,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 	add_child(building_node)
 
 	BuildingData.sync_capacity_from_node(data, building_node, restore_data)
-	BuildingData.sync_emitter_type_from_node(data, building_node)
+	BuildingData.sync_emitter_type_from_node(data, building_node, restore_data)
 
 	_building_nodes[grid_pos] = building_node
 	if building_node is PipeNode:
@@ -82,6 +82,9 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	if BuildingData.is_container_building(node):
 		var data: BuildingData = buildings[grid_pos]
 		BuildingData.sync_capacity_from_node(data, node)
+	if BuildingData.is_emitter_node(node):
+		var data: BuildingData = buildings[grid_pos]
+		BuildingData.sync_emitter_type_from_node(data, node)
 	node.queue_free()
 
 	var node_to_remove: Node2D = _building_nodes.get(grid_pos) as Node2D
@@ -93,6 +96,11 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	EventBus.building_removed.emit(grid_pos)
 	_refresh_pipe_connections(grid_pos)
 	return true
+
+func get_all_building_positions() -> Array[Vector2i]:
+	var positions: Array[Vector2i] = []
+	positions.assign(buildings.keys())
+	return positions
 
 func get_all_buildings_data() -> Dictionary:
 	var copy: Dictionary = {}
@@ -157,7 +165,11 @@ func is_pipe_or_buffer_at(grid_pos: Vector2i) -> bool:
 	if not buildings.has(grid_pos):
 		return false
 	var data: BuildingData = buildings[grid_pos] as BuildingData
-	return data != null and BuildingData.is_pipe_or_buffer(data.building_type)
+	if data == null:
+		return false
+	return BuildingData.is_pipe_or_buffer(data.building_type) or \
+		BuildingData.is_emitter(data.building_type) or \
+		BuildingData.is_collector(data.building_type)
 
 func place_buildings_in_line(cells: Array[Vector2i], building_type: String = "default") -> int:
 	var placed_count := 0

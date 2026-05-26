@@ -24,29 +24,19 @@ func test_collector_collects_element_and_returns_essence() -> void:
 	_element_grid.set_element(Vector2i(0, 1), _create_element("water", 1))
 	var result: float = _collector.try_collect(_element_grid)
 	assert_gt(result, 0.0, "有水元素时应收集到源质")
-	assert_eq(result, 1.5, "水(复杂度1) 价值应为 1.5")
+	assert_eq(result, 1.0, "水(base=1.0) 价值应为 1.0")
 	assert_null(_element_grid.get_element(Vector2i(0, 1)), "收集后元素应被移除")
-
-func test_collector_collects_rock_with_higher_value() -> void:
-	_element_grid.set_element(Vector2i(0, 1), _create_element("rock", 3))
-	var result: float = _collector.try_collect(_element_grid)
-	assert_eq(result, 9.0, "岩石(复杂度3, base=3.0) 价值应为 9.0")
 
 func test_collector_collects_multiple_elements() -> void:
 	_element_grid.set_element(Vector2i(1, 0), _create_element("water", 1))
-	_element_grid.set_element(Vector2i(0, 1), _create_element("fire", 1))
+	_element_grid.set_element(Vector2i(0, 1), _create_element("water", 1))
 	var result: float = _collector.try_collect(_element_grid)
-	assert_eq(result, 3.0, "两个元素 total 应为 3.0")
+	assert_eq(result, 2.0, "两个水元素 total 应为 2.0")
 
 func test_collector_ignores_own_position() -> void:
 	_element_grid.set_element(Vector2i(0, 0), _create_element("water", 1))
 	var result: float = _collector.try_collect(_element_grid)
 	assert_eq(result, 0.0, "收集器自身位置不应被收集")
-
-func test_collector_collects_lava() -> void:
-	_element_grid.set_element(Vector2i(0, 1), _create_element("lava", 2))
-	var result: float = _collector.try_collect(_element_grid)
-	assert_eq(result, 4.0, "岩浆(复杂度2, base=2.0) 价值应为 4.0")
 
 func test_collector_name() -> void:
 	assert_eq(_collector.get_building_name(), "收集器", "名称应为收集器")

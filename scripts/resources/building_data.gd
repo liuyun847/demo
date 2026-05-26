@@ -40,10 +40,17 @@ static func sync_capacity_from_node(data: BuildingData, node: Node, restore_data
 		if "max_capacity" in node:
 			data.max_capacity = node.max_capacity
 
-static func sync_emitter_type_from_node(data: BuildingData, node: Node) -> void:
+static func sync_emitter_type_from_node(data: BuildingData, node: Node, restore_data: Dictionary = {}) -> void:
 	if not (node is EmitterNode):
 		return
-	data.element_type_id = node.element_type_id
+	if not restore_data.is_empty() and restore_data.has("element_type_id"):
+		var type_id: String = restore_data["element_type_id"]
+		data.element_type_id = type_id
+		node.element_type_id = type_id
+		if node.has_method("set_element_type"):
+			node.set_element_type(type_id)
+	else:
+		data.element_type_id = node.element_type_id
 
 static func is_emitter_node(node: Node) -> bool:
 	return node is EmitterNode
