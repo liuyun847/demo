@@ -9,7 +9,6 @@ var _cached_networks: Array[Dictionary] = []
 
 var _element_grid: ElementGrid = null
 var _element_diffusion: ElementDiffusion = null
-var _element_reaction: ElementReaction = null
 
 func init(building_manager: BuildingManager) -> void:
 	_building_manager = building_manager
@@ -18,7 +17,7 @@ func _ready() -> void:
 	EventBus.building_placed.connect(_on_topology_changed)
 	EventBus.building_removed.connect(_on_topology_changed)
 	_timer = Timer.new()
-	_timer.wait_time = GameConfig.reaction_tick_interval
+	_timer.wait_time = GameConfig.simulation_tick_interval
 	_timer.autostart = true
 	_timer.timeout.connect(_on_tick)
 	add_child(_timer)
@@ -29,9 +28,6 @@ func _ready() -> void:
 
 	_element_diffusion = ElementDiffusion.new()
 	add_child(_element_diffusion)
-
-	_element_reaction = ElementReaction.new()
-	add_child(_element_reaction)
 
 func _exit_tree() -> void:
 	if EventBus.building_placed.is_connected(_on_topology_changed):
@@ -60,30 +56,42 @@ func _on_tick() -> void:
 
 	_element_diffusion.diffuse_all(_element_grid, GameConfig.diffusion_steps_per_tick)
 
-	_element_reaction.process_all(_element_grid, ElementRegistry)
-
 	_process_collectors()
 
 func _process_emitters() -> void:
 	var total_cost: float = 0.0
-	var all_emitters: Array[EmitterNode] = []
+	var ready_emitters: Array[EmitterNode] = []
 
 	for network: Dictionary in _cached_networks:
 		for emitter: EmitterNode in network.emitters:
-			all_emitters.append(emitter)
+			if not emitter.has_type_selected():
+				continue
+
+			if emitter.is_blocked():
+				emitter.try_output(_element_grid)
+				continue
+
+			var target_pos: Vector2i = emitter.grid_position + emitter.output_direction
+			if not _element_grid.is_position_available(target_pos):
+				emitter.try_output(_element_grid)
+				continue
+
+			ready_emitters.append(emitter)
 			total_cost += emitter.essence_cost_per_tick
 
-	if all_emitters.is_empty() or total_cost <= 0.0:
+	if ready_emitters.is_empty() or total_cost <= 0.0:
 		return
 
-	var actual_cost: float = EssencePool.subtract(total_cost)
-	if actual_cost <= 0.0:
+	var available: float = EssencePool.essence
+	if available <= 0.0:
 		return
 
-	var ratio: float = actual_cost / total_cost
-	for emitter: EmitterNode in all_emitters:
-		if randf() < ratio:
-			emitter.try_output(_element_grid)
+	var ratio: float = minf(1.0, available / total_cost)
+
+	for emitter: EmitterNode in ready_emitters:
+		var actual_cost: float = emitter.essence_cost_per_tick * ratio
+		EssencePool.subtract(actual_cost)
+		emitter.try_output(_element_grid)
 
 func _process_collectors() -> void:
 	var collector_dict: Dictionary[int, bool] = {}

@@ -78,10 +78,14 @@ func _build_clipboard(cut: bool) -> Dictionary:
 	var clipboard_buildings: Array[Dictionary] = []
 	for grid_pos: Vector2i in grid_keys:
 		var offset := Vector2i(grid_pos.x - min_x, grid_pos.y - min_y)
-		clipboard_buildings.append({
+		var building_data := building_manager.get_building_data(grid_pos)
+		var entry: Dictionary = {
 			"offset": offset,
 			"type": buildings_data[grid_pos]
-		})
+		}
+		if building_data != null and not building_data.element_type_id.is_empty():
+			entry["element_type_id"] = building_data.element_type_id
+		clipboard_buildings.append(entry)
 
 	var result := {
 		"buildings": clipboard_buildings,
@@ -93,7 +97,11 @@ func _build_clipboard(cut: bool) -> Dictionary:
 		cmd.type = UndoCommand.Type.CUT
 		var cut_buildings: Dictionary = {}
 		for grid_pos: Vector2i in buildings_data.keys():
-			cut_buildings[grid_pos] = {"type": buildings_data[grid_pos]}
+			var cut_entry: Dictionary = {"type": buildings_data[grid_pos]}
+			var bdata := building_manager.get_building_data(grid_pos)
+			if bdata != null and not bdata.element_type_id.is_empty():
+				cut_entry["element_type_id"] = bdata.element_type_id
+			cut_buildings[grid_pos] = cut_entry
 		cmd.buildings = cut_buildings
 		push_undo_command(cmd)
 
@@ -162,7 +170,10 @@ func get_effective_clipboard() -> Dictionary:
 	for item: Dictionary in clip_buildings:
 		var offset: Vector2i = item["offset"]
 		var rotated_offset := _rotate_offset(offset, _paste_rotation)
-		rotated.append({"offset": rotated_offset, "type": item["type"]})
+		var rotated_item: Dictionary = {"offset": rotated_offset, "type": item["type"]}
+		if item.has("element_type_id"):
+			rotated_item["element_type_id"] = item["element_type_id"]
+		rotated.append(rotated_item)
 	var min_x := 0
 	var min_y := 0
 	for item: Dictionary in rotated:
@@ -222,8 +233,14 @@ func perform_paste(anchor: Vector2i) -> void:
 	for item: Dictionary in valid_items:
 		var grid_pos: Vector2i = anchor + item["offset"]
 		var building_type: String = item["type"]
-		if building_manager.place_building(grid_pos, building_type):
-			placed_cells[grid_pos] = {"type": building_type}
+		var restore_data: Dictionary = {}
+		if item.has("element_type_id"):
+			restore_data["element_type_id"] = item["element_type_id"]
+		if building_manager.place_building(grid_pos, building_type, restore_data):
+			var placed_entry: Dictionary = {"type": building_type}
+			if item.has("element_type_id"):
+				placed_entry["element_type_id"] = item["element_type_id"]
+			placed_cells[grid_pos] = placed_entry
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()
@@ -250,8 +267,14 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 			var grid_pos: Vector2i = anchor + item["offset"]
 			if not building_manager.has_building(grid_pos):
 				var building_type: String = item["type"]
-				if building_manager.place_building(grid_pos, building_type):
-					placed_cells[grid_pos] = {"type": building_type}
+				var restore_data: Dictionary = {}
+				if item.has("element_type_id"):
+					restore_data["element_type_id"] = item["element_type_id"]
+				if building_manager.place_building(grid_pos, building_type, restore_data):
+					var placed_entry: Dictionary = {"type": building_type}
+					if item.has("element_type_id"):
+						placed_entry["element_type_id"] = item["element_type_id"]
+					placed_cells[grid_pos] = placed_entry
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()

@@ -30,6 +30,20 @@ func _get_ghost_preview(bm: BuildingManager) -> Node:
 
 func _exit_state(state: State) -> void:
 	match state:
+		State.IDLE:
+			var gp: Node = null
+			var main_loop := Engine.get_main_loop()
+			var scene_tree := main_loop as SceneTree
+			if scene_tree:
+				var main := scene_tree.current_scene
+				if main:
+					var bm := main.get_node_or_null("BuildingManager") as BuildingManager
+					gp = _get_ghost_preview(bm)
+			if gp:
+				if gp.has_method("hide_ghost"):
+					gp.hide_ghost()
+				if gp.has_method("hide_emitter_ghost_direction"):
+					gp.hide_emitter_ghost_direction()
 		State.DRAGGING:
 			var bm := context.get("building_manager") as BuildingManager
 			var gp: Node = _get_ghost_preview(bm)

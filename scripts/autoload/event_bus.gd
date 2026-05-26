@@ -41,8 +41,6 @@ signal building_hover_exited(grid_pos: Vector2i)
 signal element_spawned(grid_pos: Vector2i, element_type_id: String)
 @warning_ignore("unused_signal")
 signal element_removed(grid_pos: Vector2i, element_type_id: String)
-@warning_ignore("unused_signal")
-signal reaction_occurred(grid_pos: Vector2i, reactant_a_id: String, reactant_b_id: String, product_id: String)
 
 # 源质系统信号
 @warning_ignore("unused_signal")

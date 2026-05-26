@@ -11,8 +11,8 @@ func _ready() -> void:
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var ls := LabelSettings.new()
-	ls.font_size = 18
-	ls.font_color = Color("#ffd700")
+	ls.font_size = 14
+	ls.font_color = Color.WHITE
 	_label.label_settings = ls
 
 	EssencePool.essence_changed.connect(_on_essence_changed)

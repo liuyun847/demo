@@ -23,7 +23,7 @@ func test_set_element_occupied_position() -> void:
 	var element1 := _create_element("water")
 	_grid.set_element(Vector2i(0, 0), element1)
 
-	var element2 := _create_element("fire")
+	var element2 := _create_element("water")
 	var result: bool = _grid.set_element(Vector2i(0, 0), element2)
 	assert_false(result, "在已有元素的格子放置元素应失败")
 
@@ -40,12 +40,12 @@ func test_remove_nonexistent_element() -> void:
 	assert_null(removed, "移除不存在的元素应返回 null")
 
 func test_get_element() -> void:
-	var element := _create_element("fire")
+	var element := _create_element("water")
 	_grid.set_element(Vector2i(5, 3), element)
 
 	var retrieved: ElementData = _grid.get_element(Vector2i(5, 3))
 	assert_not_null(retrieved, "应能获取已放置的元素")
-	assert_eq(retrieved.element_type.element_id, "fire", "获取的元素类型应正确")
+	assert_eq(retrieved.element_type.element_id, "water", "获取的元素类型应正确")
 
 func test_get_nonexistent_element() -> void:
 	var retrieved: ElementData = _grid.get_element(Vector2i(0, 0))
@@ -61,7 +61,7 @@ func test_is_position_available_with_element() -> void:
 
 func test_get_all_element_positions() -> void:
 	var element1 := _create_element("water")
-	var element2 := _create_element("fire")
+	var element2 := _create_element("water")
 	_grid.set_element(Vector2i(0, 0), element1)
 	_grid.set_element(Vector2i(1, 1), element2)
 
@@ -70,7 +70,7 @@ func test_get_all_element_positions() -> void:
 
 func test_clear_all() -> void:
 	var element1 := _create_element("water")
-	var element2 := _create_element("fire")
+	var element2 := _create_element("water")
 	_grid.set_element(Vector2i(0, 0), element1)
 	_grid.set_element(Vector2i(1, 1), element2)
 

@@ -15,6 +15,9 @@ var _has_camera: bool = false
 var _drag_corner_first_horizontal: bool = true
 var _last_drag_grid: Vector2i = Vector2i.ZERO
 
+const _EMITTER_DIRS: Array[Vector2i] = [Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1), Vector2i(1, 0)]
+var _emitter_dir_idx: int = 0
+
 func _ready() -> void:
 	if not building_manager:
 		building_manager = %BuildingManager as BuildingManager
@@ -27,16 +30,25 @@ func _ready() -> void:
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
 	_has_camera = get_viewport().get_camera_2d() != null
 
-func _on_slot_selected(index: int, _type_id: String) -> void:
-	if index < 0:
+func _on_slot_selected(index: int, type_id: String) -> void:
+	if index < 0 or not BuildingData.is_emitter(type_id):
+		if ghost_preview:
+			ghost_preview.hide_emitter_ghost_direction()
+			ghost_preview.hide_ghost()
 		_cancel_all_dragging()
+		return
+	_emitter_dir_idx = 0
+	_update_emitter_ghost_direction()
 
 func _on_paste_mode_changed(_active: bool) -> void:
+	if ghost_preview:
+		ghost_preview.hide_emitter_ghost_direction()
 	_cancel_all_dragging()
 
 func _cancel_all_dragging() -> void:
 	if ghost_preview:
 		ghost_preview.clear_paste_preview()
+		ghost_preview.hide_emitter_ghost_direction()
 	_state_machine.reset()
 
 func _get_grid_pos(event: InputEvent) -> Vector2i:
@@ -57,12 +69,26 @@ func _is_selection_mode() -> bool:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("rotate_clipboard") and not event.is_echo():
+		var is_emitter_placement: bool = _is_building_placement_mode() and inventory_bar and \
+			BuildingData.is_emitter(inventory_bar.get_current_building_type())
+
+		if is_emitter_placement:
+			_emitter_dir_idx = (_emitter_dir_idx + 1) % 4
+			_update_emitter_ghost_direction()
+			if _state_machine.current_state == InputStateMachine.State.DRAGGING:
+				var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
+				if start_grid != _last_drag_grid:
+					var cells: Array[Vector2i] = GridUtils.get_l_cells(start_grid, _last_drag_grid, _drag_corner_first_horizontal)
+					ghost_preview.show_ghost(cells)
+			get_viewport().set_input_as_handled()
+			return
+
 		if _state_machine.current_state == InputStateMachine.State.DRAGGING:
 			_drag_corner_first_horizontal = not _drag_corner_first_horizontal
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
 			if start_grid != _last_drag_grid:
 				var cells: Array[Vector2i] = GridUtils.get_l_cells(start_grid, _last_drag_grid, _drag_corner_first_horizontal)
-				building_manager.show_ghost(cells)
+				ghost_preview.show_ghost(cells)
 			get_viewport().set_input_as_handled()
 			return
 
@@ -129,12 +155,19 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 				var cells: Array[Vector2i] = [grid_pos]
 				ghost_preview.set_paste_preview_line(cells, SelectionManager.get_effective_clipboard())
 				viewport.set_input_as_handled()
+				return
+			if _is_building_placement_mode() and inventory_bar:
+				var type_id: String = inventory_bar.get_current_building_type()
+				if BuildingData.is_emitter(type_id):
+					ghost_preview.show_ghost([grid_pos])
+					_update_emitter_ghost_direction()
 		InputStateMachine.State.DRAGGING:
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
 			if grid_pos != start_grid:
 				_last_drag_grid = grid_pos
 				var cells: Array[Vector2i] = GridUtils.get_l_cells(start_grid, grid_pos, _drag_corner_first_horizontal)
 				ghost_preview.show_ghost(cells)
+			_update_emitter_ghost_direction()
 			viewport.set_input_as_handled()
 		InputStateMachine.State.REMOVING:
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
@@ -188,6 +221,18 @@ func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewpo
 		viewport.set_input_as_handled()
 		return
 
+func _update_emitter_ghost_direction() -> void:
+	if not ghost_preview:
+		return
+	var is_emitter_mode: bool = _is_building_placement_mode() and inventory_bar and \
+		BuildingData.is_emitter(inventory_bar.get_current_building_type())
+	if is_emitter_mode:
+		var dir := _EMITTER_DIRS[_emitter_dir_idx]
+		ghost_preview.set_emitter_ghost_direction(dir)
+	else:
+		ghost_preview.hide_emitter_ghost_direction()
+
+
 func _open_emitter_type_panel(emitter_node: EmitterNode) -> void:
 	if is_instance_valid(_current_emitter_panel):
 		_current_emitter_panel.queue_free()
@@ -204,7 +249,6 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		if building_manager.has_building(grid_pos):
 			var node := building_manager.get_building_node(grid_pos)
 			if node is EmitterNode:
-				_open_emitter_type_panel(node)
 				viewport.set_input_as_handled()
 				return
 		var building_type: String = inventory_bar.get_current_building_type() if inventory_bar else "default"
@@ -228,10 +272,22 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 			if building_manager.place_building(cell, building_type):
 				placed[cell] = {"type": building_type}
 		if not placed.is_empty():
+			if BuildingData.is_emitter(building_type):
+				var emitter_dir := _EMITTER_DIRS[_emitter_dir_idx]
+				for cell: Vector2i in placed.keys():
+					var placed_node := building_manager.get_building_node(cell)
+					if placed_node is EmitterNode:
+						placed_node.set_output_direction(emitter_dir)
 			var cmd: UndoCommand = UndoCommand.new()
 			cmd.type = UndoCommand.Type.PLACE
 			cmd.buildings = placed
 			SelectionManager.push_undo_command(cmd)
+			if BuildingData.is_emitter(building_type):
+				for cell: Vector2i in placed.keys():
+					var placed_node := building_manager.get_building_node(cell)
+					if placed_node is EmitterNode:
+						placed_node.set_element_type("water")
+						break
 		_state_machine.transition_to(InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return

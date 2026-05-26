@@ -1,66 +1,67 @@
 [gd_scene format=3 uid="uid://b7mm3n5spqr6d"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="Script" path="res://scripts/InfiniteGridMap.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/CameraController.gd" id="2"]
-[ext_resource type="Script" path="res://scripts/building/building_manager.gd" id="4_def34"]
-[ext_resource type="Script" path="res://scripts/persistence/save_manager.gd" id="5_ghi56"]
-[ext_resource type="Script" path="res://scripts/grid/map_input_handler.gd" id="6_jkl78"]
+[ext_resource type="Script" uid="uid://bbe7n0o3spahd" path="res://scripts/InfiniteGridMap.gd" id="1"]
+[ext_resource type="Script" uid="uid://do4f1rejcydqg" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://kq6ptwjolyas" path="res://scripts/CameraController.gd" id="2"]
+[ext_resource type="Script" uid="uid://1cl5lnen64i0" path="res://scripts/building/building_manager.gd" id="4_def34"]
+[ext_resource type="Script" uid="uid://jhvlpdkw5eb2" path="res://scripts/persistence/save_manager.gd" id="5_ghi56"]
+[ext_resource type="Script" uid="uid://sg1ksgs3vvhv" path="res://scripts/grid/map_input_handler.gd" id="6_jkl78"]
 [ext_resource type="PackedScene" uid="uid://b0njy8c5w1q2k" path="res://scenes/start_menu.tscn" id="7_t5y78"]
 [ext_resource type="PackedScene" uid="uid://dwxq7v1l0r8yx" path="res://scenes/settings.tscn" id="8_u3i12"]
 [ext_resource type="PackedScene" path="res://scenes/inventory_bar.tscn" id="9_invbar"]
-[ext_resource type="PackedScene" uid="uid://c8k5y2p1x3m9z" path="res://scenes/building_tooltip.tscn" id="10_tooltip"]
-[ext_resource type="Script" path="res://scripts/fps_display.gd" id="11_fps_display"]
-[ext_resource type="Script" path="res://scripts/ui/key_hints.gd" id="12_key_hints"]
-[ext_resource type="Script" path="res://scripts/building/ghost_preview_manager.gd" id="13_ghost"]
-[ext_resource type="Script" path="res://scripts/building/pipe_render_system.gd" id="14_pipe"]
+[ext_resource type="PackedScene" uid="uid://c8k5y2p1x3na0" path="res://scenes/building_tooltip.tscn" id="10_tooltip"]
+[ext_resource type="Script" uid="uid://8rr2ag6konpr" path="res://scripts/fps_display.gd" id="11_fps_display"]
+[ext_resource type="Script" uid="uid://cied8tiglusv" path="res://scripts/ui/key_hints.gd" id="12_key_hints"]
+[ext_resource type="Script" uid="uid://bba1dg1bypb0" path="res://scripts/building/ghost_preview_manager.gd" id="13_ghost"]
+[ext_resource type="Script" uid="uid://b3qe5glbfw7kj" path="res://scripts/building/pipe_render_system.gd" id="14_pipe"]
 
-[node name="Root" type="Node2D"]
+[node name="Root" type="Node2D" unique_id=700315949]
 script = ExtResource("1_main")
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=448127561]
 script = ExtResource("2")
-current = true
 
-[node name="InfiniteGridMap" type="Node2D" parent="."]
+[node name="InfiniteGridMap" type="Node2D" parent="." unique_id=189817870]
 script = ExtResource("1")
 
-[node name="BuildingManager" type="Node2D" parent="."]
+[node name="BuildingManager" type="Node2D" parent="." unique_id=299488325]
 unique_name_in_owner = true
 script = ExtResource("4_def34")
 
-[node name="PipeRenderSystem" type="Node2D" parent="BuildingManager"]
+[node name="PipeRenderSystem" type="Node2D" parent="BuildingManager" unique_id=577184953]
 script = ExtResource("14_pipe")
 
-[node name="GhostPreviewManager" type="Node2D" parent="BuildingManager"]
+[node name="GhostPreviewManager" type="Node2D" parent="BuildingManager" unique_id=1978201693]
 script = ExtResource("13_ghost")
 
-[node name="SaveManager" type="Node" parent="."]
+[node name="SaveManager" type="Node" parent="." unique_id=781771511]
 script = ExtResource("5_ghi56")
 
-[node name="MapInputHandler" type="Node" parent="."]
+[node name="MapInputHandler" type="Node" parent="." unique_id=733473164]
 script = ExtResource("6_jkl78")
 
-[node name="UIOverlay" type="CanvasLayer" parent="."]
+[node name="UIOverlay" type="CanvasLayer" parent="." unique_id=1558574876]
+process_mode = 3
 layer = 128
-process_mode = 3
 
-[node name="StartMenu" parent="UIOverlay" instance=ExtResource("7_t5y78")]
+[node name="StartMenu" parent="UIOverlay" unique_id=1858954692 instance=ExtResource("7_t5y78")]
 process_mode = 3
+layout_mode = 3
 
-[node name="SettingsPanel" parent="UIOverlay" instance=ExtResource("8_u3i12")]
+[node name="SettingsPanel" parent="UIOverlay" unique_id=206894220 instance=ExtResource("8_u3i12")]
+process_mode = 3
 visible = false
-process_mode = 3
+layout_mode = 3
 
-[node name="InventoryBar" parent="UIOverlay" instance=ExtResource("9_invbar")]
+[node name="InventoryBar" parent="UIOverlay" unique_id=1814139259 instance=ExtResource("9_invbar")]
 unique_name_in_owner = true
 visible = false
 
-[node name="BuildingTooltip" parent="UIOverlay" instance=ExtResource("10_tooltip")]
+[node name="BuildingTooltip" parent="UIOverlay" unique_id=599037217 instance=ExtResource("10_tooltip")]
 
-[node name="FPSDisplay" type="Label" parent="UIOverlay"]
+[node name="FPSDisplay" type="Label" parent="UIOverlay" unique_id=348875281]
 script = ExtResource("11_fps_display")
 
-[node name="KeyHints" type="VBoxContainer" parent="UIOverlay"]
-script = ExtResource("12_key_hints")
+[node name="KeyHints" type="VBoxContainer" parent="UIOverlay" unique_id=1944609243]
 visible = false
+script = ExtResource("12_key_hints")

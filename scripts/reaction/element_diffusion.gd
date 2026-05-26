@@ -5,61 +5,98 @@ const DIR_UP: Vector2i = Vector2i(0, -1)
 const DIR_DOWN: Vector2i = Vector2i(0, 1)
 const DIR_LEFT: Vector2i = Vector2i(-1, 0)
 const DIR_RIGHT: Vector2i = Vector2i(1, 0)
+const DIR_UP_LEFT: Vector2i = Vector2i(-1, -1)
+const DIR_UP_RIGHT: Vector2i = Vector2i(1, -1)
+const DIR_DOWN_LEFT: Vector2i = Vector2i(-1, 1)
+const DIR_DOWN_RIGHT: Vector2i = Vector2i(1, 1)
 
-func diffuse_all(element_grid: ElementGrid, steps: int) -> void:
+var _tick_count: int = 0
+
+func diffuse_all(element_grid: ElementGrid, steps: int) -> int:
+	var total_new_cells: int = 0
 	for _i in range(steps):
-		_diffuse_single_step(element_grid)
+		total_new_cells += _diffuse_single_step(element_grid)
 
-func _diffuse_single_step(element_grid: ElementGrid) -> void:
-	var positions: Array[Vector2i] = element_grid.get_all_element_positions()
-	positions.shuffle()
+	_tick_count += 1
+	if _tick_count % GameConfig.cleanup_interval_ticks == 0:
+		_cleanup_abandoned_elements(element_grid)
 
-	for pos: Vector2i in positions:
+	return total_new_cells
+
+func _diffuse_single_step(element_grid: ElementGrid) -> int:
+	var current_positions: Array[Vector2i] = element_grid.get_all_element_positions()
+
+	var new_placements: Dictionary = {}
+
+	for pos: Vector2i in current_positions:
 		var element: ElementData = element_grid.get_element(pos)
 		if element == null:
 			continue
 
-		var directions: Array[Dictionary] = _get_weighted_directions(element.element_type)
-		if directions.is_empty():
-			continue
+		var directions := _get_spread_directions(element.element_type)
 
-		var target_dir: Vector2i = _weighted_random(directions)
-		var target_pos: Vector2i = pos + target_dir
+		for dir: Vector2i in directions:
+			var target: Vector2i = pos + dir
+			if target in new_placements:
+				continue
+			if not element_grid.is_position_available(target):
+				continue
 
-		if element_grid.is_position_available(target_pos):
-			element_grid.set_element(target_pos, element)
-			element_grid.remove_element(pos)
+			var new_element := ElementData.new()
+			new_element.element_type = element.element_type
+			new_element.complexity = element.complexity
+			new_placements[target] = new_element
 
-func _get_weighted_directions(element_type: ElementTypeData) -> Array[Dictionary]:
-	var choices: Array[Dictionary] = []
+	var new_cells: int = 0
+	for target: Vector2i in new_placements:
+		var data: ElementData = new_placements[target] as ElementData
+		if element_grid.set_element(target, data):
+			new_cells += 1
 
-	if element_type.diffusion_rate == 0.0:
-		return choices
+	return new_cells
+
+func _get_spread_directions(element_type: ElementTypeData) -> Array[Vector2i]:
+	var dirs: Array[Vector2i] = []
 
 	if element_type.gravity > 0:
-		var weight: float = element_type.gravity * (1.0 - element_type.diffusion_rate)
-		choices.append({"dir": DIR_DOWN, "weight": weight})
+		dirs.append(DIR_DOWN)
+		if element_type.diffusion_rate > 0:
+			dirs.append(DIR_DOWN_LEFT)
+			dirs.append(DIR_DOWN_RIGHT)
+			dirs.append(DIR_LEFT)
+			dirs.append(DIR_RIGHT)
 	elif element_type.gravity < 0:
-		var weight: float = abs(element_type.gravity) * (1.0 - element_type.diffusion_rate)
-		choices.append({"dir": DIR_UP, "weight": weight})
+		dirs.append(DIR_UP)
+		if element_type.diffusion_rate > 0:
+			dirs.append(DIR_UP_LEFT)
+			dirs.append(DIR_UP_RIGHT)
+			dirs.append(DIR_LEFT)
+			dirs.append(DIR_RIGHT)
+	else:
+		dirs = [DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT]
 
-	var lateral_weight: float = (1.0 - abs(element_type.gravity)) * element_type.lateral_priority * element_type.diffusion_rate
-	if lateral_weight > 0.0:
-		choices.append({"dir": DIR_LEFT, "weight": lateral_weight})
-		choices.append({"dir": DIR_RIGHT, "weight": lateral_weight})
+	return dirs
 
-	return choices
+func _cleanup_abandoned_elements(element_grid: ElementGrid) -> void:
+	if element_grid.building_manager_ref == null:
+		return
 
-func _weighted_random(choices: Array[Dictionary]) -> Vector2i:
-	var total_weight: float = 0.0
-	for choice: Dictionary in choices:
-		total_weight += choice["weight"]
+	var building_positions: Array[Vector2i] = element_grid.building_manager_ref.get_all_building_positions()
+	if building_positions.is_empty():
+		return
 
-	var roll: float = randf_range(0.0, total_weight)
-	var cumulative: float = 0.0
-	for choice: Dictionary in choices:
-		cumulative += choice["weight"]
-		if roll < cumulative:
-			return choice["dir"]
+	var threshold := GameConfig.element_abandon_distance
+	var all_positions: Array[Vector2i] = element_grid.get_all_element_positions()
 
-	return choices.back()["dir"]
+	for pos: Vector2i in all_positions:
+		var min_distance: int = _min_manhattan_distance_to_buildings(pos, building_positions)
+		if min_distance > threshold:
+			element_grid.remove_element(pos)
+
+func _min_manhattan_distance_to_buildings(pos: Vector2i, building_positions: Array[Vector2i]) -> int:
+	var min_dist := -1
+	for bp: Vector2i in building_positions:
+		var dist := absi(pos.x - bp.x) + absi(pos.y - bp.y)
+		if min_dist == -1 or dist < min_dist:
+			min_dist = dist
+	return min_dist

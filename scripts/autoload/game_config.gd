@@ -62,11 +62,14 @@ const emitter_essence_cost_per_tick: float = 1.0
 const collector_default_radius: int = 1
 
 # 初始源质
-const initial_essence: float = 10.0
+const initial_essence: float = 100.0
 
-# 反应系统配置
-const reaction_tick_interval: float = 0.3
-const diffusion_steps_per_tick: int = 3
+# 扩散系统配置
+const simulation_tick_interval: float = 0.2
+const diffusion_steps_per_tick: int = 1
+const element_abandon_distance: int = 100
+const cleanup_interval_ticks: int = 10
+const emitter_blocked_cooldown: int = 10
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"
