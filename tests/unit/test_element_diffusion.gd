@@ -1,15 +1,28 @@
 extends GutTest
 
+const _BM: GDScript = preload("res://scripts/building/building_manager.gd")
+const _PRS: GDScript = preload("res://scripts/building/pipe_render_system.gd")
+
 var _grid: ElementGrid = null
 var _diffusion: ElementDiffusion = null
+var _bm: BuildingManager = null
 
 func before_each() -> void:
 	_grid = autoqfree(ElementGrid.new())
 	_diffusion = autoqfree(ElementDiffusion.new())
 
+	_bm = autoqfree(_BM.new())
+	var pr: PipeRenderSystem = autoqfree(_PRS.new())
+	pr.name = "PipeRenderSystem"
+	_bm.add_child(pr)
+	add_child_autoqfree(_bm)
+
+	_grid.building_manager_ref = _bm
+
 func after_each() -> void:
 	_grid = null
 	_diffusion = null
+	_bm = null
 
 func _create_element(element_type_id: String) -> ElementData:
 	var element := ElementData.new()
@@ -19,25 +32,27 @@ func _create_element(element_type_id: String) -> ElementData:
 func test_water_spreads_down_and_lateral() -> void:
 	var water := _create_element("water")
 	_grid.set_element(Vector2i(0, 0), water)
+	_bm.place_building(Vector2i(0, 6), GameConfig.brick_type_id)
 
 	_diffusion.diffuse_all(_grid, 5)
 
 	assert_true(_grid.has_element(Vector2i(0, 0)), "水源位置应保留")
 	assert_true(_grid.has_element(Vector2i(0, 5)), "水应向下扩展到 Y=5")
 	var count: int = _grid.get_all_element_positions().size()
-	assert_gt(count, 6, "水有横向扩散，数量应大于纯向下扩展")
+	assert_gt(count, 6, "触底后应有横向扩散，数量应大于纯向下扩展")
 
 func test_water_blocked_spreads_around() -> void:
 	var water := _create_element("water")
-	_grid.set_element(Vector2i(0, 0), water)
-	_grid.set_element(Vector2i(0, 1), _create_element("water"))
+	_grid.set_element(Vector2i(1, 0), water)
+	_grid.set_element(Vector2i(1, 1), _create_element("water"))
+	_bm.place_building(Vector2i(1, 2), GameConfig.brick_type_id)
 
 	_diffusion.diffuse_all(_grid, 5)
 
-	assert_true(_grid.has_element(Vector2i(0, 0)), "水源位置应保留")
-	assert_true(_grid.has_element(Vector2i(0, 1)), "障碍位置应保留")
+	assert_true(_grid.has_element(Vector2i(1, 0)), "水源位置应保留")
+	assert_true(_grid.has_element(Vector2i(1, 1)), "障碍位置应保留")
 	var all_positions: Array[Vector2i] = _grid.get_all_element_positions()
-	assert_gt(all_positions.size(), 2, "水应绕过障碍向旁侧扩散")
+	assert_gt(all_positions.size(), 2, "水应绕过建筑障碍向旁侧扩散")
 
 func test_elements_grow_during_diffusion() -> void:
 	var water := _create_element("water")

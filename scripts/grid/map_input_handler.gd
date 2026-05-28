@@ -278,6 +278,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 					var placed_node := building_manager.get_building_node(cell)
 					if placed_node is EmitterNode:
 						placed_node.set_output_direction(emitter_dir)
+					placed[cell]["output_direction"] = [emitter_dir.x, emitter_dir.y]
 			var cmd: UndoCommand = UndoCommand.new()
 			cmd.type = UndoCommand.Type.PLACE
 			cmd.buildings = placed
@@ -309,7 +310,14 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 		var removed: Dictionary = {}
 		for cell: Vector2i in cells:
 			if building_manager.has_building(cell):
-				removed[cell] = {"type": building_manager.get_building_type(cell)}
+				var entry: Dictionary = {"type": building_manager.get_building_type(cell)}
+				var bdata := building_manager.get_building_data(cell)
+				if bdata != null:
+					if BuildingData.is_emitter(bdata.building_type):
+						if not bdata.element_type_id.is_empty():
+							entry["element_type_id"] = bdata.element_type_id
+						entry["output_direction"] = [bdata.output_direction.x, bdata.output_direction.y]
+				removed[cell] = entry
 		building_manager.remove_buildings_in_rect(cells)
 		if not removed.is_empty():
 			var cmd: UndoCommand = UndoCommand.new()

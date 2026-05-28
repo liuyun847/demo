@@ -92,8 +92,10 @@ func _build_save_dict() -> Dictionary:
 		if BuildingData.has_capacity(data.building_type):
 			entry["capacity"] = data.capacity
 			entry["max_capacity"] = data.max_capacity
-		if BuildingData.is_emitter(data.building_type) and not data.element_type_id.is_empty():
-			entry["element_type_id"] = data.element_type_id
+		if BuildingData.is_emitter(data.building_type):
+			if not data.element_type_id.is_empty():
+				entry["element_type_id"] = data.element_type_id
+			entry["output_direction"] = [data.output_direction.x, data.output_direction.y]
 		save_dict.buildings[key] = entry
 
 	return save_dict
@@ -158,13 +160,12 @@ func load_buildings() -> void:
 				if BuildingData.has_capacity(b_type):
 					restore_data["capacity"] = b_data.get("capacity", 0)
 					restore_data["max_capacity"] = b_data.get("max_capacity", 100)
+				if BuildingData.is_emitter(b_type):
+					if b_data.has("element_type_id"):
+						restore_data["element_type_id"] = b_data["element_type_id"]
+					if b_data.has("output_direction"):
+						restore_data["output_direction"] = b_data["output_direction"]
 				building_manager.place_building(grid_pos, b_type, restore_data)
-				if BuildingData.is_emitter(b_type) and b_data.has("element_type_id"):
-					var node := building_manager.get_building_node(grid_pos)
-					if node is EmitterNode:
-						var elem_id: String = b_data.element_type_id
-						if not elem_id.is_empty():
-							node.set_element_type(elem_id)
 
 	call_deferred("_finalize_loading")
 

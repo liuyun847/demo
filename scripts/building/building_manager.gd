@@ -111,6 +111,8 @@ func get_all_buildings_data() -> Dictionary:
 		new_data.building_type = data.building_type
 		new_data.capacity = data.capacity
 		new_data.max_capacity = data.max_capacity
+		new_data.element_type_id = data.element_type_id
+		new_data.output_direction = data.output_direction
 		copy[grid_pos] = new_data
 	return copy
 

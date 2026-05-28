@@ -83,8 +83,10 @@ func _build_clipboard(cut: bool) -> Dictionary:
 			"offset": offset,
 			"type": buildings_data[grid_pos]
 		}
-		if building_data != null and not building_data.element_type_id.is_empty():
-			entry["element_type_id"] = building_data.element_type_id
+		if building_data != null:
+			if not building_data.element_type_id.is_empty():
+				entry["element_type_id"] = building_data.element_type_id
+			entry["output_direction"] = [building_data.output_direction.x, building_data.output_direction.y]
 		clipboard_buildings.append(entry)
 
 	var result := {
@@ -99,8 +101,10 @@ func _build_clipboard(cut: bool) -> Dictionary:
 		for grid_pos: Vector2i in buildings_data.keys():
 			var cut_entry: Dictionary = {"type": buildings_data[grid_pos]}
 			var bdata := building_manager.get_building_data(grid_pos)
-			if bdata != null and not bdata.element_type_id.is_empty():
-				cut_entry["element_type_id"] = bdata.element_type_id
+			if bdata != null:
+				if not bdata.element_type_id.is_empty():
+					cut_entry["element_type_id"] = bdata.element_type_id
+				cut_entry["output_direction"] = [bdata.output_direction.x, bdata.output_direction.y]
 			cut_buildings[grid_pos] = cut_entry
 		cmd.buildings = cut_buildings
 		push_undo_command(cmd)
@@ -173,6 +177,11 @@ func get_effective_clipboard() -> Dictionary:
 		var rotated_item: Dictionary = {"offset": rotated_offset, "type": item["type"]}
 		if item.has("element_type_id"):
 			rotated_item["element_type_id"] = item["element_type_id"]
+		if item.has("output_direction"):
+			var darr: Array = item["output_direction"]
+			var dir := Vector2i(int(darr[0]), int(darr[1]))
+			var rotated_dir := _rotate_offset(dir, _paste_rotation)
+			rotated_item["output_direction"] = [rotated_dir.x, rotated_dir.y]
 		rotated.append(rotated_item)
 	var min_x := 0
 	var min_y := 0
@@ -236,10 +245,14 @@ func perform_paste(anchor: Vector2i) -> void:
 		var restore_data: Dictionary = {}
 		if item.has("element_type_id"):
 			restore_data["element_type_id"] = item["element_type_id"]
+		if item.has("output_direction"):
+			restore_data["output_direction"] = item["output_direction"]
 		if building_manager.place_building(grid_pos, building_type, restore_data):
 			var placed_entry: Dictionary = {"type": building_type}
 			if item.has("element_type_id"):
 				placed_entry["element_type_id"] = item["element_type_id"]
+			if item.has("output_direction"):
+				placed_entry["output_direction"] = item["output_direction"]
 			placed_cells[grid_pos] = placed_entry
 
 	if not placed_cells.is_empty():
@@ -270,10 +283,14 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 				var restore_data: Dictionary = {}
 				if item.has("element_type_id"):
 					restore_data["element_type_id"] = item["element_type_id"]
+				if item.has("output_direction"):
+					restore_data["output_direction"] = item["output_direction"]
 				if building_manager.place_building(grid_pos, building_type, restore_data):
 					var placed_entry: Dictionary = {"type": building_type}
 					if item.has("element_type_id"):
 						placed_entry["element_type_id"] = item["element_type_id"]
+					if item.has("output_direction"):
+						placed_entry["output_direction"] = item["output_direction"]
 					placed_cells[grid_pos] = placed_entry
 
 	if not placed_cells.is_empty():

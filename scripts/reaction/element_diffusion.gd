@@ -21,39 +21,78 @@ func diffuse_all(element_grid: ElementGrid, steps: int) -> int:
 
 func _diffuse_single_step(element_grid: ElementGrid) -> int:
 	var current_positions: Array[Vector2i] = element_grid.get_all_element_positions()
-	var new_placements: Dictionary = {}
+	current_positions.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
 
+	var total_new_cells: int = 0
+
+	var p1_placements: Dictionary = {}
+	var solid_blocked: Array[Vector2i] = []
 	for pos: Vector2i in current_positions:
 		var element: ElementData = element_grid.get_element(pos)
 		if element == null:
 			continue
 
 		var down_pos := pos + DIR_DOWN
-		if _can_place(down_pos, new_placements, element_grid):
-			_place_copy(element, down_pos, new_placements)
+		if _can_place(down_pos, p1_placements, element_grid):
+			_place_copy(element, down_pos, p1_placements)
+		elif element_grid.is_building_at(down_pos):
+			solid_blocked.append(pos)
+	total_new_cells += _commit_placements(element_grid, p1_placements)
+
+	for target: Vector2i in p1_placements:
+		var below := target + DIR_DOWN
+		if element_grid.is_building_at(below):
+			solid_blocked.append(target)
+
+	var p2_placements: Dictionary = {}
+	var horizontal_blocked: Array[Vector2i] = []
+	for pos: Vector2i in solid_blocked:
+		var element: ElementData = element_grid.get_element(pos)
+		if element == null:
 			continue
 
 		var placed_any := false
 		for side_dir: Vector2i in [DIR_LEFT, DIR_RIGHT]:
 			var side_pos := pos + side_dir
-			if _can_place(side_pos, new_placements, element_grid):
-				_place_copy(element, side_pos, new_placements)
+			if _can_place(side_pos, p2_placements, element_grid):
+				_place_copy(element, side_pos, p2_placements)
 				placed_any = true
-		if placed_any:
-			continue
+		if not placed_any:
+			horizontal_blocked.append(pos)
+	total_new_cells += _commit_placements(element_grid, p2_placements)
 
-		var up_pos := pos + DIR_UP
-		if up_pos.y >= element.source_y:
-			if _can_place(up_pos, new_placements, element_grid):
-				_place_copy(element, up_pos, new_placements)
+	var p3_placements: Dictionary = {}
+	var up_queue: Array[Vector2i] = horizontal_blocked.duplicate()
+	while not up_queue.is_empty():
+		var next_queue: Array[Vector2i] = []
+		for pos: Vector2i in up_queue:
+			var element: ElementData = element_grid.get_element(pos)
+			if element == null:
+				continue
 
-	var new_cells: int = 0
-	for target: Vector2i in new_placements:
-		var data: ElementData = new_placements[target] as ElementData
+			var up_pos := pos + DIR_UP
+			if up_pos.y < element.source_y:
+				continue
+			if element_grid.is_building_at(up_pos):
+				continue
+			if up_pos in p3_placements:
+				continue
+
+			_place_copy(element, up_pos, p3_placements)
+			next_queue.append(up_pos)
+		up_queue = next_queue
+	total_new_cells += _commit_placements(element_grid, p3_placements)
+
+	return total_new_cells
+
+
+func _commit_placements(element_grid: ElementGrid, placements: Dictionary) -> int:
+	var count: int = 0
+	for target: Vector2i in placements:
+		var data: ElementData = placements[target] as ElementData
 		if element_grid.set_element(target, data):
-			new_cells += 1
-
-	return new_cells
+			count += 1
+	return count
 
 func _can_place(target: Vector2i, new_placements: Dictionary, element_grid: ElementGrid) -> bool:
 	if target in new_placements:
