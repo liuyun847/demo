@@ -17,6 +17,8 @@ func reverse(building_manager: BuildingManager) -> void:
 				var restore_data: Dictionary = {}
 				if entry.has("element_type_id"):
 					restore_data["element_type_id"] = entry["element_type_id"]
+				if entry.has("output_direction"):
+					restore_data["output_direction"] = entry["output_direction"]
 				building_manager.place_building(grid_pos, building_type, restore_data)
 
 func forward(building_manager: BuildingManager) -> void:
@@ -28,6 +30,8 @@ func forward(building_manager: BuildingManager) -> void:
 				var restore_data: Dictionary = {}
 				if entry.has("element_type_id"):
 					restore_data["element_type_id"] = entry["element_type_id"]
+				if entry.has("output_direction"):
+					restore_data["output_direction"] = entry["output_direction"]
 				building_manager.place_building(grid_pos, building_type, restore_data)
 			Type.REMOVE, Type.CUT:
 				building_manager.remove_building(grid_pos)
