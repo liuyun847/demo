@@ -5,10 +5,6 @@ const DIR_UP: Vector2i = Vector2i(0, -1)
 const DIR_DOWN: Vector2i = Vector2i(0, 1)
 const DIR_LEFT: Vector2i = Vector2i(-1, 0)
 const DIR_RIGHT: Vector2i = Vector2i(1, 0)
-const DIR_UP_LEFT: Vector2i = Vector2i(-1, -1)
-const DIR_UP_RIGHT: Vector2i = Vector2i(1, -1)
-const DIR_DOWN_LEFT: Vector2i = Vector2i(-1, 1)
-const DIR_DOWN_RIGHT: Vector2i = Vector2i(1, 1)
 
 var _tick_count: int = 0
 
@@ -25,7 +21,6 @@ func diffuse_all(element_grid: ElementGrid, steps: int) -> int:
 
 func _diffuse_single_step(element_grid: ElementGrid) -> int:
 	var current_positions: Array[Vector2i] = element_grid.get_all_element_positions()
-
 	var new_placements: Dictionary = {}
 
 	for pos: Vector2i in current_positions:
@@ -33,19 +28,24 @@ func _diffuse_single_step(element_grid: ElementGrid) -> int:
 		if element == null:
 			continue
 
-		var directions := _get_spread_directions(element.element_type)
+		var down_pos := pos + DIR_DOWN
+		if _can_place(down_pos, new_placements, element_grid):
+			_place_copy(element, down_pos, new_placements)
+			continue
 
-		for dir: Vector2i in directions:
-			var target: Vector2i = pos + dir
-			if target in new_placements:
-				continue
-			if not element_grid.is_position_available(target):
-				continue
+		var placed_any := false
+		for side_dir: Vector2i in [DIR_LEFT, DIR_RIGHT]:
+			var side_pos := pos + side_dir
+			if _can_place(side_pos, new_placements, element_grid):
+				_place_copy(element, side_pos, new_placements)
+				placed_any = true
+		if placed_any:
+			continue
 
-			var new_element := ElementData.new()
-			new_element.element_type = element.element_type
-			new_element.complexity = element.complexity
-			new_placements[target] = new_element
+		var up_pos := pos + DIR_UP
+		if up_pos.y >= element.source_y:
+			if _can_place(up_pos, new_placements, element_grid):
+				_place_copy(element, up_pos, new_placements)
 
 	var new_cells: int = 0
 	for target: Vector2i in new_placements:
@@ -55,27 +55,17 @@ func _diffuse_single_step(element_grid: ElementGrid) -> int:
 
 	return new_cells
 
-func _get_spread_directions(element_type: ElementTypeData) -> Array[Vector2i]:
-	var dirs: Array[Vector2i] = []
+func _can_place(target: Vector2i, new_placements: Dictionary, element_grid: ElementGrid) -> bool:
+	if target in new_placements:
+		return false
+	return element_grid.is_position_available(target)
 
-	if element_type.gravity > 0:
-		dirs.append(DIR_DOWN)
-		if element_type.diffusion_rate > 0:
-			dirs.append(DIR_DOWN_LEFT)
-			dirs.append(DIR_DOWN_RIGHT)
-			dirs.append(DIR_LEFT)
-			dirs.append(DIR_RIGHT)
-	elif element_type.gravity < 0:
-		dirs.append(DIR_UP)
-		if element_type.diffusion_rate > 0:
-			dirs.append(DIR_UP_LEFT)
-			dirs.append(DIR_UP_RIGHT)
-			dirs.append(DIR_LEFT)
-			dirs.append(DIR_RIGHT)
-	else:
-		dirs = [DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT]
-
-	return dirs
+func _place_copy(element: ElementData, target: Vector2i, new_placements: Dictionary) -> void:
+	var new_element := ElementData.new()
+	new_element.element_type = element.element_type
+	new_element.complexity = element.complexity
+	new_element.source_y = element.source_y
+	new_placements[target] = new_element
 
 func _cleanup_abandoned_elements(element_grid: ElementGrid) -> void:
 	if element_grid.building_manager_ref == null:
