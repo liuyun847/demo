@@ -42,6 +42,7 @@ func try_output(element_grid: ElementGrid) -> bool:
 	var element := ElementData.new()
 	element.element_type = element_type
 	element.complexity = 1
+	element.source_y = grid_position.y
 
 	return element_grid.set_element(target_pos, element)
 
