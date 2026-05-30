@@ -19,6 +19,7 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	"ui_undo": "撤销",
 	"ui_redo": "重做",
 	"rotate_clipboard": "旋转/切换",
+	"toggle_pause": "暂停",
 }
 
 const COMBO_MODIFIER: Dictionary = {
@@ -46,6 +47,7 @@ const GAMEPLAY_ACTIONS: Array[String] = [
 	"ui_paste",
 	"ui_undo",
 	"ui_redo",
+	"toggle_pause",
 ]
 
 func _ready() -> void:
@@ -264,6 +266,7 @@ func _apply_default_keybindings() -> void:
 		"ui_undo": _create_key_event_with_ctrl(KEY_Z),
 		"ui_redo": _create_key_event_with_ctrl(KEY_Y),
 		"rotate_clipboard": _create_key_event(KEY_R),
+		"toggle_pause": _create_key_event(KEY_SPACE),
 	}
 
 	for action: String in defaults.keys():

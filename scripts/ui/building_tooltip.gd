@@ -1,7 +1,7 @@
 class_name BuildingTooltip
 extends Control
 
-const OFFSET_Y: float = -12.0
+const GAP: float = 8.0
 const MIN_WIDTH: float = 140.0
 const MIN_HEIGHT: float = 60.0
 
@@ -196,8 +196,10 @@ func _update_position() -> void:
 	var screen_pos: Vector2 = camera.get_canvas_transform() * world_pos
 
 	var tooltip_size: Vector2 = size
+	var canvas_scale_y: float = camera.get_canvas_transform().get_scale().y
+	var cell_top_y: float = screen_pos.y - GameConfig.cell_size * 0.5 * canvas_scale_y
 	var pos_x: float = screen_pos.x - tooltip_size.x / 2.0
-	var pos_y: float = screen_pos.y - tooltip_size.y + OFFSET_Y
+	var pos_y: float = cell_top_y - tooltip_size.y - GAP
 
 	pos_x = clampf(pos_x, 0, viewport.size.x - tooltip_size.x)
 	pos_y = clampf(pos_y, 0, viewport.size.y - tooltip_size.y)
