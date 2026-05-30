@@ -36,6 +36,7 @@ func _ready() -> void:
 	EventBus.keybind_changed.connect(_on_keybind_changed)
 	_inventory_bar.slot_selected.connect(_on_slot_selected)
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
+	EventBus.pause_state_changed.connect(_on_pause_state_changed)
 
 func _exit_tree() -> void:
 	if EventBus.keybind_changed.is_connected(_on_keybind_changed):
@@ -44,6 +45,8 @@ func _exit_tree() -> void:
 		_inventory_bar.slot_selected.disconnect(_on_slot_selected)
 	if EventBus.paste_mode_changed.is_connected(_on_paste_mode_changed):
 		EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
+	if EventBus.pause_state_changed.is_connected(_on_pause_state_changed):
+		EventBus.pause_state_changed.disconnect(_on_pause_state_changed)
 
 func _build_edit_section() -> void:
 	for action in EDIT_ACTIONS:
@@ -241,3 +244,6 @@ func _on_slot_selected(_index: int, _type_id: String) -> void:
 
 func _on_paste_mode_changed(_active: bool) -> void:
 	_refresh_click_rows()
+
+func _on_pause_state_changed(paused: bool) -> void:
+	visible = not paused

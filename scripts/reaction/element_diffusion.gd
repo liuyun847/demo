@@ -52,12 +52,24 @@ func _diffuse_single_step(element_grid: ElementGrid) -> int:
 			continue
 
 		var placed_any := false
-		for side_dir: Vector2i in [DIR_LEFT, DIR_RIGHT]:
-			var side_pos := pos + side_dir
-			if _can_place(side_pos, p2_placements, element_grid):
-				_place_copy(element, side_pos, p2_placements)
-				placed_any = true
-		if not placed_any:
+		var left_blocked_by_building := false
+		var right_blocked_by_building := false
+
+		var left_pos := pos + DIR_LEFT
+		if _can_place(left_pos, p2_placements, element_grid):
+			_place_copy(element, left_pos, p2_placements)
+			placed_any = true
+		elif element_grid.is_building_at(left_pos):
+			left_blocked_by_building = true
+
+		var right_pos := pos + DIR_RIGHT
+		if _can_place(right_pos, p2_placements, element_grid):
+			_place_copy(element, right_pos, p2_placements)
+			placed_any = true
+		elif element_grid.is_building_at(right_pos):
+			right_blocked_by_building = true
+
+		if not placed_any and (left_blocked_by_building or right_blocked_by_building):
 			horizontal_blocked.append(pos)
 	total_new_cells += _commit_placements(element_grid, p2_placements)
 

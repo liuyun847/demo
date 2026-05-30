@@ -48,6 +48,10 @@ signal essence_changed(new_value: float)
 @warning_ignore("unused_signal")
 signal essence_threshold_reached(threshold: float, unlocks: Dictionary)
 
+# 暂停状态变更信号
+@warning_ignore("unused_signal")
+signal pause_state_changed(paused: bool)
+
 # 喷口类型选择面板信号
 @warning_ignore("unused_signal")
 signal emitter_type_panel_opened
