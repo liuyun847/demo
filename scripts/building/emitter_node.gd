@@ -4,10 +4,6 @@ extends BuildingBase
 var element_type_id: String = "water"
 var output_direction: Vector2i = Vector2i(0, 1)
 var essence_cost_per_tick: float = GameConfig.emitter_essence_cost_per_tick
-var _blocked_ticks: int = 0
-
-func is_blocked() -> bool:
-	return _blocked_ticks > 0
 
 func set_element_type(type_id: String) -> void:
 	element_type_id = type_id
@@ -24,27 +20,11 @@ func try_output(element_grid: ElementGrid) -> bool:
 	if not has_type_selected():
 		return false
 
-	if _blocked_ticks > 0:
-		_blocked_ticks -= 1
-		return false
-
 	var target_pos: Vector2i = grid_position + output_direction
-	if not element_grid.is_position_available(target_pos):
-		_blocked_ticks = GameConfig.emitter_blocked_cooldown
+	if element_grid.is_building_at(target_pos):
 		return false
 
-	_blocked_ticks = 0
-
-	var element_type: ElementTypeData = ElementRegistry.get_element_type(element_type_id)
-	if element_type == null:
-		return false
-
-	var element := ElementData.new()
-	element.element_type = element_type
-	element.complexity = 1
-	element.source_y = grid_position.y
-
-	return element_grid.set_element(target_pos, element)
+	return element_grid.set_fluid(target_pos, grid_position.y)
 
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0

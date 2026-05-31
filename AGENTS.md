@@ -194,8 +194,8 @@ Root (Node2D) → main.gd                    # 主场景控制器
 - **框选与复制粘贴**：框选建筑（蓝色高亮），Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z 撤销，Ctrl+Shift+Z 或 Ctrl+Y 重做；粘贴模式下按 R 键可顺时针旋转剪贴板布局（0°→90°→180°→270° 循环），支持拖拽粘贴（`get_paste_line_anchors` 生成行列式锚点）；管道粘贴后自动重新检测邻居连接；剪切/粘贴时保留发射器的 element\_type\_id 数据
 - **快捷键提示面板（KeyHints）**：右上角动态显示当前可用快捷键及模式说明（放置/删除/框选/粘贴/吸取），随当前模式变化实时更新
 - **空格暂停功能**：按空格键可快速暂停/恢复模拟系统；main.gd 通过双标志位（\_manual\_paused / \_menu\_paused）独立管理手动暂停和菜单暂停状态，综合决定场景树 paused 状态；暂停时显示半透明覆盖层（PauseOverlay，CenterContainer + VBoxContainer 居中布局，PROCESS\_MODE\_ALWAYS），提示"已暂停 / 按空格键继续"；UI 层和相机在暂停时仍可操作；ESC 菜单优先级高于空格暂停（菜单打开时隐藏覆盖层，关闭菜单后保留手动暂停状态）；暂停状态变更通过 EventBus.pause\_state\_changed 信号广播
-- **模拟系统**：ReactionCoordinator 通过脏标记（\_dirty）缓存 BFS 连通网络结构，仅在建筑放置/删除时重建网络拓扑；每 tick 先执行 BFS 网络检测、处理发射器输出元素（消耗 EssencePool 源质）、调用元素扩散（ElementDiffusion），最后处理收集器收集元素（累加 EssencePool 源质）；BFS 网络收集管道（PipeNode）、容器（ContainerNode）、发射器（EmitterNode）和收集器（CollectorNode）
-- **元素系统**：仅水元素类型；元素通过 ElementGrid 管理格子占用（与建筑互斥），ElementDiffusion 处理重力驱动的扩散（水下沉），支持斜下方扩散和横向扩散，每 tick 执行多步扩散（configurable），定期清理远离建筑的废弃元素（element\_abandon\_distance）；ElementRegistry（Autoload）提供元素类型查询；ElementRenderer 响应 element\_spawned/element\_removed 信号，通过 \_draw() 渲染彩色方块
+- **模拟系统**：ReactionCoordinator 通过脏标记（\_dirty）缓存 BFS 连通网络结构，仅在建筑放置/删除时重建网络拓扑；每 tick 执行顺序为：发射器输出元素（消耗 EssencePool 源质）→ 元素扩散（ElementDiffusion）→ 水源格保护；之后处理收集器收集元素（累加 EssencePool 源质）；BFS 网络收集管道（PipeNode）、容器（ContainerNode）、发射器（EmitterNode）和收集器（CollectorNode）
+- **元素系统**：仅水元素类型；元素通过 ElementGrid 管理格子占用（与建筑互斥），ElementDiffusion 处理重力驱动的单步扩散（下落 + 填充），填充阶段使用 COPY 语义保持水体连续——水在下方被阻挡时复制到左右（不消耗原格子），横向扩散受限时向上填充至水源高度；水源格（发射器输出位置）在扩散后自动保护确保不被排空；定期清理远离建筑的废弃元素（element\_abandon\_distance）；ElementRegistry（Autoload）提供元素类型查询；ElementRenderer 响应 element\_spawned/element\_removed 信号，通过 \_draw() 渲染彩色方块
 - **源质阈值进度系统（ProgressSystem）**：Autoload 单例，监听 EssencePool.essence\_changed 信号，达到预设阈值时触发 essence\_threshold\_reached 信号（同时通过 EventBus 转发），解锁新建筑类型或能力；阈值阶梯：0（初始解锁容器/管道/喷口/砖块/收集器）→100→500→2000→5000→10000→50000；通过 get\_unlocked\_building\_types() / is\_building\_unlocked() 查询解锁状态
 - **源质数量显示（EssenceDisplay）**：左上角 UI 组件（游戏开始后由 main.gd 动态创建），监听 EssencePool.essence_changed 实时显示当前源质余额
 - **建筑工厂（BuildingFactory）**：静态工厂类，根据 building_type 字符串创建对应的建筑实例（ContainerNode / PipeNode / BrickNode / EmitterNode / CollectorNode），统一管理建筑实例化逻辑
@@ -216,8 +216,8 @@ Root (Node2D) → main.gd                    # 主场景控制器
 
 - 对于不确定的接口，先查询，禁止猜测用法
 - 修改后使用 godot-debug 技能进行代码静态检查和运行时错误检测，确保无错误
-- 修改后运行测试：`& "C:\Users\MLTZ\Desktop\Godot_v4.6.1-stable_win64.exe" --headless '--path' 'C:\Users\MLTZ\Desktop\程序\godot\bili游戏大赛\demo' '--script' 'res://addons/gut/gut_cmdln.gd'`，结果导出至 save/test\_results.xml（disable\_colors 和 junit\_xml\_file 已在 .gutconfig.json 中配置）
-- **验证测试结果无需查看完整输出**：检查命令退出码（exit\_code == 0 = 全部通过）和 save/test\_results.xml 的 failures 属性（failures="0" = 全部通过）
+- 修改后运行测试：`& "C:\Users\MLTZ\Desktop\Godot_v4.6.1-stable_win64.exe" --headless '--path' 'C:\Users\MLTZ\Desktop\程序\godot\bili游戏大赛\demo' '--script' 'res://addons/gut/gut_cmdln.gd'`，结果导出至 save/test_output.xml（disable\_colors 和 junit\_xml\_file 已在 .gutconfig.json 中配置）
+- **验证测试结果无需查看完整输出**：检查命令退出码（exit\_code == 0 = 全部通过）和 save/test_output.xml 的 failures 属性（failures="0" = 全部通过）
 - 使用事件总线(EventBus)进行模块间松耦合通信；同场景内兄弟节点允许通过 get\_node() 直接引用，跨场景通信必须通过 EventBus
 - 遵循单一职责原则，每个脚本只负责一个功能域
 - 新增功能需编写对应的 GUT 测试，单元测试放在 tests/unit/ 下，集成测试放在 tests/integration/ 下，以 test\_ 为前缀
