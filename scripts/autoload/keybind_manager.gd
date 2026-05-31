@@ -2,53 +2,115 @@ extends Node
 
 const KEYBIND_VERSION: String = "1.0.0"
 
-const ACTION_DISPLAY_NAMES: Dictionary = {
-	"move_up": "上移",
-	"move_down": "下移",
-	"move_left": "左移",
-	"move_right": "右移",
-	"speed_up": "加速",
-	"zoom_in": "放大",
-	"zoom_out": "缩小",
-	"place_building": "放置建筑",
-	"remove_building": "删除建筑",
-	"toggle_place_mode": "切换模式",
-	"ui_copy": "复制",
-	"ui_cut": "剪切",
-	"ui_paste": "粘贴",
-	"ui_undo": "撤销",
-	"ui_redo": "重做",
-	"rotate_clipboard": "旋转/切换",
-	"toggle_pause": "暂停",
+const ACTION_CONFIGS: Dictionary = {
+	"move_up": {
+		"display_name": "上移",
+		"default_key": KEY_W,
+		"default_key_type": "key",
+		"modifier": "",
+	},
+	"move_down": {
+		"display_name": "下移",
+		"default_key": KEY_S,
+		"default_key_type": "key",
+		"modifier": "",
+	},
+	"move_left": {
+		"display_name": "左移",
+		"default_key": KEY_A,
+		"default_key_type": "key",
+		"modifier": "",
+	},
+	"move_right": {
+		"display_name": "右移",
+		"default_key": KEY_D,
+		"default_key_type": "key",
+		"modifier": "",
+	},
+	"speed_up": {
+		"display_name": "加速",
+		"default_key": KEY_SHIFT,
+		"default_key_type": "key",
+		"modifier": "",
+	},
+	"zoom_in": {
+		"display_name": "放大",
+		"default_key": MOUSE_BUTTON_WHEEL_UP,
+		"default_key_type": "mouse",
+		"modifier": "",
+	},
+	"zoom_out": {
+		"display_name": "缩小",
+		"default_key": MOUSE_BUTTON_WHEEL_DOWN,
+		"default_key_type": "mouse",
+		"modifier": "",
+	},
+	"place_building": {
+		"display_name": "放置建筑",
+		"default_key": MOUSE_BUTTON_LEFT,
+		"default_key_type": "mouse",
+		"modifier": "",
+	},
+	"remove_building": {
+		"display_name": "删除建筑",
+		"default_key": MOUSE_BUTTON_RIGHT,
+		"default_key_type": "mouse",
+		"modifier": "",
+	},
+	"toggle_place_mode": {
+		"display_name": "切换模式",
+		"default_key": KEY_E,
+		"default_key_type": "key",
+		"modifier": "",
+	},
+	"ui_copy": {
+		"display_name": "复制",
+		"default_key": KEY_C,
+		"default_key_type": "key_with_ctrl",
+		"modifier": "Ctrl",
+	},
+	"ui_cut": {
+		"display_name": "剪切",
+		"default_key": KEY_X,
+		"default_key_type": "key_with_ctrl",
+		"modifier": "Ctrl",
+	},
+	"ui_paste": {
+		"display_name": "粘贴",
+		"default_key": KEY_V,
+		"default_key_type": "key_with_ctrl",
+		"modifier": "Ctrl",
+	},
+	"ui_undo": {
+		"display_name": "撤销",
+		"default_key": KEY_Z,
+		"default_key_type": "key_with_ctrl",
+		"modifier": "Ctrl",
+	},
+	"ui_redo": {
+		"display_name": "重做",
+		"default_key": KEY_Y,
+		"default_key_type": "key_with_ctrl",
+		"modifier": "Ctrl",
+	},
+	"rotate_clipboard": {
+		"display_name": "旋转/切换",
+		"default_key": KEY_R,
+		"default_key_type": "key",
+		"modifier": "",
+	},
+	"toggle_pause": {
+		"display_name": "暂停",
+		"default_key": KEY_SPACE,
+		"default_key_type": "key",
+		"modifier": "",
+	},
 }
 
-const COMBO_MODIFIER: Dictionary = {
-	"ui_copy": "Ctrl",
-	"ui_cut": "Ctrl",
-	"ui_paste": "Ctrl",
-	"ui_undo": "Ctrl",
-	"ui_redo": "Ctrl",
-}
+static var GAMEPLAY_ACTIONS: Array[String] = []
 
-const GAMEPLAY_ACTIONS: Array[String] = [
-	"move_up",
-	"move_down",
-	"move_left",
-	"move_right",
-	"speed_up",
-	"zoom_in",
-	"zoom_out",
-	"place_building",
-	"remove_building",
-	"toggle_place_mode",
-	"rotate_clipboard",
-	"ui_copy",
-	"ui_cut",
-	"ui_paste",
-	"ui_undo",
-	"ui_redo",
-	"toggle_pause",
-]
+static func _static_init() -> void:
+	GAMEPLAY_ACTIONS.assign(ACTION_CONFIGS.keys())
 
 func _ready() -> void:
 	if not InputMap.has_action("rotate_clipboard"):
@@ -59,12 +121,12 @@ func _ready() -> void:
 	load_keybindings()
 
 func get_action_display_name(action: String) -> String:
-	if ACTION_DISPLAY_NAMES.has(action):
-		return ACTION_DISPLAY_NAMES[action]
-	return action
+	var config: Dictionary = ACTION_CONFIGS.get(action, {})
+	return config.get("display_name", action)
 
 func get_action_combo_modifier(action: String) -> String:
-	return COMBO_MODIFIER.get(action, "")
+	var config: Dictionary = ACTION_CONFIGS.get(action, {})
+	return config.get("modifier", "")
 
 func get_event_display_text(event: InputEvent, include_modifiers: bool = true) -> String:
 	if event is InputEventKey:
@@ -129,7 +191,7 @@ func get_keybind_info() -> Array[Dictionary]:
 			continue
 		var events: Array[InputEvent] = InputMap.action_get_events(action)
 		var display_name: String = get_action_display_name(action)
-		var modifier_prefix: String = COMBO_MODIFIER.get(action, "")
+		var modifier_prefix: String = get_action_combo_modifier(action)
 		var event_text: String = ""
 		if events.size() > 0:
 			if not modifier_prefix.is_empty():
@@ -249,30 +311,22 @@ func load_keybindings() -> void:
 				InputMap.action_add_event(action, event)
 
 func _apply_default_keybindings() -> void:
-	var defaults: Dictionary = {
-		"move_up": _create_key_event(KEY_W),
-		"move_down": _create_key_event(KEY_S),
-		"move_left": _create_key_event(KEY_A),
-		"move_right": _create_key_event(KEY_D),
-		"speed_up": _create_key_event(KEY_SHIFT),
-		"zoom_in": _create_mouse_event(MOUSE_BUTTON_WHEEL_UP),
-		"zoom_out": _create_mouse_event(MOUSE_BUTTON_WHEEL_DOWN),
-		"place_building": _create_mouse_event(MOUSE_BUTTON_LEFT),
-		"remove_building": _create_mouse_event(MOUSE_BUTTON_RIGHT),
-		"toggle_place_mode": _create_key_event(KEY_E),
-		"ui_copy": _create_key_event_with_ctrl(KEY_C),
-		"ui_cut": _create_key_event_with_ctrl(KEY_X),
-		"ui_paste": _create_key_event_with_ctrl(KEY_V),
-		"ui_undo": _create_key_event_with_ctrl(KEY_Z),
-		"ui_redo": _create_key_event_with_ctrl(KEY_Y),
-		"rotate_clipboard": _create_key_event(KEY_R),
-		"toggle_pause": _create_key_event(KEY_SPACE),
-	}
-
-	for action: String in defaults.keys():
-		if InputMap.has_action(action):
-			InputMap.action_erase_events(action)
-			InputMap.action_add_event(action, defaults[action])
+	for action: String in GAMEPLAY_ACTIONS:
+		if not InputMap.has_action(action):
+			continue
+		var config: Dictionary = ACTION_CONFIGS[action]
+		var event: InputEvent
+		match config.get("default_key_type", "key"):
+			"key":
+				event = _create_key_event(config.default_key)
+			"key_with_ctrl":
+				event = _create_key_event_with_ctrl(config.default_key)
+			"mouse":
+				event = _create_mouse_event(config.default_key)
+			_:
+				continue
+		InputMap.action_erase_events(action)
+		InputMap.action_add_event(action, event)
 
 func _create_key_event(keycode: Key) -> InputEventKey:
 	var event := InputEventKey.new()

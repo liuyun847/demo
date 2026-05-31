@@ -58,8 +58,6 @@ func _on_tick() -> void:
 
 	_element_diffusion.diffuse_all(_element_grid)
 
-	_ensure_source_cells()
-
 func _process_emitters() -> void:
 	for network: Dictionary in _cached_networks:
 		for emitter: EmitterNode in network.emitters:
@@ -73,18 +71,9 @@ func _process_emitters() -> void:
 			if not EssencePool.has(emitter.essence_cost_per_tick):
 				continue
 
-			var success: bool = emitter.try_output(_element_grid)
+			var success: bool = _element_grid.set_fluid(target_pos, emitter.grid_position.y)
 			if success:
 				EssencePool.subtract(emitter.essence_cost_per_tick)
-
-func _ensure_source_cells() -> void:
-	for network: Dictionary in _cached_networks:
-		for emitter: EmitterNode in network.emitters:
-			if not emitter.has_type_selected():
-				continue
-			var target_pos: Vector2i = emitter.grid_position + emitter.output_direction
-			if not _element_grid.is_building_at(target_pos):
-				_element_grid.set_fluid(target_pos, emitter.grid_position.y)
 				_element_grid.mark_as_source(target_pos)
 
 func _rebuild_networks(pipes: Array[PipeNode]) -> void:
