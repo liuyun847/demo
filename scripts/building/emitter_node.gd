@@ -23,6 +23,8 @@ func try_output(element_grid: ElementGrid) -> bool:
 	var target_pos: Vector2i = grid_position + output_direction
 	if element_grid.is_building_at(target_pos):
 		return false
+	if element_grid.has_fluid(target_pos):
+		return false
 
 	return element_grid.set_fluid(target_pos, grid_position.y)
 
