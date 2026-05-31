@@ -69,7 +69,6 @@ const simulation_tick_interval: float = 0.2
 const diffusion_steps_per_tick: int = 1
 const element_abandon_distance: int = 100
 const cleanup_interval_ticks: int = 10
-const emitter_blocked_cooldown: int = 10
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"

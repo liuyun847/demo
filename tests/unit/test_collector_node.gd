@@ -20,30 +20,23 @@ func test_collector_collects_nothing_from_empty_area() -> void:
 	var result: float = _collector.try_collect(_element_grid)
 	assert_eq(result, 0.0, "空区域收集应为 0")
 
-func test_collector_collects_element_and_returns_essence() -> void:
-	_element_grid.set_element(Vector2i(0, 1), _create_element("water", 1))
+func test_collector_collects_fluid_and_returns_essence() -> void:
+	_element_grid.set_fluid(Vector2i(0, 1), 0)
 	var result: float = _collector.try_collect(_element_grid)
-	assert_gt(result, 0.0, "有水元素时应收集到源质")
-	assert_eq(result, 1.0, "水(base=1.0) 价值应为 1.0")
-	assert_null(_element_grid.get_element(Vector2i(0, 1)), "收集后元素应被移除")
+	assert_gt(result, 0.0, "有水流体时应收集到源质")
+	assert_eq(result, 1.0, "每个流体单位价值 1.0")
+	assert_false(_element_grid.has_fluid(Vector2i(0, 1)), "收集后流体应被移除")
 
-func test_collector_collects_multiple_elements() -> void:
-	_element_grid.set_element(Vector2i(1, 0), _create_element("water", 1))
-	_element_grid.set_element(Vector2i(0, 1), _create_element("water", 1))
+func test_collector_collects_multiple_fluids() -> void:
+	_element_grid.set_fluid(Vector2i(1, 0), 0)
+	_element_grid.set_fluid(Vector2i(0, 1), 0)
 	var result: float = _collector.try_collect(_element_grid)
-	assert_eq(result, 2.0, "两个水元素 total 应为 2.0")
+	assert_eq(result, 2.0, "两个流体 total 应为 2.0")
 
 func test_collector_ignores_own_position() -> void:
-	_element_grid.set_element(Vector2i(0, 0), _create_element("water", 1))
+	_element_grid.set_fluid(Vector2i(0, 0), 0)
 	var result: float = _collector.try_collect(_element_grid)
 	assert_eq(result, 0.0, "收集器自身位置不应被收集")
 
 func test_collector_name() -> void:
 	assert_eq(_collector.get_building_name(), "收集器", "名称应为收集器")
-
-func _create_element(type_id: String, complexity: int) -> ElementData:
-	var element_type: ElementTypeData = ElementRegistry.get_element_type(type_id)
-	var element := ElementData.new()
-	element.element_type = element_type
-	element.complexity = complexity
-	return element

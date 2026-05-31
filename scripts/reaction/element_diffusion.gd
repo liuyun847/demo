@@ -6,138 +6,97 @@ const DIR_DOWN: Vector2i = Vector2i(0, 1)
 const DIR_LEFT: Vector2i = Vector2i(-1, 0)
 const DIR_RIGHT: Vector2i = Vector2i(1, 0)
 
-var _tick_count: int = 0
+static func _dirs() -> Array[Vector2i]:
+	var dirs: Array[Vector2i] = []
+	dirs.append(Vector2i(0, -1))
+	dirs.append(Vector2i(0, 1))
+	dirs.append(Vector2i(-1, 0))
+	dirs.append(Vector2i(1, 0))
+	return dirs
 
-func diffuse_all(element_grid: ElementGrid, steps: int) -> int:
-	var total_new_cells: int = 0
-	for _i in range(steps):
-		total_new_cells += _diffuse_single_step(element_grid)
+class WaterBody:
+	var cells: Array[Vector2i]
+	var has_source: bool
+	var min_source_y: int
+	var rate: int
 
-	_tick_count += 1
-	if _tick_count % GameConfig.cleanup_interval_ticks == 0:
-		_cleanup_abandoned_elements(element_grid)
+func _init() -> void:
+	pass
 
-	return total_new_cells
+func diffuse_all(element_grid: ElementGrid) -> void:
+	var bodies: Array[WaterBody] = _detect_water_bodies(element_grid)
+	for body: WaterBody in bodies:
+		if body.has_source:
+			_expand_body(element_grid, body)
 
-func _diffuse_single_step(element_grid: ElementGrid) -> int:
-	var current_positions: Array[Vector2i] = element_grid.get_all_element_positions()
-	current_positions.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
+func _detect_water_bodies(element_grid: ElementGrid) -> Array[WaterBody]:
+	var visited: Dictionary = {}
+	var bodies: Array[WaterBody] = []
 
-	var total_new_cells: int = 0
-
-	var p1_placements: Dictionary = {}
-	var solid_blocked: Array[Vector2i] = []
-	for pos: Vector2i in current_positions:
-		var element: ElementData = element_grid.get_element(pos)
-		if element == null:
+	for pos: Vector2i in element_grid.get_all_fluid_positions():
+		if visited.has(pos):
 			continue
 
-		var down_pos := pos + DIR_DOWN
-		if _can_place(down_pos, p1_placements, element_grid):
-			_place_copy(element, down_pos, p1_placements)
-		elif element_grid.is_building_at(down_pos):
-			solid_blocked.append(pos)
-	total_new_cells += _commit_placements(element_grid, p1_placements)
+		var body := WaterBody.new()
+		body.cells = []
+		body.has_source = false
+		body.min_source_y = 999999
+		body.rate = 1
 
-	for target: Vector2i in p1_placements:
-		var below := target + DIR_DOWN
-		if element_grid.is_building_at(below):
-			solid_blocked.append(target)
+		var queue: Array[Vector2i] = []
+		queue.push_back(pos)
+		visited[pos] = true
 
-	var p2_placements: Dictionary = {}
-	var horizontal_blocked: Array[Vector2i] = []
-	for pos: Vector2i in solid_blocked:
-		var element: ElementData = element_grid.get_element(pos)
-		if element == null:
-			continue
+		while not queue.is_empty():
+			var current: Vector2i = queue.pop_front()
+			body.cells.append(current)
 
-		var placed_any := false
-		var left_blocked_by_building := false
-		var right_blocked_by_building := false
+			if element_grid.is_source_pos(current):
+				body.has_source = true
+				var sy: int = element_grid.get_source_y(current)
+				if sy < body.min_source_y:
+					body.min_source_y = sy
 
-		var left_pos := pos + DIR_LEFT
-		if _can_place(left_pos, p2_placements, element_grid):
-			_place_copy(element, left_pos, p2_placements)
-			placed_any = true
-		elif element_grid.is_building_at(left_pos):
-			left_blocked_by_building = true
+			for dir: Vector2i in _dirs():
+				var neighbor: Vector2i = current + dir
+				if not element_grid.has_fluid(neighbor):
+					continue
+				if visited.has(neighbor):
+					continue
+				visited[neighbor] = true
+				queue.append(neighbor)
 
-		var right_pos := pos + DIR_RIGHT
-		if _can_place(right_pos, p2_placements, element_grid):
-			_place_copy(element, right_pos, p2_placements)
-			placed_any = true
-		elif element_grid.is_building_at(right_pos):
-			right_blocked_by_building = true
+		if body.has_source:
+			var source_count: int = 0
+			for cell: Vector2i in body.cells:
+				if element_grid.is_source_pos(cell):
+					source_count += 1
+			body.rate = maxi(source_count, 1)
 
-		if not placed_any and (left_blocked_by_building or right_blocked_by_building):
-			horizontal_blocked.append(pos)
-	total_new_cells += _commit_placements(element_grid, p2_placements)
+		bodies.append(body)
 
-	var p3_placements: Dictionary = {}
-	var up_queue: Array[Vector2i] = horizontal_blocked.duplicate()
-	while not up_queue.is_empty():
-		var next_queue: Array[Vector2i] = []
-		for pos: Vector2i in up_queue:
-			var element: ElementData = element_grid.get_element(pos)
-			if element == null:
-				continue
+	return bodies
 
-			var up_pos := pos + DIR_UP
-			if up_pos.y < element.source_y:
-				continue
-			if element_grid.is_building_at(up_pos):
-				continue
-			if up_pos in p3_placements:
-				continue
+func _expand_body(element_grid: ElementGrid, body: WaterBody) -> void:
+	var candidates: Array[Vector2i] = []
+	var seen: Dictionary = {}
 
-			_place_copy(element, up_pos, p3_placements)
-			next_queue.append(up_pos)
-		up_queue = next_queue
-	total_new_cells += _commit_placements(element_grid, p3_placements)
+	for cell: Vector2i in body.cells:
+		for dir: Vector2i in _dirs():
+			var neighbor: Vector2i = cell + dir
+			if element_grid.is_position_available(neighbor) and neighbor.y >= body.min_source_y:
+				if not seen.has(neighbor):
+					seen[neighbor] = true
+					candidates.append(neighbor)
 
-	return total_new_cells
+	if candidates.is_empty():
+		return
 
+	candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
 
-func _commit_placements(element_grid: ElementGrid, placements: Dictionary) -> int:
 	var count: int = 0
-	for target: Vector2i in placements:
-		var data: ElementData = placements[target] as ElementData
-		if element_grid.set_element(target, data):
-			count += 1
-	return count
-
-func _can_place(target: Vector2i, new_placements: Dictionary, element_grid: ElementGrid) -> bool:
-	if target in new_placements:
-		return false
-	return element_grid.is_position_available(target)
-
-func _place_copy(element: ElementData, target: Vector2i, new_placements: Dictionary) -> void:
-	var new_element := ElementData.new()
-	new_element.element_type = element.element_type
-	new_element.complexity = element.complexity
-	new_element.source_y = element.source_y
-	new_placements[target] = new_element
-
-func _cleanup_abandoned_elements(element_grid: ElementGrid) -> void:
-	if element_grid.building_manager_ref == null:
-		return
-
-	var building_positions: Array[Vector2i] = element_grid.building_manager_ref.get_all_building_positions()
-	if building_positions.is_empty():
-		return
-
-	var threshold := GameConfig.element_abandon_distance
-	var all_positions: Array[Vector2i] = element_grid.get_all_element_positions()
-
-	for pos: Vector2i in all_positions:
-		var min_distance: int = _min_manhattan_distance_to_buildings(pos, building_positions)
-		if min_distance > threshold:
-			element_grid.remove_element(pos)
-
-func _min_manhattan_distance_to_buildings(pos: Vector2i, building_positions: Array[Vector2i]) -> int:
-	var min_dist := -1
-	for bp: Vector2i in building_positions:
-		var dist := absi(pos.x - bp.x) + absi(pos.y - bp.y)
-		if min_dist == -1 or dist < min_dist:
-			min_dist = dist
-	return min_dist
+	for pos: Vector2i in candidates:
+		if count >= body.rate:
+			break
+		element_grid.set_fluid(pos, body.min_source_y)
+		count += 1

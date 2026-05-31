@@ -46,6 +46,8 @@ func mark_dirty() -> void:
 func _on_tick() -> void:
 	if not _building_manager:
 		return
+	if get_tree() and get_tree().paused:
+		return
 	var all_pipes: Array[PipeNode] = _building_manager.network_pipes
 
 	if _dirty:
@@ -54,56 +56,36 @@ func _on_tick() -> void:
 
 	_process_emitters()
 
-	_element_diffusion.diffuse_all(_element_grid, GameConfig.diffusion_steps_per_tick)
+	_element_diffusion.diffuse_all(_element_grid)
 
-	_process_collectors()
+	_ensure_source_cells()
 
 func _process_emitters() -> void:
-	var total_cost: float = 0.0
-	var ready_emitters: Array[EmitterNode] = []
-
 	for network: Dictionary in _cached_networks:
 		for emitter: EmitterNode in network.emitters:
 			if not emitter.has_type_selected():
 				continue
 
-			if emitter.is_blocked():
-				emitter.try_output(_element_grid)
-				continue
-
 			var target_pos: Vector2i = emitter.grid_position + emitter.output_direction
-			if not _element_grid.is_position_available(target_pos):
-				emitter.try_output(_element_grid)
+			if _element_grid.is_building_at(target_pos):
 				continue
 
-			ready_emitters.append(emitter)
-			total_cost += emitter.essence_cost_per_tick
+			if not EssencePool.has(emitter.essence_cost_per_tick):
+				continue
 
-	if ready_emitters.is_empty() or total_cost <= 0.0:
-		return
+			var success: bool = emitter.try_output(_element_grid)
+			if success:
+				EssencePool.subtract(emitter.essence_cost_per_tick)
 
-	var available: float = EssencePool.essence
-	if available <= 0.0:
-		return
-
-	var ratio: float = minf(1.0, available / total_cost)
-
-	for emitter: EmitterNode in ready_emitters:
-		var actual_cost: float = emitter.essence_cost_per_tick * ratio
-		EssencePool.subtract(actual_cost)
-		emitter.try_output(_element_grid)
-
-func _process_collectors() -> void:
-	var collector_dict: Dictionary[int, bool] = {}
+func _ensure_source_cells() -> void:
 	for network: Dictionary in _cached_networks:
-		for collector: CollectorNode in network.collectors:
-			var cid: int = collector.get_instance_id()
-			if collector_dict.has(cid):
+		for emitter: EmitterNode in network.emitters:
+			if not emitter.has_type_selected():
 				continue
-			collector_dict[cid] = true
-			var collected: float = collector.try_collect(_element_grid)
-			if collected > 0.0:
-				EssencePool.add(collected)
+			var target_pos: Vector2i = emitter.grid_position + emitter.output_direction
+			if not _element_grid.is_building_at(target_pos):
+				_element_grid.set_fluid(target_pos, emitter.grid_position.y)
+				_element_grid.mark_as_source(target_pos)
 
 func _rebuild_networks(pipes: Array[PipeNode]) -> void:
 	_cached_networks.clear()

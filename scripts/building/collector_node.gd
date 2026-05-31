@@ -12,17 +12,15 @@ func try_collect(element_grid: ElementGrid) -> float:
 			if dx == 0 and dy == 0:
 				continue
 			var check_pos: Vector2i = grid_position + Vector2i(dx, dy)
-			var element: ElementData = element_grid.get_element(check_pos)
-			if element == null:
+			if not element_grid.has_fluid(check_pos):
 				continue
 			if element_grid.is_building_at(check_pos):
 				continue
-			var value: float = ElementRegistry.calculate_value(element.element_type, element.complexity)
-			total_essence += value
+			total_essence += 1.0
 			cells_to_collect.append(check_pos)
 
 	for pos: Vector2i in cells_to_collect:
-		element_grid.remove_element(pos)
+		element_grid.remove_fluid(pos)
 
 	return total_essence
 
