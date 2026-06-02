@@ -527,11 +527,13 @@ static func get_native_class_name(thing):
 # ------------------------------------------------------------------------------
 static func write_file(path, content):
 	var f = FileAccess.open(path, FileAccess.WRITE)
+	var open_err = FileAccess.get_open_error()
 	if(f != null):
 		f.store_string(content)
+		f.flush()
 	f = null;
 
-	return FileAccess.get_open_error()
+	return open_err
 
 
 # ------------------------------------------------------------------------------
