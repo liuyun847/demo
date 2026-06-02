@@ -108,8 +108,8 @@ func _draw() -> void:
 			thin_h_points.append(Vector2(min_x, line_y))
 			thin_h_points.append(Vector2(max_x, line_y))
 		
-		draw_multiline(thin_v_points, GameConfig.line_color, adjusted_thin_width)
-		draw_multiline(thin_h_points, GameConfig.line_color, adjusted_thin_width)
+		draw_multiline(thin_v_points, GameConfig.line_color, adjusted_thin_width, true)
+		draw_multiline(thin_h_points, GameConfig.line_color, adjusted_thin_width, true)
 	
 	var thick_points := PackedVector2Array()
 	for block_coord: Vector2i in loaded_blocks:
