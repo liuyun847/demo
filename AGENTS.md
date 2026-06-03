@@ -78,8 +78,56 @@ Root (Node2D) → main.gd
 
 通过 EventBus 进行模块间松耦合通信（同场景兄弟节点允许 `get_node()` 直接引用）。信号覆盖建筑放置/删除、元素生成/移除、源质变更、暂停、选中、粘贴模式等。
 
+# Git Hooks 与工具
+
+## Pre-commit Hook
+
+`.githooks/pre-commit` 在提交时自动运行测试 + AI 审查。
+该文件被 git 跟踪，通过以下配置启用（已为本仓库配置）：
+
+```bash
+git config core.hooksPath .githooks
+```
+
+> 该项目已配置好，克隆后无需额外操作。
+
+**Godot 路径配置**：钩子使用 `$GODOT_PATH` 环境变量（默认 `C:/Users/MLTZ/Desktop/Godot_v4.6.1-stable_win64.exe`）。
+在你的环境中使用前请设置：
+```bash
+export GODOT_PATH="/path/to/Godot_v4.6.1-stable_win64.exe"   # Linux/macOS
+$env:GODOT_PATH="D:\path\to\Godot.exe"                        # Windows PowerShell
+```
+
+## Reasonix
+
+[Reasonix](https://github.com/esengine/DeepSeek-Reasonix) 是一个 DeepSeek 原生的 AI 编码代理。
+本项目的 `.env` 已配置 `DEEPSEEK_API_KEY`，`reasonix` CLI 自动加载。
+自定义 slash 命令位于 `.reasonix/commands/`。
+
 # 测试
 
+## 自动流程（推荐）
+
+提交代码时自动触发，**无需手动运行测试**：
+
+| 步骤 | 内容 | 说明 |
+|------|------|------|
+| **1/2** | `pre-commit` hook 自动运行 GUT 测试套件 | 全部测试通过后才继续 |
+| **2/2** | `reasonix run --model deepseek-flash` AI 审查 staged diff | 检查正确性/安全性/可维护性 |
+
+**提交命令**：
+```bash
+git add -A && git commit -m "feat: 你的改动说明"
+```
+
+如果 AI 审查误报，可临时跳过：
+```bash
+git commit --no-verify -m "feat: ..."
+```
+
+## 手动运行
+
+仅用于调试或验证 hook 之外的改动：
 ```bash
 & "C:\Users\MLTZ\Desktop\Godot_v4.6.1-stable_win64.exe" --headless '--path' 'C:\Users\MLTZ\Desktop\程序\godot\bili游戏大赛\demo' '--script' 'res://addons/gut/gut_cmdln.gd'
 ```
