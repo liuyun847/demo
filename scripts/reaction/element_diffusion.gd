@@ -60,7 +60,7 @@ func _detect_water_bodies(element_grid: ElementGrid) -> Array[WaterBody]:
 			for cell: Vector2i in body.cells:
 				if element_grid.is_source_pos(cell):
 					source_count += 1
-			body.rate = maxi(source_count, 1)
+			body.rate = max(source_count, 1)
 
 		bodies.append(body)
 
@@ -95,12 +95,12 @@ func _shrink_body(element_grid: ElementGrid, body: WaterBody) -> void:
 	if body.cells.is_empty():
 		return
 
-	# 按 Y 降序排列，优先移除 Y 较大（位置较低）的细胞，模拟重力蒸发效果
+	# 按 Y 升序排列，优先移除 Y 较小（位置较高）的细胞，模拟从上往下的干涸效果
 	var sorted: Array[Vector2i] = body.cells.duplicate()
-	sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
+	sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
 
 	# 每 tick 移除 min(细胞数量, 3) 个细胞，实现逐渐缩小
-	var remove_count: int = mini(sorted.size(), 3)
+	var remove_count: int = min(sorted.size(), 3)
 	for i in range(remove_count):
 		var pos: Vector2i = sorted[i]
 		element_grid.remove_fluid(pos)
