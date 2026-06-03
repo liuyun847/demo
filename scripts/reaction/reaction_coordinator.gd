@@ -14,8 +14,8 @@ func init(building_manager: BuildingManager) -> void:
 	_building_manager = building_manager
 
 func _ready() -> void:
-	EventBus.building_placed.connect(_on_topology_changed)
-	EventBus.building_removed.connect(_on_topology_changed)
+	EventBus.building_placed.connect(_on_building_placed)
+	EventBus.building_removed.connect(_on_building_removed)
 	_timer = Timer.new()
 	_timer.wait_time = GameConfig.simulation_tick_interval
 	_timer.autostart = true
@@ -30,12 +30,19 @@ func _ready() -> void:
 	add_child(_element_diffusion)
 
 func _exit_tree() -> void:
-	if EventBus.building_placed.is_connected(_on_topology_changed):
-		EventBus.building_placed.disconnect(_on_topology_changed)
-	if EventBus.building_removed.is_connected(_on_topology_changed):
-		EventBus.building_removed.disconnect(_on_topology_changed)
+	if EventBus.building_placed.is_connected(_on_building_placed):
+		EventBus.building_placed.disconnect(_on_building_placed)
+	if EventBus.building_removed.is_connected(_on_building_removed):
+		EventBus.building_removed.disconnect(_on_building_removed)
 
-func _on_topology_changed(_grid_pos: Vector2i) -> void:
+func _on_building_placed(grid_pos: Vector2i) -> void:
+	_dirty = true
+	_cached_networks.clear()
+	# 清除放置位置的水，防止建筑建在水体上
+	if _element_grid.has_fluid(grid_pos):
+		_element_grid.remove_fluid(grid_pos)
+
+func _on_building_removed(_grid_pos: Vector2i) -> void:
 	_dirty = true
 	_cached_networks.clear()
 
