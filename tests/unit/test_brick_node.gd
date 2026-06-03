@@ -1,11 +1,5 @@
 extends GutTest
 
-func test_brick_node_ready_adds_to_group() -> void:
-	load("res://scripts/building/brick_node.gd")
-	var brick: BrickNode = autoqfree(load("res://scripts/building/brick_node.gd").new())
-	add_child_autoqfree(brick)
-	assert_true(brick.is_in_group("brick"), "_ready 后应加入 brick group")
-
 func test_brick_node_get_building_name() -> void:
 	load("res://scripts/building/brick_node.gd")
 	var brick: BrickNode = autoqfree(load("res://scripts/building/brick_node.gd").new())

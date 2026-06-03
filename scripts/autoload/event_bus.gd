@@ -44,8 +44,6 @@ signal element_removed(grid_pos: Vector2i, element_type_id: String)
 
 # 源质系统信号
 @warning_ignore("unused_signal")
-signal essence_changed(new_value: float)
-@warning_ignore("unused_signal")
 signal essence_threshold_reached(threshold: float, unlocks: Dictionary)
 
 # 暂停状态变更信号

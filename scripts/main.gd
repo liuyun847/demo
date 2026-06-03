@@ -61,30 +61,30 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.is_action_pressed(SLOT_KEYS[i]):
 				inventory_bar.select_slot(i)
 				return
-	if event.is_action_pressed("toggle_place_mode"):
-		if SelectionManager.is_paste_mode:
-			SelectionManager.cancel_paste_mode()
-		elif is_instance_valid(inventory_bar):
-			inventory_bar.toggle_place_mode()
-		return
-	if event.is_action_pressed("ui_copy"):
-		SelectionManager.copy_selection()
-		return
-	if event.is_action_pressed("ui_cut"):
-		SelectionManager.cut_selection()
-		return
-	if event.is_action_pressed("ui_paste"):
-		SelectionManager.start_paste_mode()
-		return
-	if event.is_action_pressed("ui_undo"):
-		SelectionManager.undo()
-		return
-	if event.is_action_pressed("ui_redo"):
-		SelectionManager.redo()
-		return
-	if event.is_action_pressed("rotate_clipboard") and SelectionManager.is_paste_mode:
-		SelectionManager.rotate_clipboard()
-		return
+		if event.is_action_pressed("toggle_place_mode"):
+			if SelectionManager.is_paste_mode:
+				SelectionManager.cancel_paste_mode()
+			elif is_instance_valid(inventory_bar):
+				inventory_bar.toggle_place_mode()
+			return
+		if event.is_action_pressed("ui_copy"):
+			SelectionManager.copy_selection()
+			return
+		if event.is_action_pressed("ui_cut"):
+			SelectionManager.cut_selection()
+			return
+		if event.is_action_pressed("ui_paste"):
+			SelectionManager.start_paste_mode()
+			return
+		if event.is_action_pressed("ui_undo"):
+			SelectionManager.undo()
+			return
+		if event.is_action_pressed("ui_redo"):
+			SelectionManager.redo()
+			return
+		if event.is_action_pressed("rotate_clipboard") and SelectionManager.is_paste_mode:
+			SelectionManager.rotate_clipboard()
+			return
 
 func _on_buildings_loaded() -> void:
 	if is_inside_tree():

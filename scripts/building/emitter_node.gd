@@ -16,17 +16,6 @@ func set_output_direction(dir: Vector2i) -> void:
 func has_type_selected() -> bool:
 	return true
 
-func try_output(element_grid: ElementGrid) -> bool:
-	if not has_type_selected():
-		return false
-
-	var target_pos: Vector2i = grid_position + output_direction
-	if element_grid.is_building_at(target_pos):
-		return false
-	if element_grid.has_fluid(target_pos):
-		return false
-
-	return element_grid.set_fluid(target_pos, grid_position.y)
 
 func _draw() -> void:
 	var half := GameConfig.building_size / 2.0

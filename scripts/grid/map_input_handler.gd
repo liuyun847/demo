@@ -68,6 +68,8 @@ func _is_selection_mode() -> bool:
 	return not _is_building_placement_mode() and not _is_paste_mode()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if get_tree().paused:
+		return
 	if event.is_action_pressed("rotate_clipboard") and not event.is_echo():
 		var is_emitter_placement: bool = _is_building_placement_mode() and inventory_bar and \
 			BuildingData.is_emitter(inventory_bar.get_current_building_type())

@@ -27,8 +27,6 @@ func _do_redraw() -> void:
 	queue_redraw()
 
 
-func _ready() -> void:
-	add_to_group("buffer")
 
 func get_fill_ratio() -> float:
 	return float(capacity) / float(max_capacity)

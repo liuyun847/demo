@@ -31,7 +31,7 @@ func test_set_selected_cells() -> void:
 	_gpm.set_selected_cells(empty)
 	assert_true(_gpm.selected_cells.is_empty(), "空数组应清空 selected_cells")
 
-func test_set_paste_preview() -> void:
+func test_set_paste_preview_line_single_anchor() -> void:
 	var buildings: Array[Dictionary] = [
 		{"offset": Vector2i(0, 0), "type": "type_01"},
 		{"offset": Vector2i(1, 0), "type": "type_02"},
@@ -39,8 +39,9 @@ func test_set_paste_preview() -> void:
 	var clipboard := {
 		"buildings": buildings,
 	}
-	_gpm.set_paste_preview(Vector2i(5, 5), clipboard)
-	assert_eq(_gpm.paste_ghost_cells.size(), 2, "应计算 2 个粘贴预览格子")
+	var anchors: Array[Vector2i] = [Vector2i(5, 5)]
+	_gpm.set_paste_preview_line(anchors, clipboard)
+	assert_eq(_gpm.paste_ghost_cells.size(), 2, "单锚点应计算 2 个粘贴预览格子")
 	assert_eq(_gpm.paste_ghost_types.size(), 2, "应有 2 个类型映射")
 
 func test_set_paste_preview_line() -> void:
@@ -74,7 +75,8 @@ func test_clear_paste_preview() -> void:
 	var clipboard := {
 		"buildings": buildings,
 	}
-	_gpm.set_paste_preview(Vector2i(0, 0), clipboard)
+	var anchors: Array[Vector2i] = [Vector2i(0, 0)]
+	_gpm.set_paste_preview_line(anchors, clipboard)
 	assert_false(_gpm.paste_ghost_cells.is_empty(), "设置后应有预览")
 	_gpm.clear_paste_preview()
 	assert_true(_gpm.paste_ghost_cells.is_empty(), "清除后 paste_ghost_cells 应为空")
@@ -93,10 +95,6 @@ func test_deselect_ghost_show_and_hide() -> void:
 	assert_eq(_gpm.deselect_ghost_cells.size(), 1, "应有 1 个取消选择幽灵格子")
 	_gpm.hide_deselect_ghost()
 	assert_true(_gpm.deselect_ghost_cells.is_empty(), "隐藏后 deselect_ghost_cells 应为空")
-
-func test_set_paste_preview_empty_clipboard() -> void:
-	_gpm.set_paste_preview(Vector2i(0, 0), {})
-	assert_true(_gpm.paste_ghost_cells.is_empty(), "空剪贴板不应有预览")
 
 func test_set_paste_preview_line_empty_clipboard() -> void:
 	var anchors: Array[Vector2i] = [Vector2i(0, 0)]
