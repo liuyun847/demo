@@ -24,7 +24,6 @@ SelectionManager="*res://scripts/autoload/selection_manager.gd"
 ElementRegistry="*res://scripts/elements/element_registry.gd"
 EssencePool="*res://scripts/autoload/essence_pool.gd"
 ProgressSystem="*res://scripts/autoload/progress_system.gd"
-MCPRuntime="*res://addons/godot_mcp/runtime/mcp_runtime.gd"
 
 [debug]
 
@@ -59,7 +58,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/gut/plugin.cfg")
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 [input]
 
