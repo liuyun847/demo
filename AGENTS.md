@@ -82,8 +82,8 @@ Root (Node2D) → main.gd
 
 ## Pre-commit Hook
 
-`.githooks/pre-commit` 在提交时自动运行测试 + AI 审查。
-该文件被 git 跟踪，通过以下配置启用（已为本仓库配置）：
+`.githooks/pre-commit` 在提交时自动运行三步检查：**Godot 项目错误检查** → **GUT 测试** → **AI 审查**。
+该文件与 `.githooks/check_godot_project.ps1` 均被 git 跟踪，通过以下配置启用（已为本仓库配置）：
 
 ```bash
 git config core.hooksPath .githooks
@@ -112,8 +112,9 @@ $env:GODOT_PATH="D:\path\to\Godot.exe"                        # Windows PowerShe
 
 | 步骤 | 内容 | 说明 |
 |------|------|------|
-| **1/2** | `pre-commit` hook 自动运行 GUT 测试套件 | 全部测试通过后才继续 |
-| **2/2** | `reasonix run --model deepseek-flash` AI 审查 staged diff | 检查正确性/安全性/可维护性 |
+| **1/3** | `pre-commit` hook 自动运行 godot-debug 项目错误检查 | 静态语法 + 运行时错误检查 |
+| **2/3** | `pre-commit` hook 自动运行 GUT 测试套件 | 全部测试通过后才继续 |
+| **3/3** | `reasonix run --model deepseek-flash` AI 审查 staged diff | 检查正确性/安全性/可维护性 |
 
 **提交命令**：
 ```bash
