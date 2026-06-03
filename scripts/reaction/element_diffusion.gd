@@ -15,6 +15,8 @@ func diffuse_all(element_grid: ElementGrid) -> void:
 	for body: WaterBody in bodies:
 		if body.has_source:
 			_expand_body(element_grid, body)
+		else:
+			_shrink_body(element_grid, body)
 
 func _detect_water_bodies(element_grid: ElementGrid) -> Array[WaterBody]:
 	var visited: Dictionary = {}
@@ -87,3 +89,18 @@ func _expand_body(element_grid: ElementGrid, body: WaterBody) -> void:
 			break
 		element_grid.set_fluid(pos, body.min_source_y)
 		count += 1
+
+# 断开连接的水体：逐 tick 逐渐缩小直至消失
+func _shrink_body(element_grid: ElementGrid, body: WaterBody) -> void:
+	if body.cells.is_empty():
+		return
+
+	# 按 Y 降序排列，优先移除 Y 较大（位置较低）的细胞，模拟重力蒸发效果
+	var sorted: Array[Vector2i] = body.cells.duplicate()
+	sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
+
+	# 每 tick 移除 min(细胞数量, 3) 个细胞，实现逐渐缩小
+	var remove_count: int = mini(sorted.size(), 3)
+	for i in range(remove_count):
+		var pos: Vector2i = sorted[i]
+		element_grid.remove_fluid(pos)

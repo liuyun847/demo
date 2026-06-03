@@ -24,13 +24,13 @@ func after_each() -> void:
 	_diffusion = null
 	_bm = null
 
-func test_without_source_does_not_expand() -> void:
+func test_without_source_vanishes() -> void:
 	_grid.set_fluid(Vector2i(0, 0), 0)
 
 	_diffusion.diffuse_all(_grid)
 
 	var count: int = _grid.get_all_fluid_positions().size()
-	assert_eq(count, 1, "无源水体不应扩张")
+	assert_eq(count, 0, "无源水体应逐渐缩小直至消失")
 
 func test_with_source_does_not_lose_source_cell() -> void:
 	_grid.set_fluid(Vector2i(0, 0), 0)
