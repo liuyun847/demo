@@ -1,0 +1,89 @@
+#!/bin/sh
+# pre-commit hook: 运行测试 → Reasonix AI 审查 → 通过则允许提交
+# 安装：git config core.hooksPath .githooks
+
+PROJECT_DIR="$(git rev-parse --show-toplevel)"
+GODOT="${GODOT_PATH:-C:/Users/MLTZ/Desktop/Godot_v4.6.1-stable_win64.exe}"
+TEST_SCRIPT="res://addons/gut/gut_cmdln.gd"
+TEST_OUTPUT="$PROJECT_DIR/save/test_output.xml"
+TMPFILE="$PROJECT_DIR/.git/precommit-review.tmp"
+
+cleanup() { rm -f "$TMPFILE"; }
+trap cleanup EXIT
+
+cd "$PROJECT_DIR" || exit 1
+
+# ── 步骤 1：GUT 测试 ────────────────────────────────────
+echo "=== [pre-commit] 1/2 运行 GUT 测试套件 ==="
+
+"$GODOT" --headless --path "$PROJECT_DIR" --script "$TEST_SCRIPT"
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "=== [pre-commit] ❌ 测试失败（exit code: $EXIT_CODE），提交已阻止 ==="
+    echo "请先修复测试再重新提交。"
+    exit 1
+fi
+
+if [ -f "$TEST_OUTPUT" ]; then
+    # grep -oP 支持 GNU grep；macOS 需 brew install grep 后用 ggrep
+    FAILURES=$(grep -oP 'failures="\K[0-9]+' "$TEST_OUTPUT" 2>/dev/null)
+    if [ "$FAILURES" != "0" ] && [ -n "$FAILURES" ]; then
+        echo ""
+        echo "=== [pre-commit] ❌ 发现 $FAILURES 个测试失败，提交已阻止 ==="
+        exit 1
+    fi
+fi
+
+echo "=== [pre-commit] ✅ 测试全部通过 ==="
+
+# ── 步骤 2：Reasonix AI 审查 ──────────────────────────
+STAGED_DIFF=$(git diff --cached)
+if [ -z "$STAGED_DIFF" ]; then
+    echo "=== [pre-commit] ⚠️  没有暂存改动，跳过审查 ==="
+    exit 0
+fi
+
+echo ""
+echo "=== [pre-commit] 2/2 启动 Reasonix AI 代码审查 ==="
+
+cat > "$TMPFILE" << 'PROMPTEOF'
+用中文审查以下的 staged git diff。检查：
+1. 正确性 — 是否有 bug、逻辑错误、边界条件遗漏
+2. 安全性 — 是否有注入、路径遍历、密钥泄露等风险
+3. 可维护性 — 是否有冗余代码、命名不当、缺少注释
+
+如果存在问题，请以一行 '❌ 审查未通过: <简要说明>' 结尾。
+如果一切正常，请以一行 '✅ 审查通过' 结尾。
+
+staged diff:
+PROMPTEOF
+
+git diff --cached >> "$TMPFILE"
+
+REVIEW_OUTPUT=$(reasonix run --model deepseek-flash < "$TMPFILE" 2>&1)
+REVIEW_EXIT=$?
+
+echo ""
+echo "$REVIEW_OUTPUT"
+echo ""
+
+LAST_LINE=$(echo "$REVIEW_OUTPUT" | grep -E '(✅ 审查通过|❌ 审查未通过)' | tail -1)
+
+case "$LAST_LINE" in
+    *"✅ 审查通过"*)
+        echo "=== [pre-commit] ✅ Reasonix 审查通过，允许提交 ==="
+        exit 0
+        ;;
+    *"❌ 审查未通过"*)
+        echo "=== [pre-commit] ❌ Reasonix 审查发现问题，提交已阻止 ==="
+        echo "提示：确认无误可执行 git commit --no-verify 跳过审查"
+        exit 1
+        ;;
+    *)
+        echo "=== [pre-commit] ⚠️  未能自动判定审查结论，为安全起见阻止提交 ==="
+        echo "提示：确认无误可执行 git commit --no-verify 跳过审查"
+        exit 1
+        ;;
+esac
