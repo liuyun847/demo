@@ -71,7 +71,7 @@ func _process_emitters() -> void:
 			if not EssencePool.has(emitter.essence_cost_per_tick):
 				continue
 
-			var success: bool = _element_grid.set_fluid(target_pos, emitter.grid_position.y)
+			var success: bool = _element_grid.set_fluid(target_pos, target_pos.y)
 			if success:
 				EssencePool.subtract(emitter.essence_cost_per_tick)
 				_element_grid.mark_as_source(target_pos)
