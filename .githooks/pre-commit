@@ -9,7 +9,7 @@ TEST_SCRIPT="res://addons/gut/gut_cmdln.gd"
 TEST_OUTPUT="$PROJECT_DIR/save/test_output.xml"
 TMPFILE="$PROJECT_DIR/.git/precommit-review.tmp"
 
-cleanup() { rm -f "$TMPFILE"; }
+cleanup() { rm -f "$TMPFILE" "$PROJECT_DIR/.git/precommit-gut-output.tmp"; }
 trap cleanup EXIT
 
 cd "$PROJECT_DIR" || exit 1
@@ -32,8 +32,15 @@ echo "=== [pre-commit] ✅ Godot 项目检查通过 ==="
 # ── 步骤 2：GUT 测试 ────────────────────────────────────
 echo "=== [pre-commit] 2/3 运行 GUT 测试套件 ==="
 
-"$GODOT" --headless --path "$PROJECT_DIR" --script "$TEST_SCRIPT"
+GUT_OUTPUT="$PROJECT_DIR/.git/precommit-gut-output.tmp"
+
+# 运行测试，保存原始输出和退出码
+"$GODOT" --headless --path "$PROJECT_DIR" --script "$TEST_SCRIPT" -gcompact_mode > "$GUT_OUTPUT" 2>&1
 EXIT_CODE=$?
+
+# 显示过滤后的输出：先剥离 ANSI 颜色码，再屏蔽引擎运行时噪音
+sed 's/\x1b\[[0-9;]*m//g' "$GUT_OUTPUT" | grep -vE '^(ERROR:|WARNING: |   at: |\s*GDScript backtrace)'
+rm -f "$GUT_OUTPUT"
 
 if [ $EXIT_CODE -ne 0 ]; then
     echo ""
