@@ -43,15 +43,3 @@ func test_is_collector() -> void:
 func test_is_collector_non_collector() -> void:
 	assert_false(BuildingData.is_collector(GameConfig.pipe_type_id), "管道不是 collector")
 	assert_false(BuildingData.is_collector("default"), "默认类型不是 collector")
-
-func test_is_emitter_node() -> void:
-	load("res://scripts/building/emitter_node.gd")
-	var emitter: EmitterNode = autoqfree(load("res://scripts/building/emitter_node.gd").new())
-	assert_true(BuildingData.is_emitter_node(emitter), "EmitterNode 应返回 true")
-	assert_false(BuildingData.is_emitter_node(Node2D.new()), "Node2D 应返回 false")
-
-func test_is_collector_node() -> void:
-	load("res://scripts/building/collector_node.gd")
-	var collector: CollectorNode = autoqfree(load("res://scripts/building/collector_node.gd").new())
-	assert_true(BuildingData.is_collector_node(collector), "CollectorNode 应返回 true")
-	assert_false(BuildingData.is_collector_node(Node2D.new()), "Node2D 应返回 false")

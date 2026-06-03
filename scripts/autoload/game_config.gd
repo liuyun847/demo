@@ -147,6 +147,3 @@ func save_game_settings() -> void:
 	else:
 		push_error("GameConfig: 无法写入游戏设置文件: %s" % game_settings_file_path)
 
-# 计算区块像素大小
-func get_block_pixel_size() -> int:
-	return cell_size * big_cell_size

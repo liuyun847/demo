@@ -7,10 +7,6 @@ func test_building_type_constants() -> void:
 func test_fluid_config_constants() -> void:
 	assert_eq(GameConfig.simulation_tick_interval, 0.2, "simulation_tick_interval 应为 0.2")
 
-func test_block_pixel_size() -> void:
-	var expected: int = GameConfig.cell_size * GameConfig.big_cell_size
-	assert_eq(GameConfig.get_block_pixel_size(), expected, "get_block_pixel_size 应为 cell_size * big_cell_size")
-
 func test_save_and_load_settings() -> void:
 	var original_save_path: String = GameConfig.game_settings_file_path
 	GameConfig.game_settings_file_path = "res://save/test_game_settings.json"

@@ -2,7 +2,6 @@ class_name BrickNode
 extends BuildingBase
 
 func _ready() -> void:
-	add_to_group("brick")
 	_setup_collision()
 
 func _setup_collision() -> void:

@@ -74,8 +74,3 @@ static func _parse_direction(value: Variant) -> Vector2i:
 			return Vector2i(int(parts[0]), int(parts[1]))
 	return Vector2i(0, 1)
 
-static func is_emitter_node(node: Node) -> bool:
-	return node is EmitterNode
-
-static func is_collector_node(node: Node) -> bool:
-	return node is CollectorNode

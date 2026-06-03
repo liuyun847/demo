@@ -3,251 +3,85 @@
 - **项目名称**: demo
 - **项目类型**: 游戏项目
 - **当前阶段**: 开发阶段
-- **核心用途**: 基于 Godot 引擎开发的 2D 网格建筑与流体模拟游戏
+- **核心用途**: 基于 Godot 4.6 的 2D 网格建筑与流体模拟游戏
 
 # 技术栈
 
-| 技术/工具        | 版本/说明         |
-| ------------ | ----------- |
-| 游戏引擎         | Godot 4.6   |
-| 开发语言         | GDScript    |
-| 渲染管线         | Forward Plus（Godot 4.x 默认） |
-| 版本控制         | Git         |
+| 技术/工具  | 版本/说明                  |
+| ---------- | -------------------------- |
+| 游戏引擎   | Godot 4.6                  |
+| 开发语言   | GDScript                   |
+| 渲染管线   | Forward Plus（Godot 4.x 默认） |
 
-# 项目结构
+# 项目结构（简化）
 
 ```
 demo/
-├── .godot/                    # Godot 引擎缓存（自动生成，无需提交）
-├── addons/                    # 编辑器插件目录
-│   ├── godot_mcp/             # MCP 调试插件
-│   └── gut/                   # GUT 单元测试框架
-├── scripts/                   # 脚本文件目录
-│   ├── fps_display.gd         # 右上角帧率显示组件
-│   ├── main.gd                # 主场景控制器（管理 UI 叠加层和暂停状态）
-│   ├── InfiniteGridMap.gd     # 无限方格地图
-│   ├── CameraController.gd    # 相机控制器
-│   ├── StartMenu.gd           # 开始菜单
-│   ├── Settings.gd            # 设置面板
-│   ├── autoload/              # 自动加载单例目录
-│   │   ├── game_config.gd     # 游戏配置与常量
-│   │   ├── event_bus.gd       # 事件总线
-│   │   ├── keybind_manager.gd # 按键配置管理
-│   │   ├── selection_manager.gd # 选中/剪贴板/撤销管理
-│   │   ├── essence_pool.gd    # 源质货币池（增减查，Autoload 单例）
-│   │   └── progress_system.gd # 源质阈值进度系统（解锁建筑类型，Autoload 单例）
-│   ├── elements/              # 元素系统模块
-│   │   ├── element_type_data.gd # 元素类型数据（Resource）
-│   │   ├── element_data.gd      # 元素运行时实例数据（RefCounted）
-│   │   └── element_registry.gd  # 元素注册表（Autoload 单例）
-│   ├── building/              # 建筑系统模块
-│   │   ├── building_manager.gd # 建筑管理器（建筑增删改查、管线协调）
-│   │   ├── building_base.gd    # 建筑统一基类（BuildingBase）
-│   │   ├── container_node.gd   # 容器建筑（ContainerNode）
-│   │   ├── pipe_node.gd        # 管道建筑（PipeNode）
-│   │   ├── brick_node.gd       # 砖块建筑（BrickNode）
-│   │   ├── collector_node.gd   # 收集器建筑（CollectorNode，收集范围内元素转为源质）
-│   │   ├── emitter_node.gd     # 发射器建筑（EmitterNode，消耗源质生成元素）
-│   │   ├── building_factory.gd # 建筑工厂（BuildingFactory，根据类型创建实例）
-│   │   ├── pipe_render_system.gd # 管道批量渲染系统（PipeRenderSystem，ECS-Lite）
-│   │   └── ghost_preview_manager.gd # 幽灵预览管理器（GhostPreviewManager）
-│   ├── grid/                  # 网格系统模块
-│   │   ├── grid_coordinate.gd  # 网格坐标转换
-│   │   ├── grid_utils.gd       # 网格工具函数（直线/矩形/L形单元格计算）
-│   │   ├── map_input_handler.gd # 地图输入处理（状态机驱动）
-│   │   └── input_state_machine.gd # 输入状态机（IDLE / DRAGGING / REMOVING / SELECTING / DESELECTING / PASTE_DRAGGING）
-│   ├── persistence/           # 持久化模块
-│   │   └── save_manager.gd     # 数据存储管理
-│   ├── resources/             # 资源定义模块
-│   │   ├── building_data.gd    # 建筑实例数据（BuildingData）
-│   │   ├── building_type_data.gd # 建筑类型数据（BuildingTypeData）
-│   │   └── undo_command.gd     # 撤销命令数据（UndoCommand）
-│   ├── reaction/               # 模拟系统模块
-│   │   ├── reaction_coordinator.gd # 模拟协调器（BFS 网络 + 元素扩散 + 发射/收集）
-│   │   ├── element_grid.gd        # 世界格子元素管理器（ElementGrid）
-│   │   ├── element_diffusion.gd   # 元素扩散系统（重力/横向扩散）
-│   │   └── element_renderer.gd    # 元素可视化渲染器（ElementRenderer）
-│   └── ui/                    # UI 组件模块
-│       ├── inventory_bar.gd    # 底部建筑类型选择栏
-│       ├── inventory_slot.gd   # 建筑类型槽位逻辑
-│       ├── building_tooltip.gd # 建筑悬停提示面板
-│       ├── key_hints.gd        # 快捷键提示面板
-│       ├── essence_display.gd  # 源质数量显示组件
-│       └── emitter_type_panel.gd # 喷口类型选择面板
-├── resources/                 # 资源文件目录
-│   ├── container_icon.svg     # 容器建筑槽位图标
-│   ├── pipe_icon.svg          # 管道建筑槽位图标
-│   ├── brick_icon.svg         # 砖块建筑槽位图标
-│   ├── collector_icon.svg     # 收集器建筑槽位图标
-│   ├── emitter_water_icon.svg # 水喷口建筑槽位图标
-│   └── water_source_icon.svg  # 水源图标
-├── scenes/                    # 场景文件目录
-│   ├── main.tscn              # 游戏主场景文件
-│   ├── start_menu.tscn        # 开始页面场景文件
-│   ├── settings.tscn          # 设置页面场景文件
-│   ├── inventory_bar.tscn     # 建筑选择栏场景
-│   ├── inventory_slot.tscn    # 建筑槽位场景
-│   ├── building_tooltip.tscn  # 建筑悬停提示场景
-│   └── emitter_type_panel.tscn # 喷口类型选择面板场景
-├── save/                      # 持久化存储目录（运行时生成，gitignore）
-│   ├── buildings.json         # 建筑放置数据
-│   ├── test_buildings.json    # 测试建筑数据
-│   ├── keybindings.json       # 按键配置数据
-│   └── game_settings.json     # 游戏数值设置（滚轮缩放倍率、Shift 加速倍率）
-├── tests/                     # GUT 测试目录
-│   ├── unit/                  # 单元测试
-│   └── integration/           # 集成测试
-├── .gutconfig.json            # GUT 测试框架配置文件
-├── icon.svg                   # 项目图标
-├── project.godot              # Godot 项目核心配置文件
-├── .editorconfig              # 编辑器代码风格配置
-├── .gitattributes             # Git 属性配置
-├── .gitignore                 # Git 忽略文件配置
-└── AGENTS.md                  # 项目描述文档
+├── addons/gut/               # 测试框架
+├── scripts/                  # 源码
+│   ├── autoload/             # Autoload 单例（GameConfig, EventBus, KeybindManager, SelectionManager, EssencePool, ProgressSystem）
+│   ├── building/             # 建筑系统（BuildingManager + 5种建筑 + 工厂 + 管道渲染 + 幽灵预览）
+│   ├── elements/             # 元素系统（类型注册 + 运行时数据）
+│   ├── grid/                 # 网格系统（坐标转换 + 工具 + 输入处理 + 状态机）
+│   ├── reaction/             # 模拟系统（协调器 + 格子管理 + 扩散 + 渲染）
+│   ├── ui/                   # UI 组件（选择栏、提示、喷口面板、源质显示）
+│   ├── persistence/          # 持久化
+│   ├── resources/            # 数据定义（BuildingData、UndoCommand）
+│   └── main.gd               # 主场景控制器
+├── scenes/                   # 场景文件（main, start_menu, settings, inventory 等）
+├── resources/                # 图标资源
+├── save/                     # 运行时持久化数据（gitignore）
+└── tests/                    # GUT 测试（unit/ + integration/）
 ```
 
 # 自动加载单例
 
-| 单例名称        | 脚本路径                                       | 用途               |
-| ----------- | ----------------------------------------- | ---------------- |
-| GameConfig   | res://scripts/autoload/game_config.gd      | 游戏配置与常量集中管理  |
-| EventBus     | res://scripts/autoload/event_bus.gd        | 模块间事件通信       |
-| KeybindManager | res://scripts/autoload/keybind_manager.gd  | 按键配置加载/保存/重映射 |
-| SelectionManager | res://scripts/autoload/selection_manager.gd | 选中状态/剪贴板/撤销栈管理 |
-| ElementRegistry | res://scripts/elements/element_registry.gd | 元素类型注册表 |
-| EssencePool  | res://scripts/autoload/essence_pool.gd     | 源质货币池（增减查） |
-| ProgressSystem | res://scripts/autoload/progress_system.gd | 源质阈值进度系统（解锁建筑类型） |
-| MCPRuntime   | res://addons/godot_mcp/runtime/mcp_runtime.gd | MCP 调试运行时辅助   |
+| 单例              | 用途                           |
+| ----------------- | ------------------------------ |
+| GameConfig        | 游戏配置与常量集中管理          |
+| EventBus          | 模块间事件通信                  |
+| KeybindManager    | 按键配置加载/保存/重映射        |
+| SelectionManager  | 选中状态/剪贴板/撤销栈管理      |
+| ElementRegistry   | 元素类型注册表                  |
+| EssencePool       | 源质货币池（增减查）            |
+| ProgressSystem    | 源质阈值进度系统（解锁建筑类型） |
 
-## Autoload 初始化顺序依赖
+**初始化顺序**: GameConfig → EventBus → ElementRegistry → KeybindManager → SelectionManager → EssencePool → ProgressSystem
 
-```
-GameConfig（无依赖） → EventBus（无依赖） → ElementRegistry（无依赖） → KeybindManager（依赖 GameConfig） → SelectionManager（运行时获取 BuildingManager） → EssencePool（无依赖） → ProgressSystem（依赖 EssencePool、EventBus）
-```
-
-## EventBus 信号列表
-
-| 信号名称                     | 参数                   | 触发时机          |
-| ------------------------ | -------------------- | ------------- |
-| building\_placed         | grid\_pos: Vector2i | 建筑放置成功时       |
-| building\_removed        | grid\_pos: Vector2i | 建筑删除成功时       |
-| buildings\_loaded        | 无                    | 存档建筑数据加载完成    |
-| keybind\_changed         | action: String      | 按键绑定变更时       |
-| start\_game\_requested   | 无                    | 点击开始游戏按钮时      |
-| show\_start\_menu\_requested | 无                 | 请求显示开始菜单时      |
-| show\_settings\_requested | 无                   | 请求显示设置页面时      |
-| game\_settings\_changed   | 无                    | 游戏数值设置变更时      |
-| selection\_changed        | selected\_cells: Array[Vector2i] | 建筑选中状态变更时   |
-| paste\_mode\_changed       | active: bool        | 粘贴模式进入/退出时    |
-| camera\_changed            | 无                    | 相机缩放或移动时     |
-| building\_hovered          | grid\_pos: Vector2i, node: Node2D | 鼠标悬停在建筑上时   |
-| building\_hover\_exited     | grid\_pos: Vector2i | 鼠标离开建筑悬停时    |
-| element\_spawned           | grid\_pos: Vector2i, element\_type\_id: String | 元素生成到格子时 |
-| element\_removed           | grid\_pos: Vector2i, element\_type\_id: String | 元素被消耗/收集时 |
-| essence\_changed           | new\_value: float    | 源质数值变更时      |
-| essence\_threshold\_reached | threshold: float, unlocks: Dictionary | 源质达到解锁阈值时 |
-| pause\_state\_changed     | paused: bool        | 暂停状态变更时      |
-| emitter\_type\_panel\_opened | 无 | 喷口类型选择面板打开时 |
-| emitter\_type\_panel\_closed | 无 | 喷口类型选择面板关闭时 |
-
-# 主场景结构
+# 主场景节点树
 
 ```
-Root (Node2D) → main.gd                    # 主场景控制器
-├── Camera2D (Camera2D) → CameraController.gd        # 当前激活相机
-├── InfiniteGridMap (Node2D) → InfiniteGridMap.gd   # 无限方格地图
-├── BuildingManager (Node2D) → BuildingManager.gd    # 建筑管理器
-│   ├── PipeRenderSystem (Node2D) → PipeRenderSystem.gd # 管道批量渲染
-│   ├── GhostPreviewManager (Node2D) → GhostPreviewManager.gd # 幽灵预览管理
-│   ├── ElementRenderer (Node2D) → ElementRenderer.gd # 元素可视化渲染器（运行时动态创建）
-│   └── ReactionCoordinator (Node) → reaction_coordinator.gd # 反应协调器（运行时动态创建）
-├── SaveManager (Node) → SaveManager.gd              # 数据持久化管理
-├── MapInputHandler (Node) → MapInputHandler.gd     # 地图输入处理
-└── UIOverlay (CanvasLayer)                # UI 叠加层
-    ├── StartMenu (Control) → StartMenu.gd  # 开始菜单
-    ├── SettingsPanel (Control) → Settings.gd # 设置面板
-    ├── InventoryBar (HBoxContainer) → InventoryBar.gd # 底部建筑类型选择栏
-    ├── BuildingTooltip (Control) → BuildingTooltip.gd # 建筑悬停提示
-    ├── EssenceDisplay (Control) → essence_display.gd # 源质数量显示（运行时动态创建）
-    ├── PauseOverlay (Control) → main.gd 内部创建 # 暂停覆盖层（运行时动态创建，PROCESS_MODE_ALWAYS）
-    ├── EmitterTypePanel (Control) → emitter_type_panel.gd # 喷口类型选择面板（运行时动态创建）
-    ├── FPSDisplay (Label) → fps_display.gd # 帧率显示
-    └── KeyHints (VBoxContainer) → key_hints.gd # 快捷键提示面板
+Root (Node2D) → main.gd
+├── Camera2D → CameraController.gd
+├── InfiniteGridMap → InfiniteGridMap.gd
+├── BuildingManager → BuildingManager.gd
+│   ├── PipeRenderSystem / GhostPreviewManager / ElementRenderer / ReactionCoordinator
+├── SaveManager / MapInputHandler
+└── UIOverlay (CanvasLayer)
+    ├── StartMenu / SettingsPanel / InventoryBar / BuildingTooltip
+    ├── EssenceDisplay / PauseOverlay / EmitterTypePanel（运行时动态创建）
+    └── FPSDisplay / KeyHints
 ```
 
-# 核心功能说明
+# 核心系统摘要
 
-- **输入状态机（InputStateMachine）**：`input_state_machine.gd` 定义 6 个状态（IDLE / DRAGGING / REMOVING / SELECTING / DESELECTING / PASTE_DRAGGING），`map_input_handler.gd` 根据当前模式（放置/删除/框选/粘贴）委托对应状态逻辑，状态切换时自动显示/隐藏对应幽灵预览
-- **幽灵预览系统**：GhostPreviewManager 维护多组幽灵数组（ghost_cells / remove_ghost_cells / select_ghost_cells / deselect_ghost_cells / paste_ghost_cells / selected_cells），`_draw()` 统一绘制，`show_*`/`hide_*` 系列方法切换状态；作为 BuildingManager 的子节点管理所有预览渲染
-- **无限方格地图**：基于视口动态加载/卸载区块（640px/块），实现无缝漫游
-- **细网格线自适应**：大格子数量≥6 时自动隐藏细网格线
-- **建筑放置/删除**：左键放置、右键删除，拖拽支持 L 形批量放置（`get_l_cells`，R 键切换拐角方向）和矩形批量删除（`get_rect_cells`），拖拽时显示幽灵预览
-- **建筑类型选择**：底部 10 槽位，数字键 1~0 切换，选中槽位高亮；重复按下已选中槽位可取消选择；1 号=容器(ContainerNode)，2 号=管道(PipeNode)，3 号=喷口(EmitterNode，固定为水元素)，4 号=砖块(BrickNode)，5 号=保留槽位，6 号=保留槽位，7 号=收集器(CollectorNode)；未解锁类型显示锁定状态
-- **建筑统一基类**：BuildingBase 抽象基类，定义 grid_position / get_building_name / get_tooltip_summary 等公共接口，所有建筑继承自此基类
-- **缓存节点（容器）**：自定义 \_draw() 渲染填充条，带 capacity / max\_capacity 属性，数据持久化，作为连通检测网络中的缓存节点
-- **收集器建筑（CollectorNode）**：B 型建筑，以自身为中心在 collection\_radius 范围内收集元素，按元素类型和复杂度计算源质价值，收集后清除格子上的元素；通过 EssencePool 累加源质
-- **发射器建筑（EmitterNode）**：A 型建筑，固定为水元素类型；消耗源质（essence\_cost\_per\_tick）向 output\_direction 方向生成水元素，放置时幽灵预览显示方向指示器，可按 R 键旋转方向（下/左/上/右循环）；输出方向被阻挡时进入冷却（\_blocked\_ticks），冷却期间不消耗源质；自定义 \_draw() 渲染箭头方向指示和元素颜色
-- **源质货币池（EssencePool）**：Autoload 单例，提供 essence 属性和 add/subtract/has/set\_value 方法；essence 属性通过 setter 自动触发 essence\_changed 信号；作为游戏内通用货币单位
-- **管道建筑**：ECS-Lite 架构——PipeNode 保留 Node2D 骨架用于交互，渲染逻辑由 PipeRenderSystem 批量绘制（PackedVector2Array/PackedInt32Array 存储位置/连接掩码）；自动检测邻居连接显示水平/垂直/多通，无容量纯导体
-- **建筑悬停提示**：鼠标悬停建筑时显示浮动面板，展示建筑名称、摘要属性，支持展开查看详细信息
-- **吸管功能**：鼠标滚轮在已有建筑格子上按下时，自动切换为该建筑对应的建造类型
-- **框选与复制粘贴**：框选建筑（蓝色高亮），Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z 撤销，Ctrl+Shift+Z 或 Ctrl+Y 重做；粘贴模式下按 R 键可顺时针旋转剪贴板布局（0°→90°→180°→270° 循环），支持拖拽粘贴（`get_paste_line_anchors` 生成行列式锚点）；管道粘贴后自动重新检测邻居连接；剪切/粘贴时保留发射器的 element\_type\_id 数据
-- **快捷键提示面板（KeyHints）**：右上角动态显示当前可用快捷键及模式说明（放置/删除/框选/粘贴/吸取），随当前模式变化实时更新
-- **空格暂停功能**：按空格键可快速暂停/恢复模拟系统；main.gd 通过双标志位（\_manual\_paused / \_menu\_paused）独立管理手动暂停和菜单暂停状态，综合决定场景树 paused 状态；暂停时显示半透明覆盖层（PauseOverlay，CenterContainer + VBoxContainer 居中布局，PROCESS\_MODE\_ALWAYS），提示"已暂停 / 按空格键继续"；UI 层和相机在暂停时仍可操作；ESC 菜单优先级高于空格暂停（菜单打开时隐藏覆盖层，关闭菜单后保留手动暂停状态）；暂停状态变更通过 EventBus.pause\_state\_changed 信号广播
-- **模拟系统**：ReactionCoordinator 通过脏标记（\_dirty）缓存 BFS 连通网络结构，仅在建筑放置/删除时重建网络拓扑；每 tick 执行顺序为：发射器输出元素（检查源质并扣除）→ 元素扩散（ElementDiffusion）；之后处理收集器收集元素（累加 EssencePool 源质）；BFS 网络收集管道（PipeNode）、容器（ContainerNode）、发射器（EmitterNode）和收集器（CollectorNode）
-- **元素系统**：仅水元素类型；元素通过 ElementGrid 管理格子占用（与建筑互斥），ElementDiffusion 处理重力驱动的单步扩散（下落 + 填充），填充阶段使用 COPY 语义保持水体连续——水在下方被阻挡时复制到左右（不消耗原格子），横向扩散受限时向上填充至水源高度；发射器输出位置在成功放置流体时标记为水源格，水源格标记持续存在，确保水体在扩散时可识别为有源水体；定期清理远离建筑的废弃元素（element\_abandon\_distance）；ElementRegistry（Autoload）提供元素类型查询；ElementRenderer 响应 element\_spawned/element\_removed 信号，通过 \_draw() 渲染彩色方块
-- **源质阈值进度系统（ProgressSystem）**：Autoload 单例，监听 EssencePool.essence\_changed 信号，达到预设阈值时触发 essence\_threshold\_reached 信号（同时通过 EventBus 转发），解锁新建筑类型或能力；阈值阶梯：0（初始解锁容器/管道/喷口/砖块/收集器）→100→500→2000→5000→10000→50000；通过 get\_unlocked\_building\_types() / is\_building\_unlocked() 查询解锁状态
-- **源质数量显示（EssenceDisplay）**：左上角 UI 组件（游戏开始后由 main.gd 动态创建），监听 EssencePool.essence_changed 实时显示当前源质余额
-- **建筑工厂（BuildingFactory）**：静态工厂类，根据 building_type 字符串创建对应的建筑实例（ContainerNode / PipeNode / BrickNode / EmitterNode / CollectorNode），统一管理建筑实例化逻辑
-- **管道渲染系统（PipeRenderSystem）**：ECS-Lite 数据批次渲染，管理所有 PipeNode 的位置/连接掩码；支持单个管道注册/注销/逐位变更和批量更新两种模式；`_draw()` 中统一绘制线段和转角
-- **幽灵预览管理器（GhostPreviewManager）**：管理放置/删除/框选/粘贴/选中 5 类幽灵预览数组及喷口方向箭头，提供 `show_*`/`hide_*` 方法和 `_draw()` 统一渲染；监听 `selection_changed` 信号同步选中状态
-- **网格工具类（GridUtils）**：提供 `get_line_cells`（直线格）、`get_rect_cells`（矩形格）、`get_l_cells`（L 形格）等静态坐标计算方法
-- **建筑实例数据（BuildingData）**：RefCounted 资源类，存储 grid\_position / building\_type / capacity / max\_capacity / element\_type\_id；提供静态方法 is\_emitter() / is\_collector() / is\_pipe\_or\_buffer() / is\_container\_building() 等类型判断，以及 sync\_capacity\_from\_node() / sync\_emitter\_type\_from\_node() 进行建筑数据的节点同步
-- **喷口类型选择面板（EmitterTypePanel）**：运行时动态创建的 Control，附着在 EmitterNode 上方显示水按钮，选中后调用 emitter.set\_element\_type() 设置元素类型并自动关闭面板；打开/关闭时分别触发 emitter\_type\_panel\_opened/closed 信号
-- **数据持久化**：建筑/按键/设置数据自动保存到 save/ 目录，启动自动加载
-- **MCP 调试工具**：集成 godot\_mcp 插件，支持场景运行、截图、输入模拟等调试
-- **事件驱动架构**：通过 EventBus 实现模块间松耦合通信
-- **配置集中管理**：GameConfig 统一管理游戏常量，包括网格配置（cell\_size / big\_cell\_size）、建筑配置（building\_size / 类型标识 type\_01~type\_07）、源质配置（brick\_essence\_cost / emitter\_essence\_cost\_per\_tick / collector\_default\_radius / initial\_essence）、模拟配置（simulation\_tick\_interval / diffusion\_steps\_per\_tick / element\_abandon\_distance / cleanup\_interval\_ticks / emitter\_blocked\_cooldown）、游戏数值设置（zoom\_speed / shift\_speed\_multiplier，支持持久化 load/save\_game\_settings）
-- **按键配置系统**：KeybindManager 管理 InputMap 按键，支持持久化和设置页面重映射
-- **游戏数值设置**：支持调整缩放倍率和加速倍率，持久化到 save/game\_settings.json
-- **单元测试**：基于 GUT 框架，覆盖各核心模块
+- **输入状态机**: 6 个状态（IDLE/DRAGGING/REMOVING/SELECTING/DESELECTING/PASTE_DRAGGING），根据模式切换幽灵预览
+- **幽灵预览**: GhostPreviewManager 维护多组预览数组，`_draw()` 统一渲染
+- **建筑系统**: 5 种建筑（容器/管道/发射器/收集器/砖块），通过 BuildingFactory 创建，ECS-Lite 管道渲染
+- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑，每 tick 执行发射→扩散→收集流程
+- **元素系统**: 仅水元素，重力驱动扩散（下落 + 填充），水源标记维持水体连续
+- **源质经济**: EssencePool 管理货币，ProgressSystem 按阈值解锁建筑类型
+- **框选与剪贴板**: 框选 → Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z/Y 撤销/重做，粘贴支持旋转和拖拽
+- **持久化**: 建筑/按键/设置自动保存到 save/ 目录，启动时加载
 
-# 开发规范
+# 通信方式
 
-- 对于不确定的接口，先查询，禁止猜测用法
-- 修改后使用 godot-debug 技能进行代码静态检查和运行时错误检测，确保无错误
-- 修改后运行测试：`& "C:\Users\MLTZ\Desktop\Godot_v4.6.1-stable_win64.exe" --headless '--path' 'C:\Users\MLTZ\Desktop\程序\godot\bili游戏大赛\demo' '--script' 'res://addons/gut/gut_cmdln.gd'`，结果导出至 save/test_output.xml（disable\_colors 和 junit\_xml\_file 已在 .gutconfig.json 中配置）
-- **验证测试结果无需查看完整输出**：检查命令退出码（exit\_code == 0 = 全部通过）和 save/test_output.xml 的 failures 属性（failures="0" = 全部通过）
-- 使用事件总线(EventBus)进行模块间松耦合通信；同场景内兄弟节点允许通过 get\_node() 直接引用，跨场景通信必须通过 EventBus
-- 遵循单一职责原则，每个脚本只负责一个功能域
-- 新增功能需编写对应的 GUT 测试，单元测试放在 tests/unit/ 下，集成测试放在 tests/integration/ 下，以 test\_ 为前缀
-- 测试类继承 GutTest，测试方法以 test\_ 开头，使用 autoqfree / add\_child\_autoqfree 管理节点生命周期
+通过 EventBus 进行模块间松耦合通信（同场景兄弟节点允许 `get_node()` 直接引用）。信号覆盖建筑放置/删除、元素生成/移除、源质变更、暂停、选中、粘贴模式等。
 
-# 运行方式
+# 测试
 
-1. 打开 Godot 4.6 编辑器，导入项目根目录
-2. 点击运行按钮或按 F5 键启动游戏
-3. 操作说明（默认按键，可在设置页面修改）：
-   - W 键：相机上移
-   - S 键：相机下移
-   - A 键：相机左移
-   - D 键：相机右移
-   - Shift 键：加速移动（默认 5 倍速，可在设置页面调整）
-   - 鼠标滚轮上：放大视角
-   - 鼠标滚轮下：缩小视角
-   - 鼠标滚轮在有建筑的格子上按下：吸取建筑类型（自动切换为对应建筑类型）
-   - 鼠标左键单击：放置单个建筑（使用当前选中的类型）
-   - 鼠标左键拖拽：沿 L 形路径批量放置建筑（R 键切换拐角方向）
-   - 鼠标右键单击：删除单个建筑
-   - 鼠标右键拖拽：矩形框选批量删除建筑
-   - 数字键 1~0：切换建筑类型（对应底部选择栏 10 个槽位）；重复按下已选中槽位可取消选择；1=容器，2=管道，3=喷口（固定为水元素），4=砖块，7=收集器
-   - 空格键：暂停/恢复模拟系统（暂停时显示覆盖层，UI 和相机仍可操作；ESC 菜单优先级高于空格暂停）
-   - ESC 键：显示/关闭开始菜单
-   - Ctrl+C：复制选中的建筑（保留发射器元素类型信息）
-   - Ctrl+X：剪切选中的建筑（保留发射器元素类型信息）
-   - Ctrl+V：进入粘贴模式
-   - R 键（粘贴模式下）：顺时针旋转剪贴板布局 90°（0°→90°→180°→270° 循环）
-   - R 键（放置拖拽中，非喷口）：切换 L 形路径的拐角方向
-   - R 键（选中喷口时）：循环切换喷口输出方向（下→左→上→右）
-   - Ctrl+Z：撤销上一次操作
-   - Ctrl+Shift+Z 或 Ctrl+Y：重做被撤销的操作
+```bash
+& "C:\Users\MLTZ\Desktop\Godot_v4.6.1-stable_win64.exe" --headless '--path' 'C:\Users\MLTZ\Desktop\程序\godot\bili游戏大赛\demo' '--script' 'res://addons/gut/gut_cmdln.gd'
+```
+
+**验证**: 命令退出码 `exit_code == 0` 且 `save/test_output.xml` 中 `failures="0"` 即为全部通过。

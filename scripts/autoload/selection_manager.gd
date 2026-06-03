@@ -123,17 +123,6 @@ func copy_selection() -> void:
 func cut_selection() -> void:
 	clipboard = _build_clipboard(true)
 
-func get_clipboard_unit_size() -> Vector2i:
-	if clipboard.is_empty() or not clipboard.has("buildings"):
-		return Vector2i(1, 1)
-	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
-	var max_off := Vector2i.ZERO
-	for item: Dictionary in clip_buildings:
-		var off: Vector2i = item["offset"]
-		max_off.x = maxi(max_off.x, off.x)
-		max_off.y = maxi(max_off.y, off.y)
-	return Vector2i(max_off.x + 1, max_off.y + 1)
-
 static func _rotate_offset(offset: Vector2i, rotation: int) -> Vector2i:
 	match rotation:
 		1: return Vector2i(-offset.y, offset.x)

@@ -1,19 +1,6 @@
 class_name ElementDiffusion
 extends Node
 
-const DIR_UP: Vector2i = Vector2i(0, -1)
-const DIR_DOWN: Vector2i = Vector2i(0, 1)
-const DIR_LEFT: Vector2i = Vector2i(-1, 0)
-const DIR_RIGHT: Vector2i = Vector2i(1, 0)
-
-static func _dirs() -> Array[Vector2i]:
-	var dirs: Array[Vector2i] = []
-	dirs.append(Vector2i(0, -1))
-	dirs.append(Vector2i(0, 1))
-	dirs.append(Vector2i(-1, 0))
-	dirs.append(Vector2i(1, 0))
-	return dirs
-
 class WaterBody:
 	var cells: Array[Vector2i]
 	var has_source: bool
@@ -57,7 +44,7 @@ func _detect_water_bodies(element_grid: ElementGrid) -> Array[WaterBody]:
 				if sy < body.min_source_y:
 					body.min_source_y = sy
 
-			for dir: Vector2i in _dirs():
+			for dir: Vector2i in GridCoordinate.DIR_4:
 				var neighbor: Vector2i = current + dir
 				if not element_grid.has_fluid(neighbor):
 					continue
@@ -82,7 +69,7 @@ func _expand_body(element_grid: ElementGrid, body: WaterBody) -> void:
 	var seen: Dictionary = {}
 
 	for cell: Vector2i in body.cells:
-		for dir: Vector2i in _dirs():
+		for dir: Vector2i in GridCoordinate.DIR_4:
 			var neighbor: Vector2i = cell + dir
 			if element_grid.is_position_available(neighbor) and neighbor.y >= body.min_source_y:
 				if not seen.has(neighbor):

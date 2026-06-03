@@ -18,7 +18,7 @@ func _notify_bm_dirty() -> void:
 		_data_changed_callback.call(self)
 
 func _ready() -> void:
-	add_to_group("pipe")
+	pass
 
 func refresh_connections(is_connectable: Callable) -> void:
 	var my_pos := grid_position

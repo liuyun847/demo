@@ -82,7 +82,7 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	if BuildingData.is_container_building(node):
 		var data: BuildingData = buildings[grid_pos]
 		BuildingData.sync_capacity_from_node(data, node)
-	if BuildingData.is_emitter_node(node):
+	if node is EmitterNode:
 		var data: BuildingData = buildings[grid_pos]
 		BuildingData.sync_emitter_type_from_node(data, node)
 	node.queue_free()

@@ -45,21 +45,6 @@ func set_selected_cells(cells: Array[Vector2i]) -> void:
 	queue_redraw()
 
 
-func set_paste_preview(anchor: Vector2i, clipboard: Dictionary) -> void:
-	paste_ghost_cells.clear()
-	paste_ghost_types.clear()
-	if clipboard.is_empty() or not clipboard.has("buildings"):
-		queue_redraw()
-		return
-	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
-	for item in clip_buildings:
-		var grid_pos: Vector2i = anchor + item["offset"]
-		var building_type: String = item["type"]
-		paste_ghost_cells.append(grid_pos)
-		paste_ghost_types[grid_pos] = building_type
-	queue_redraw()
-
-
 func set_paste_preview_line(anchors: Array[Vector2i], clipboard: Dictionary) -> void:
 	paste_ghost_cells.clear()
 	paste_ghost_types.clear()

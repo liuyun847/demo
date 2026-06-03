@@ -8,6 +8,8 @@ func _ready() -> void:
 	zoom = Vector2(1.0, 1.0)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if get_tree().paused:
+		return
 	if event.is_action_pressed("zoom_in"):
 		zoom_at_position(event.position, 1 + GameConfig.zoom_speed)
 	elif event.is_action_pressed("zoom_out"):
@@ -32,6 +34,8 @@ var _last_process_pos: Vector2
 var _last_zoom: Vector2
 
 func _process(delta: float) -> void:
+	if get_tree() and get_tree().paused:
+		return
 	var input_dir: Vector2 = Vector2.ZERO
 	if Input.is_action_pressed("move_right"):
 		input_dir.x += 1
