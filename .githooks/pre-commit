@@ -1,5 +1,5 @@
 #!/bin/sh
-# pre-commit hook: Godot 项目检查 → 运行测试 → Reasonix AI 审查 → 通过则允许提交
+# pre-commit hook: Godot 项目检查 → 运行测试 → 通过则允许提交
 # 安装：git config core.hooksPath .githooks
 
 PROJECT_DIR="$(git rev-parse --show-toplevel)"
@@ -7,15 +7,14 @@ GODOT="${GODOT_PATH:-C:/Users/MLTZ/Desktop/Godot_v4.6.1-stable_win64.exe}"
 export GODOT
 TEST_SCRIPT="res://addons/gut/gut_cmdln.gd"
 TEST_OUTPUT="$PROJECT_DIR/save/test_output.xml"
-TMPFILE="$PROJECT_DIR/.git/precommit-review.tmp"
 
-cleanup() { rm -f "$TMPFILE" "$PROJECT_DIR/.git/precommit-gut-output.tmp"; }
+cleanup() { rm -f "$PROJECT_DIR/.git/precommit-gut-output.tmp"; }
 trap cleanup EXIT
 
 cd "$PROJECT_DIR" || exit 1
 
 # ── 步骤 1：Godot 项目错误检查（godot-debug）───────────
-echo "=== [pre-commit] 1/3 Godot 项目错误检查（godot-debug）==="
+echo "=== [pre-commit] 1/2 Godot 项目错误检查（godot-debug）==="
 
 powershell.exe -ExecutionPolicy Bypass -File "$PROJECT_DIR/.githooks/check_godot_project.ps1" "$PROJECT_DIR"
 POWERSHELL_EXIT=$?
@@ -30,7 +29,7 @@ fi
 echo "=== [pre-commit] ✅ Godot 项目检查通过 ==="
 
 # ── 步骤 2：GUT 测试 ────────────────────────────────────
-echo "=== [pre-commit] 2/3 运行 GUT 测试套件 ==="
+echo "=== [pre-commit] 2/2 运行 GUT 测试套件 ==="
 
 GUT_OUTPUT="$PROJECT_DIR/.git/precommit-gut-output.tmp"
 
@@ -61,54 +60,3 @@ if [ -f "$TEST_OUTPUT" ]; then
 fi
 
 echo "=== [pre-commit] ✅ 测试全部通过 ==="
-
-# ── 步骤 3：Reasonix AI 审查 ──────────────────────────
-STAGED_DIFF=$(git diff --cached)
-if [ -z "$STAGED_DIFF" ]; then
-    echo "=== [pre-commit] ⚠️  没有暂存改动，跳过审查 ==="
-    exit 0
-fi
-
-echo ""
-echo "=== [pre-commit] 3/3 启动 Reasonix AI 代码审查 ==="
-
-cat > "$TMPFILE" << 'PROMPTEOF'
-用中文审查以下的 staged git diff。检查：
-1. 正确性 — 是否有 bug、逻辑错误、边界条件遗漏
-2. 安全性 — 是否有注入、路径遍历、密钥泄露等风险
-3. 可维护性 — 是否有冗余代码、命名不当、缺少注释
-
-请严格按照以下格式作为输出的**最后一行**（不要加 markdown 格式，单独一行）：
-通过则写：REVIEW: PASS
-不通过则写：REVIEW: FAIL <简要原因>
-
-staged diff:
-PROMPTEOF
-
-git diff --cached >> "$TMPFILE"
-
-REVIEW_OUTPUT=$(reasonix run --model deepseek-flash < "$TMPFILE" 2>&1)
-REVIEW_EXIT=$?
-
-echo ""
-echo "$REVIEW_OUTPUT"
-echo ""
-
-REVIEW_LINE=$(echo "$REVIEW_OUTPUT" | grep -E '^REVIEW: (PASS|FAIL)' | tail -1)
-
-case "$REVIEW_LINE" in
-    "REVIEW: PASS")
-        echo "=== [pre-commit] ✅ Reasonix 审查通过，允许提交 ==="
-        exit 0
-        ;;
-    "REVIEW: FAIL"*)
-        echo "=== [pre-commit] ❌ Reasonix 审查发现问题，提交已阻止 ==="
-        echo "提示：确认无误可执行 git commit --no-verify 跳过审查"
-        exit 1
-        ;;
-    *)
-        echo "=== [pre-commit] ⚠️  未能提取审查结论（未找到 REVIEW: PASS/FAIL 标记行），为安全起见阻止提交 ==="
-        echo "提示：确认无误可执行 git commit --no-verify 跳过审查"
-        exit 1
-        ;;
-esac

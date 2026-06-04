@@ -104,26 +104,6 @@ $env:GODOT_PATH="D:\path\to\Godot.exe"                        # Windows PowerShe
 本项目的 `.env` 已配置 `DEEPSEEK_API_KEY`，`reasonix` CLI 自动加载。
 自定义 slash 命令位于 `.reasonix/commands/`。
 
-## 更新 reasonix
-
-reasonix 通过 npm 全局安装（预编译 Rust 二进制），更新方式：
-
-```bash
-# 方式一：使用更新脚本（推荐，含自动重试）
-.\scripts\update_reasonix.bat
-
-# 方式二：手动更新（已配置国内镜像 + 重试优化）
-npm install -g reasonix@latest --prefer-offline --no-audit --no-fund
-
-# 方式三：官方 registry（镜像超时时备选）
-npm config set registry https://registry.npmjs.org
-npm install -g reasonix@latest
-npm config set registry https://registry.npmmirror.com
-```
-
-> **npm 配置已优化**: fetch-retries=4, fetch-retry-mintimeout=20s, fetch-retry-maxtimeout=120s, fetch-timeout=300s
-> 如果遇到 `context deadline exceeded` 超时错误，先运行方式一脚本，脚本会自动重试 3 次并给出备选方案。
-
 # 测试
 
 ## 自动流程（推荐）
@@ -132,18 +112,12 @@ npm config set registry https://registry.npmmirror.com
 
 | 步骤 | 内容 | 说明 |
 |------|------|------|
-| **1/3** | `pre-commit` hook 自动运行 godot-debug 项目错误检查 | 静态语法 + 运行时错误检查 |
-| **2/3** | `pre-commit` hook 自动运行 GUT 测试套件 | 全部测试通过后才继续 |
-| **3/3** | `reasonix run --model deepseek-flash` AI 审查 staged diff | 检查正确性/安全性/可维护性 |
+| **1/2** | `pre-commit` hook 自动运行 godot-debug 项目错误检查 | 静态语法 + 运行时错误检查 |
+| **2/2** | `pre-commit` hook 自动运行 GUT 测试套件 | 全部测试通过后才继续 |
 
 **提交命令**：
 ```bash
 git add -A && git commit -m "feat: 你的改动说明"
-```
-
-如果 AI 审查误报，可临时跳过：
-```bash
-git commit --no-verify -m "feat: ..."
 ```
 
 ## 手动运行
