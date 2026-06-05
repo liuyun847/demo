@@ -82,7 +82,7 @@ Root (Node2D) → main.gd
 
 ## Pre-commit Hook
 
-`.githooks/pre-commit` 在提交时自动运行三步检查：**Godot 项目错误检查** → **GUT 测试** → **AI 审查**。
+`.githooks/pre-commit` 在提交时自动运行两步检查：**Godot 项目错误检查** → **GUT 测试**
 该文件与 `.githooks/check_godot_project.ps1` 均被 git 跟踪，通过以下配置启用（已为本仓库配置）：
 
 ```bash
@@ -98,11 +98,6 @@ export GODOT_PATH="/path/to/Godot_v4.6.1-stable_win64.exe"   # Linux/macOS
 $env:GODOT_PATH="D:\path\to\Godot.exe"                        # Windows PowerShell
 ```
 
-## Reasonix
-
-[Reasonix](https://github.com/esengine/DeepSeek-Reasonix) 是一个 DeepSeek 原生的 AI 编码代理。
-本项目的 `.env` 已配置 `DEEPSEEK_API_KEY`，`reasonix` CLI 自动加载。
-自定义 slash 命令位于 `.reasonix/commands/`。
 
 # 测试
 
