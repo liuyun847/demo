@@ -10,12 +10,15 @@ var _cached_networks: Array[Dictionary] = []
 var _element_grid: ElementGrid = null
 var _element_diffusion: ElementDiffusion = null
 
+var _paused: bool = false
+
 func init(building_manager: BuildingManager) -> void:
 	_building_manager = building_manager
 
 func _ready() -> void:
 	EventBus.building_placed.connect(_on_building_placed)
 	EventBus.building_removed.connect(_on_building_removed)
+	EventBus.pause_state_changed.connect(_on_pause_state_changed)
 	_timer = Timer.new()
 	_timer.wait_time = GameConfig.simulation_tick_interval
 	_timer.autostart = true
@@ -34,6 +37,8 @@ func _exit_tree() -> void:
 		EventBus.building_placed.disconnect(_on_building_placed)
 	if EventBus.building_removed.is_connected(_on_building_removed):
 		EventBus.building_removed.disconnect(_on_building_removed)
+	if EventBus.pause_state_changed.is_connected(_on_pause_state_changed):
+		EventBus.pause_state_changed.disconnect(_on_pause_state_changed)
 
 func _on_building_placed(grid_pos: Vector2i) -> void:
 	_dirty = true
@@ -53,10 +58,13 @@ func mark_dirty() -> void:
 	_dirty = true
 	_cached_networks.clear()
 
+func _on_pause_state_changed(paused: bool) -> void:
+	_paused = paused
+
 func _on_tick() -> void:
 	if not _building_manager:
 		return
-	if get_tree() and get_tree().paused:
+	if _paused:
 		return
 	var all_pipes: Array[PipeNode] = _building_manager.network_pipes
 
