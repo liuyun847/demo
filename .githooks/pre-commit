@@ -38,8 +38,8 @@ GUT_OUTPUT="$PROJECT_DIR/.git/precommit-gut-output.tmp"
 "$GODOT" --headless --path "$PROJECT_DIR" --script "$TEST_SCRIPT" -gcompact_mode > "$GUT_OUTPUT" 2>&1
 EXIT_CODE=$?
 
-# 显示过滤后的输出：先剥离 ANSI 颜色码（用 printf 生成转义符，兼容 BSD/GNU sed），再屏蔽引擎运行时噪音
-ESC_CHAR=$(printf '\x1b'); sed "s/${ESC_CHAR}\[[0-9;]*m//g" "$GUT_OUTPUT" | grep -vE '^(ERROR:|WARNING: |   at: |\s*GDScript backtrace)'
+# 显示完整输出（仅剥离 ANSI 颜色码）
+ESC_CHAR=$(printf '\x1b'); sed "s/${ESC_CHAR}\[[0-9;]*m//g" "$GUT_OUTPUT"
 rm -f "$GUT_OUTPUT"
 
 if [ $EXIT_CODE -ne 0 ]; then
