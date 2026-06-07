@@ -6,8 +6,6 @@ func before_each() -> void:
 	var CameraControllerScript: GDScript = load("res://scripts/CameraController.gd")
 	_camera = autoqfree(CameraControllerScript.new())
 	add_child_autoqfree(_camera)
-	if get_tree():
-		get_tree().paused = false
 
 
 func test_default_zoom() -> void:
