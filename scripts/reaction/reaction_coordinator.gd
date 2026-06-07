@@ -45,6 +45,9 @@ func _on_building_placed(grid_pos: Vector2i) -> void:
 func _on_building_removed(_grid_pos: Vector2i) -> void:
 	_dirty = true
 	_cached_networks.clear()
+	# 清除所有水源标记，被移除的建筑不再能维持水源
+	# 下个 tick 的 _process_emitters() 会为仍然存在的发射器重新标记
+	_element_grid.clear_all_sources()
 
 func mark_dirty() -> void:
 	_dirty = true

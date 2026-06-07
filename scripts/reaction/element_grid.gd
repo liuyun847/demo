@@ -56,6 +56,9 @@ func is_source_pos(pos: Vector2i) -> bool:
 func unmark_source(pos: Vector2i) -> void:
 	_source_positions.erase(pos)
 
+func clear_all_sources() -> void:
+	_source_positions.clear()
+
 func is_position_available(pos: Vector2i) -> bool:
 	return not _fluid.has(pos) and not is_building_at(pos)
 

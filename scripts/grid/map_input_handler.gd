@@ -160,8 +160,8 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 				return
 			if _is_building_placement_mode() and inventory_bar:
 				var type_id: String = inventory_bar.get_current_building_type()
+				ghost_preview.show_ghost([grid_pos])
 				if BuildingData.is_emitter(type_id):
-					ghost_preview.show_ghost([grid_pos])
 					_update_emitter_ghost_direction()
 		InputStateMachine.State.DRAGGING:
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
