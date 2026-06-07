@@ -1,0 +1,77 @@
+#!/bin/sh
+# commit-msg hook: 校验提交信息是否符合 Conventional Commits 格式
+# 安装：git config core.hooksPath .githooks（已配置）
+
+COMMIT_MSG_FILE="$1"
+
+# 跳过 merge 提交的默认信息
+if head -1 "$COMMIT_MSG_FILE" | grep -qE '^Merge '; then
+    exit 0
+fi
+
+# ── 可接受的类型 ──────────────────────────────────────────
+# 确保覆盖常见场景，可根据项目需要扩展
+VALID_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+
+# ── 完整的 Conventional Commits 正则 ─────────────────────
+# 格式: type(scope)!: description    或
+#       type(scope): description     或
+#       type!: description           或
+#       type: description
+PATTERN="^(${VALID_TYPES})(\([a-zA-Z0-9_\x80-\xff.-]+\))?!?:( .+)$"
+
+MSG=$(head -1 "$COMMIT_MSG_FILE")
+
+if ! echo "$MSG" | grep -qE "$PATTERN"; then
+    echo ""
+    echo "=== [commit-msg] ❌ 提交信息格式不符合规范 ==="
+    echo ""
+    echo "格式要求（Conventional Commits）："
+    echo "  type(scope): description"
+    echo "  type: description"
+    echo ""
+    echo "可用 type："
+    echo "  feat     - 新功能"
+    echo "  fix      - 修复"
+    echo "  docs     - 文档更新"
+    echo "  style    - 代码格式（不影响功能）"
+    echo "  refactor - 重构"
+    echo "  perf     - 性能优化"
+    echo "  test     - 测试相关"
+    echo "  build    - 构建/依赖变更"
+    echo "  ci       - CI 配置变更"
+    echo "  chore    - 杂项/日常维护"
+    echo "  revert   - 回滚提交"
+    echo ""
+    echo "示例："
+    echo "  feat: 添加网格输入状态机"
+    echo "  fix(grid): 修复坐标越界崩溃"
+    echo "  refactor(building)!: 重构建筑工厂接口（Breaking change）"
+    echo ""
+    echo "实际的第一行提交信息："
+    echo "  \"$MSG\""
+    echo ""
+    echo "=== 请使用 git commit --amend 修改提交信息 ==="
+    exit 1
+fi
+
+# ── 第二行必须为空（分隔标题和正文）──────────────────────
+LINE2=$(sed -n '2p' "$COMMIT_MSG_FILE")
+if [ -n "$LINE2" ]; then
+    # 如果存在正文，第二行才必须为空
+    LINE3=$(sed -n '3p' "$COMMIT_MSG_FILE")
+    if [ -n "$LINE3" ] && [ -n "$LINE2" ]; then
+        echo ""
+        echo "=== [commit-msg] ❌ 标题和正文之间需要一个空行分隔 ==="
+        echo ""
+        echo "正确格式："
+        echo "  feat: 添加某某功能"
+        echo "  (空行)"
+        echo "  正文内容..."
+        echo ""
+        echo "=== 请使用 git commit --amend 修改提交信息 ==="
+        exit 1
+    fi
+fi
+
+exit 0

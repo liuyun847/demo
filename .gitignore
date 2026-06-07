@@ -1,11 +1,9 @@
 # Godot 4+ specific ignores
 .godot/
-*.import
-/android/
+android/
 .trae/
 *.tmp
-*.uid
-save/
+/save/
 .env
 docs/
 tools/
