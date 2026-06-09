@@ -1,7 +1,5 @@
 extends Node
 
-signal essence_threshold_reached(threshold: float, unlocks: Dictionary)
-
 var _thresholds: Array[Dictionary] = []
 var _unlocked_thresholds: Dictionary[float, bool] = {}
 
@@ -66,7 +64,6 @@ func _on_essence_changed(value: float) -> void:
 			continue
 		if value >= threshold:
 			_unlocked_thresholds[threshold] = true
-			essence_threshold_reached.emit(threshold, entry.unlocks)
 			EventBus.essence_threshold_reached.emit(threshold, entry.unlocks)
 
 func get_unlocked_building_types() -> Array:
