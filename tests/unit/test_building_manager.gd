@@ -199,32 +199,32 @@ func test_get_building_node_name() -> void:
 	var name_str2: String = _GU.get_building_node_name(Vector2i(-1, -5))
 	assert_eq(name_str2, "Building_-1_-5", "负坐标也应正确格式化")
 
-func test_bulk_clear_removes_all_buildings() -> void:
+func test_clear_all_buildings_silent_removes_all_buildings() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
 	_bm.place_building(Vector2i(1, 0), GameConfig.pipe_type_id)
-	_bm.bulk_clear()
-	assert_eq(_bm.get_all_buildings_data().size(), 0, "bulk_clear 后 buildings 应为空")
+	_bm.clear_all_buildings_silent()
+	assert_eq(_bm.get_all_buildings_data().size(), 0, "clear_all_buildings_silent 后 buildings 应为空")
 
 
-func test_bulk_clear_clears_fluid_lists() -> void:
+func test_clear_all_buildings_silent_clears_fluid_lists() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
-	_bm.bulk_clear()
-	assert_true(_bm.network_pipes.is_empty(), "bulk_clear 后 network_pipes 应为空")
+	_bm.clear_all_buildings_silent()
+	assert_true(_bm.network_pipes.is_empty(), "clear_all_buildings_silent 后 network_pipes 应为空")
 
 
-func test_bulk_clear_empty() -> void:
-	_bm.bulk_clear()
-	assert_true(true, "无建筑时 bulk_clear 不应崩溃")
+func test_clear_all_buildings_silent_empty() -> void:
+	_bm.clear_all_buildings_silent()
+	assert_true(true, "无建筑时 clear_all_buildings_silent 不应崩溃")
 
 
-func test_bulk_clear_marks_reaction_coordinator_dirty() -> void:
+func test_clear_all_buildings_silent_marks_reaction_coordinator_dirty() -> void:
 	_bm.place_building(Vector2i(0, 0), GameConfig.pipe_type_id)
 	var coordinator: Node = _bm.get_node_or_null("ReactionCoordinator")
 	if coordinator:
 		coordinator._dirty = false
-	_bm.bulk_clear()
+	_bm.clear_all_buildings_silent()
 	if coordinator:
-		assert_true(coordinator._dirty, "bulk_clear 后 ReactionCoordinator 的 _dirty 应为 true")
+		assert_true(coordinator._dirty, "clear_all_buildings_silent 后 ReactionCoordinator 的 _dirty 应为 true")
 
 
 func test_refresh_pipe_connections_on_place() -> void:

@@ -1,13 +1,8 @@
 class_name GhostPreviewManager
 extends Node2D
 
-var ghost_cells: Array[Vector2i] = []
-var remove_ghost_cells: Array[Vector2i] = []
-var selected_cells: Array[Vector2i] = []
-var paste_ghost_cells: Array[Vector2i] = []
+var _ghost_layers: Dictionary = {}
 var paste_ghost_types: Dictionary[Vector2i, String] = {}
-var select_ghost_cells: Array[Vector2i] = []
-var deselect_ghost_cells: Array[Vector2i] = []
 var emitter_ghost_direction: Vector2i = Vector2i.ZERO
 
 
@@ -16,76 +11,78 @@ func _ready() -> void:
 
 
 func _on_selection_changed(cells: Array[Vector2i]) -> void:
-	selected_cells = cells
-	queue_redraw()
-
-
-func show_ghost(cells: Array[Vector2i]) -> void:
-	ghost_cells = cells
-	queue_redraw()
-
-
-func hide_ghost() -> void:
-	ghost_cells.clear()
-	queue_redraw()
-
-
-func show_remove_ghost(cells: Array[Vector2i]) -> void:
-	remove_ghost_cells = cells
-	queue_redraw()
-
-
-func hide_remove_ghost() -> void:
-	remove_ghost_cells.clear()
+	_ghost_layers["selected"] = cells
 	queue_redraw()
 
 
 func set_selected_cells(cells: Array[Vector2i]) -> void:
-	selected_cells = cells
+	_ghost_layers["selected"] = cells
+	queue_redraw()
+
+
+func show_ghost(cells: Array[Vector2i]) -> void:
+	_ghost_layers["ghost"] = cells
+	queue_redraw()
+
+
+func hide_ghost() -> void:
+	_ghost_layers.erase("ghost")
+	queue_redraw()
+
+
+func show_remove_ghost(cells: Array[Vector2i]) -> void:
+	_ghost_layers["remove_ghost"] = cells
+	queue_redraw()
+
+
+func hide_remove_ghost() -> void:
+	_ghost_layers.erase("remove_ghost")
+	queue_redraw()
+
+
+func show_select_ghost(cells: Array[Vector2i]) -> void:
+	_ghost_layers["select_ghost"] = cells
+	queue_redraw()
+
+
+func hide_select_ghost() -> void:
+	_ghost_layers.erase("select_ghost")
+	queue_redraw()
+
+
+func show_deselect_ghost(cells: Array[Vector2i]) -> void:
+	_ghost_layers["deselect_ghost"] = cells
+	queue_redraw()
+
+
+func hide_deselect_ghost() -> void:
+	_ghost_layers.erase("deselect_ghost")
 	queue_redraw()
 
 
 func set_paste_preview_line(anchors: Array[Vector2i], clipboard: Dictionary) -> void:
-	paste_ghost_cells.clear()
+	_ghost_layers.erase("paste_ghost")
 	paste_ghost_types.clear()
 	if clipboard.is_empty() or not clipboard.has("buildings"):
 		queue_redraw()
 		return
-	var clip_buildings: Array[Dictionary] = clipboard["buildings"]
+	var clip_buildings: Array = clipboard["buildings"]
+	var paste_ghost_cells: Array[Vector2i] = []
 	var seen: Dictionary[Vector2i, bool] = {}
-	for anchor in anchors:
-		for item in clip_buildings:
+	for anchor: Vector2i in anchors:
+		for item: Dictionary in clip_buildings:
 			var grid_pos: Vector2i = anchor + item["offset"]
 			if not seen.has(grid_pos):
 				seen[grid_pos] = true
 				paste_ghost_cells.append(grid_pos)
 				paste_ghost_types[grid_pos] = item["type"]
+	_ghost_layers["paste_ghost"] = paste_ghost_cells
 	queue_redraw()
 
 
 func clear_paste_preview() -> void:
-	paste_ghost_cells.clear()
+	_ghost_layers.erase("paste_ghost")
 	paste_ghost_types.clear()
-	queue_redraw()
-
-
-func show_select_ghost(cells: Array[Vector2i]) -> void:
-	select_ghost_cells = cells
-	queue_redraw()
-
-
-func hide_select_ghost() -> void:
-	select_ghost_cells.clear()
-	queue_redraw()
-
-
-func show_deselect_ghost(cells: Array[Vector2i]) -> void:
-	deselect_ghost_cells = cells
-	queue_redraw()
-
-
-func hide_deselect_ghost() -> void:
-	deselect_ghost_cells.clear()
 	queue_redraw()
 
 
@@ -99,10 +96,57 @@ func hide_emitter_ghost_direction() -> void:
 	queue_redraw()
 
 
-func _draw_cell_highlight(cells: Array[Vector2i], fill_color: Color, border_color: Color, use_building_size: bool = false, border_width: float = 2.0) -> void:
-	var cell_size := GameConfig.building_size if use_building_size else GameConfig.cell_size
-	var half_size := cell_size / 2.0
-	for grid_pos in cells:
+func get_layer_cells(layer_name: String) -> Array:
+	return _ghost_layers.get(layer_name, [])
+
+
+func _draw() -> void:
+	var bm := _get_building_manager()
+
+	var ghost_cells: Array = _ghost_layers.get("ghost", [])
+	if not ghost_cells.is_empty():
+		var ghost_fill := Color(1, 1, 1, GameConfig.ghost_alpha)
+		var filtered_cells: Array[Vector2i] = []
+		for grid_pos: Vector2i in ghost_cells:
+			if bm == null or not bm.has_building(grid_pos):
+				filtered_cells.append(grid_pos)
+		_draw_cell_highlight(filtered_cells, ghost_fill, Color.WHITE, true, 2.0)
+
+	var remove_ghost_cells: Array = _ghost_layers.get("remove_ghost", [])
+	if not remove_ghost_cells.is_empty():
+		_draw_cell_highlight(remove_ghost_cells, Color(1, 0, 0, GameConfig.remove_ghost_alpha), Color.RED, false, 2.0)
+
+	var select_ghost_cells: Array = _ghost_layers.get("select_ghost", [])
+	if not select_ghost_cells.is_empty():
+		_draw_cell_highlight(select_ghost_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
+
+	var deselect_ghost_cells: Array = _ghost_layers.get("deselect_ghost", [])
+	if not deselect_ghost_cells.is_empty():
+		_draw_cell_highlight(deselect_ghost_cells, Color(0.6, 0.2, 0.2, 0.3), Color(0.6, 0.2, 0.2, 0.8), false, 2.0)
+
+	var selected_cells: Array = _ghost_layers.get("selected", [])
+	if not selected_cells.is_empty():
+		_draw_cell_highlight(selected_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
+
+	var paste_ghost_cells: Array = _ghost_layers.get("paste_ghost", [])
+	if not paste_ghost_cells.is_empty():
+		for grid_pos: Vector2i in paste_ghost_cells:
+			var building_type: String = paste_ghost_types.get(grid_pos, "default")
+			var color := _get_building_color(building_type)
+			color.a = GameConfig.paste_ghost_alpha
+			var border_color := color
+			border_color.a = mini(color.a + 0.35, 1.0)
+			_draw_cell_highlight([grid_pos], color, border_color, true, 2.0)
+
+	if emitter_ghost_direction != Vector2i.ZERO and not ghost_cells.is_empty():
+		for grid_pos: Vector2i in ghost_cells:
+			_draw_emitter_arrow_at(grid_pos, emitter_ghost_direction)
+
+
+func _draw_cell_highlight(cells: Array, fill_color: Color, border_color: Color, use_building_size: bool = false, border_width: float = 2.0) -> void:
+	var cell_size: float = GameConfig.building_size if use_building_size else GameConfig.cell_size
+	var half_size: float = cell_size / 2.0
+	for grid_pos: Vector2i in cells:
 		var world_pos := GridCoordinate.grid_to_world(grid_pos)
 		var rect := Rect2(world_pos - Vector2(half_size, half_size), Vector2(cell_size, cell_size))
 		draw_rect(rect, fill_color, true)
@@ -120,59 +164,19 @@ func _get_building_color(building_type: String) -> Color:
 
 
 func _draw_emitter_arrow_at(grid_pos: Vector2i, direction: Vector2i) -> void:
-	var half := GameConfig.building_size / 2.0
+	var half: float = GameConfig.building_size / 2.0
 	var world_pos := GridCoordinate.grid_to_world(grid_pos + direction)
-	var dir := direction
-	var arrow_size := half * 0.65
-	var center_offset := Vector2(dir) * arrow_size * 0.2
-	var tip_offset := Vector2(dir) * arrow_size * 0.55
-	var perp := Vector2(-dir.y, dir.x)
-
+	var arrow_size: float = half * 0.65
+	var center_offset := Vector2(direction) * arrow_size * 0.2
+	var tip_offset := Vector2(direction) * arrow_size * 0.55
+	var perp := Vector2(-direction.y, direction.x)
 	var tip := world_pos + center_offset + tip_offset
 	var left := world_pos + center_offset + perp * arrow_size * 0.3
 	var right := world_pos + center_offset - perp * arrow_size * 0.3
-
 	var vertices := PackedVector2Array([tip, left, right])
 	draw_colored_polygon(vertices, Color(1, 1, 1, GameConfig.ghost_alpha))
 	draw_polyline(vertices, Color.WHITE, 1.5)
 	draw_line(vertices[2], vertices[0], Color.WHITE, 1.5)
-
-
-func _draw() -> void:
-	if not ghost_cells.is_empty():
-		var ghost_fill := Color(1, 1, 1, GameConfig.ghost_alpha)
-		var bm := _get_building_manager()
-		var filtered_cells: Array[Vector2i] = []
-		for grid_pos in ghost_cells:
-			if bm == null or not bm.has_building(grid_pos):
-				filtered_cells.append(grid_pos)
-		_draw_cell_highlight(filtered_cells, ghost_fill, Color.WHITE, true, 2.0)
-
-	if not remove_ghost_cells.is_empty():
-		_draw_cell_highlight(remove_ghost_cells, Color(1, 0, 0, GameConfig.remove_ghost_alpha), Color.RED, false, 2.0)
-
-	if not select_ghost_cells.is_empty():
-		_draw_cell_highlight(select_ghost_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
-
-	if not deselect_ghost_cells.is_empty():
-		_draw_cell_highlight(deselect_ghost_cells, Color(0.6, 0.2, 0.2, 0.3), Color(0.6, 0.2, 0.2, 0.8), false, 2.0)
-
-	if not selected_cells.is_empty():
-		_draw_cell_highlight(selected_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
-
-	if not paste_ghost_cells.is_empty():
-		var alpha := GameConfig.paste_ghost_alpha
-		for grid_pos in paste_ghost_cells:
-			var building_type: String = paste_ghost_types.get(grid_pos, "default")
-			var color := _get_building_color(building_type)
-			color.a = alpha
-			var border_color := color
-			border_color.a = minf(alpha + 0.35, 1.0)
-			_draw_cell_highlight([grid_pos], color, border_color, true, 2.0)
-
-	if emitter_ghost_direction != Vector2i.ZERO and not ghost_cells.is_empty():
-		for grid_pos in ghost_cells:
-			_draw_emitter_arrow_at(grid_pos, emitter_ghost_direction)
 
 
 func _get_building_manager() -> BuildingManager:

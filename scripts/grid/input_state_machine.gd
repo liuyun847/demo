@@ -13,11 +13,29 @@ enum State {
 var current_state: State = State.IDLE
 var context: Dictionary = {}
 
+const _VALID_TRANSITIONS: Dictionary = {
+	State.IDLE: [State.DRAGGING, State.REMOVING, State.SELECTING, State.DESELECTING, State.PASTE_DRAGGING],
+	State.DRAGGING: [State.IDLE],
+	State.REMOVING: [State.IDLE],
+	State.SELECTING: [State.IDLE],
+	State.DESELECTING: [State.IDLE],
+	State.PASTE_DRAGGING: [State.IDLE],
+}
+
 func transition_to(new_state: State, new_context: Dictionary = {}) -> void:
+	if not _is_transition_valid(current_state, new_state):
+		push_warning("InputStateMachine: 非法状态转换 %s -> %s" % [State.keys()[current_state], State.keys()[new_state]])
+		return
 	_exit_state(current_state)
 	current_state = new_state
 	context = new_context
 	_enter_state(current_state)
+
+func _is_transition_valid(from_state: State, to_state: State) -> bool:
+	if not _VALID_TRANSITIONS.has(from_state):
+		return false
+	var allowed: Array = _VALID_TRANSITIONS[from_state]
+	return to_state in allowed
 
 func reset() -> void:
 	transition_to(State.IDLE)

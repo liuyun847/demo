@@ -35,7 +35,7 @@ func _init_reaction_coordinator() -> void:
 	if coordinator == null:
 		return
 	coordinator.name = "ReactionCoordinator"
-	coordinator.init(self)
+	coordinator.init(self )
 	add_child(coordinator)
 
 func has_building(grid_pos: Vector2i) -> bool:
@@ -121,7 +121,9 @@ func clear_all_buildings() -> void:
 	for grid_pos: Vector2i in buildings.keys():
 		remove_building(grid_pos)
 
-func bulk_clear() -> void:
+## 静默清除所有建筑，不触发事件也不刷新管道。
+## 与 clear_all_buildings() 不同，此方法不发送 building_placed/building_removed 信号。
+func clear_all_buildings_silent() -> void:
 	for node: Node2D in _building_nodes.values():
 		node.queue_free()
 	_building_nodes.clear()

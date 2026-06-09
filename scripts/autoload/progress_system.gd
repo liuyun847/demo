@@ -6,6 +6,7 @@ var _unlocked_thresholds: Dictionary[float, bool] = {}
 func _ready() -> void:
 	_init_thresholds()
 	EssencePool.essence_changed.connect(_on_essence_changed)
+	_on_essence_changed(EssencePool.essence)
 
 func _exit_tree() -> void:
 	if EssencePool.essence_changed.is_connected(_on_essence_changed):
