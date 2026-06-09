@@ -43,7 +43,10 @@ func _draw() -> void:
 	draw_rect(Rect2(-half, -half, size, size), Color(0.25, 0.25, 0.25), false, 1.5)
 
 func get_building_name() -> String:
-	return "喷口(水)"
+	var type_data := ElementRegistry.get_element_type(element_type_id)
+	if type_data:
+		return "喷口(%s)" % type_data.display_name
+	return "喷口(未知)"
 
 func get_default_direction() -> Vector2i:
 	return Vector2i(0, 1)
@@ -56,8 +59,10 @@ func get_tooltip_summary() -> Dictionary:
 	}
 
 func get_tooltip_details() -> Dictionary:
+	var type_data := ElementRegistry.get_element_type(element_type_id)
+	var type_name: String = type_data.display_name if type_data else "未知"
 	return {
-		"元素类型": "水",
+		"元素类型": type_name,
 		"消耗": "%.1f 源质/tick" % essence_cost_per_tick,
 		"方向": "上" if output_direction == Vector2i(0, -1) else "下" if output_direction == Vector2i(0, 1) else "左" if output_direction == Vector2i(-1, 0) else "右",
 	}

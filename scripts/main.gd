@@ -14,31 +14,43 @@ var _manual_paused: bool = false
 var _menu_paused: bool = false
 var _pause_overlay: Control
 
-func _assert_ui_ready() -> void:
-	assert(start_menu != null, "StartMenu 节点未找到")
-	assert(settings_panel != null, "SettingsPanel 节点未找到")
-	assert(inventory_bar != null, "InventoryBar 节点未找到")
-	assert(key_hints != null, "KeyHints 节点未找到")
+func _assert_ui_ready() -> bool:
+	var all_ready := true
+	if start_menu == null:
+		push_error("main.gd: StartMenu 节点未找到")
+		all_ready = false
+	if settings_panel == null:
+		push_error("main.gd: SettingsPanel 节点未找到")
+		all_ready = false
+	if inventory_bar == null:
+		push_error("main.gd: InventoryBar 节点未找到")
+		all_ready = false
+	if key_hints == null:
+		push_error("main.gd: KeyHints 节点未找到")
+		all_ready = false
+	return all_ready
 
 func _enter_tree() -> void:
 	EventBus.buildings_loaded.connect(_on_buildings_loaded)
 	EventBus.start_game_requested.connect(_on_start_game_requested)
+	EventBus.start_game_requested.connect(_on_game_started)
 	EventBus.show_start_menu_requested.connect(_on_show_start_menu_requested)
 	EventBus.show_settings_requested.connect(_on_show_settings_requested)
 
 func _ready() -> void:
-	_assert_ui_ready()
+	if not _assert_ui_ready():
+		return
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	start_menu.hide()
 	settings_panel.hide()
 	inventory_bar.hide()
 	_create_pause_overlay()
 	_update_pause_state()
-	EventBus.start_game_requested.connect(_on_game_started)
 
 func _exit_tree() -> void:
 	EventBus.buildings_loaded.disconnect(_on_buildings_loaded)
 	EventBus.start_game_requested.disconnect(_on_start_game_requested)
+	EventBus.start_game_requested.disconnect(_on_game_started)
 	EventBus.show_start_menu_requested.disconnect(_on_show_start_menu_requested)
 	EventBus.show_settings_requested.disconnect(_on_show_settings_requested)
 

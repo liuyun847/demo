@@ -52,8 +52,14 @@ const emitter_type_id: String = "type_03"
 # 收集器建筑类型标识
 const collector_type_id: String = "type_07"
 
-# 砖块放置消耗源质
-const brick_essence_cost: float = 1.0
+# 建筑放置源质消耗（key: building_type_id, value: cost）
+const building_essence_costs: Dictionary = {
+	"type_01": 0.0,  # 容器
+	"type_02": 0.0,  # 管道
+	"type_03": 0.0,  # 发射器
+	"type_04": 0.0,  # 砖块
+	"type_07": 0.0,  # 收集器
+}
 
 # 发射器每 tick 消耗源质
 const emitter_essence_cost_per_tick: float = 1.0

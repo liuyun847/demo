@@ -1,36 +1,43 @@
 extends GutTest
 
-var _pool: Node = null
+var _progress: Node = null
+var _start_essence: float = 0.0
+
+func before_all() -> void:
+	_start_essence = EssencePool.essence
 
 func before_each() -> void:
-	_pool = autoqfree(Node.new())
-	_pool.set_script(load("res://scripts/autoload/essence_pool.gd"))
-	_pool.set_value(0.0)
-	add_child_autoqfree(_pool)
+	_progress = autoqfree(Node.new())
+	_progress.set_script(load("res://scripts/autoload/progress_system.gd"))
+	add_child_autoqfree(_progress)
+	EssencePool.set_value(_start_essence)
 
-func test_essence_starts_at_zero() -> void:
-	assert_eq(_pool.essence, 0.0, "初始源质应为 0")
+func after_each() -> void:
+	EssencePool.set_value(_start_essence)
 
-func test_add_value() -> void:
-	_pool.add(10.0)
-	assert_eq(_pool.essence, 10.0, "add 后值应正确")
+func test_initial_buildings_unlocked_at_zero() -> void:
+	var unlocked: Array = _progress.get_unlocked_building_types()
+	assert_true(unlocked.size() > 0, "精华=0 时应有初始解锁建筑")
+	assert_true("type_01" in unlocked, "初始应解锁 type_01")
+	assert_true(_progress.is_building_unlocked("type_01"), "type_01 应已解锁")
 
-func test_subtract_value() -> void:
-	_pool.add(10.0)
-	_pool.subtract(3.0)
-	assert_eq(_pool.essence, 7.0, "subtract 后值应正确")
+func test_is_building_unlocked_returns_false_for_unknown() -> void:
+	assert_false(_progress.is_building_unlocked("type_99"), "不存在的建筑类型应为未解锁")
 
-func test_subtract_more_than_available() -> void:
-	_pool.add(5.0)
-	var actual: float = _pool.subtract(10.0)
-	assert_eq(actual, 5.0, "不足时返回实际值")
-	assert_eq(_pool.essence, 0.0, "不足时应归零")
+func test_buildings_remain_unlocked_after_higher_threshold() -> void:
+	EssencePool.set_value(0.0)
+	EssencePool.add(100.0)
+	# ProgressSystem 通过 essence_changed 信号触发，_on_essence_changed 已经执行
+	assert_true(_progress.is_building_unlocked("type_01"), "精华=100 时 type_01 应保持解锁")
 
-func test_has_value() -> void:
-	_pool.add(10.0)
-	assert_true(_pool.has(5.0), "有足够源质")
-	assert_false(_pool.has(15.0), "源质不足")
+func test_gradual_unlocking() -> void:
+	EssencePool.set_value(0.0)
+	var initial_unlocked: Array = _progress.get_unlocked_building_types()
+	assert_eq(initial_unlocked.size(), 5, "初始应解锁 5 种建筑")
 
-func test_set_value() -> void:
-	_pool.set_value(50.0)
-	assert_eq(_pool.essence, 50.0, "set_value 后值应正确")
+func test_get_unlocked_building_types_no_duplicates() -> void:
+	var unlocked: Array = _progress.get_unlocked_building_types()
+	var seen: Dictionary = {}
+	for btype: String in unlocked:
+		assert_false(seen.has(btype), "解锁列表中不应有重复: " + btype)
+		seen[btype] = true

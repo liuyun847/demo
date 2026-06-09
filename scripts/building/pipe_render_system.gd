@@ -3,42 +3,39 @@ extends Node2D
 
 var _pipe_positions: PackedVector2Array = PackedVector2Array()
 var _pipe_masks: PackedInt32Array = PackedInt32Array()
-var _pipe_ids: PackedInt64Array = PackedInt64Array()
-var _pipe_index_map: Dictionary[int, int] = {}
+var _pipe_refs: Array[PipeNode] = []
+var _pipe_index_map: Dictionary = {}
 
 
 func register_pipe(pipe: PipeNode) -> void:
 	pipe.set_data_changed_callback(_pipe_data_changed)
-	var id := pipe.get_instance_id()
-	_pipe_index_map[id] = _pipe_positions.size()
+	_pipe_index_map[pipe] = _pipe_positions.size()
 	_pipe_positions.append(pipe.position)
 	_pipe_masks.append(pipe.connection_mask)
-	_pipe_ids.append(id)
+	_pipe_refs.append(pipe)
 
 
 func unregister_pipe(pipe: PipeNode) -> void:
 	pipe.set_data_changed_callback(Callable())
-	var id := pipe.get_instance_id()
-	var index: int = _pipe_index_map.get(id, -1)
-	if index < 0:
+	if not _pipe_index_map.has(pipe):
 		return
+	var index: int = _pipe_index_map[pipe]
 	var last := _pipe_positions.size() - 1
 	if index != last:
 		_pipe_positions[index] = _pipe_positions[last]
 		_pipe_masks[index] = _pipe_masks[last]
-		var last_id := _pipe_ids[last]
-		_pipe_ids[index] = last_id
-		_pipe_index_map[last_id] = index
+		var last_pipe: PipeNode = _pipe_refs[last]
+		_pipe_refs[index] = last_pipe
+		_pipe_index_map[last_pipe] = index
 	_pipe_positions.resize(last)
 	_pipe_masks.resize(last)
-	_pipe_ids.resize(last)
-	_pipe_index_map.erase(id)
+	_pipe_refs.resize(last)
+	_pipe_index_map.erase(pipe)
 	queue_redraw()
 
 
 func _pipe_data_changed(pipe: PipeNode) -> void:
-	var id := pipe.get_instance_id()
-	var index: int = _pipe_index_map.get(id, -1)
+	var index: int = _pipe_index_map.get(pipe, -1)
 	if index >= 0 and index < _pipe_positions.size():
 		_pipe_masks[index] = pipe.connection_mask
 	queue_redraw()
@@ -47,7 +44,7 @@ func _pipe_data_changed(pipe: PipeNode) -> void:
 func clear_all() -> void:
 	_pipe_positions.clear()
 	_pipe_masks.clear()
-	_pipe_ids.clear()
+	_pipe_refs.clear()
 	_pipe_index_map.clear()
 
 
