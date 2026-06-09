@@ -19,9 +19,9 @@ config/icon="res://icon.svg"
 
 GameConfig="*res://scripts/autoload/game_config.gd"
 EventBus="*res://scripts/autoload/event_bus.gd"
+ElementRegistry="*res://scripts/elements/element_registry.gd"
 KeybindManager="*res://scripts/autoload/keybind_manager.gd"
 SelectionManager="*res://scripts/autoload/selection_manager.gd"
-ElementRegistry="*res://scripts/elements/element_registry.gd"
 EssencePool="*res://scripts/autoload/essence_pool.gd"
 ProgressSystem="*res://scripts/autoload/progress_system.gd"
 

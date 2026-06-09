@@ -138,7 +138,7 @@ func load_buildings() -> void:
 		return
 
 	_is_loading = true
-	building_manager.bulk_clear()
+	building_manager.clear_all_buildings_silent()
 
 	if save_data.has("essence") and save_data.essence is float:
 		EssencePool.set_value(save_data.essence)

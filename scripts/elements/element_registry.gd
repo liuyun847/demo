@@ -8,7 +8,7 @@ func _ready() -> void:
 func get_element_type(element_id: String) -> ElementTypeData:
 	return _element_types.get(element_id) as ElementTypeData
 
-func _register_element_type(type_data: ElementTypeData) -> void:
+func register_element_type(type_data: ElementTypeData) -> void:
 	_element_types[type_data.element_id] = type_data
 
 func _register_water() -> void:
@@ -16,4 +16,4 @@ func _register_water() -> void:
 	water.element_id = "water"
 	water.display_name = "\u6c34"
 	water.color = Color("#4488ff")
-	_register_element_type(water)
+	register_element_type(water)
