@@ -50,5 +50,5 @@ func test_clear_all() -> void:
 	_prs.clear_all()
 	assert_true(_prs._pipe_positions.is_empty(), "clear_all 后位置数组应为空")
 	assert_true(_prs._pipe_masks.is_empty(), "clear_all 后掩码数组应为空")
-	assert_true(_prs._pipe_ids.is_empty(), "clear_all 后 ID 数组应为空")
+	assert_true(_prs._pipe_refs.is_empty(), "clear_all 后引用数组应为空")
 	assert_true(_prs._pipe_index_map.is_empty(), "clear_all 后索引映射应为空")

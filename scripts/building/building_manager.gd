@@ -45,10 +45,11 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 	if has_building(grid_pos):
 		return false
 
-	if building_type == GameConfig.brick_type_id and restore_data.is_empty():
-		if not EssencePool.has(GameConfig.brick_essence_cost):
+	var cost: float = GameConfig.building_essence_costs.get(building_type, 0.0)
+	if cost > 0.0 and restore_data.is_empty():
+		if not EssencePool.has(cost):
 			return false
-		EssencePool.subtract(GameConfig.brick_essence_cost)
+		EssencePool.subtract(cost)
 
 	var data := BuildingData.new()
 	data.grid_position = grid_pos
