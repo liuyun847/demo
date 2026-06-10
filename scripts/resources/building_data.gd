@@ -8,6 +8,16 @@ var max_capacity: int = 100
 var element_type_id: String = ""
 var output_direction: Vector2i = Vector2i(0, 1)
 
+func clone() -> BuildingData:
+	var cloned := BuildingData.new()
+	cloned.grid_position = grid_position
+	cloned.building_type = building_type
+	cloned.capacity = capacity
+	cloned.max_capacity = max_capacity
+	cloned.element_type_id = element_type_id
+	cloned.output_direction = output_direction
+	return cloned
+
 static func has_capacity(type_id: String) -> bool:
 	return type_id == GameConfig.container_type_id
 
