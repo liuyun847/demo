@@ -35,10 +35,12 @@ demo/
 │   │   ├── selection_manager.gd  #   选中/剪贴板/撤销栈
 │   │   ├── essence_pool.gd       #   源质货币池
 │   │   └── progress_system.gd    #   阈值解锁系统
-│   ├── building/                 # 建筑系统（10 个 .gd）
+│   ├── building/                 # 建筑系统（12 个 .gd）
 │   │   ├── building_base.gd      #   建筑基类 Node2D
 │   │   ├── building_manager.gd   #   建筑管理器
 │   │   ├── building_factory.gd   #   建筑工厂
+│   │   ├── building_type_manager.gd  #   建筑类型注册表与判断
+│   │   ├── building_data_sync_service.gd # 建筑数据/节点同步服务
 │   │   ├── brick_node.gd         #   砖块（含碰撞体）
 │   │   ├── container_node.gd     #   容器（容量管理）
 │   │   ├── emitter_node.gd       #   发射器（元素方向）
@@ -84,7 +86,7 @@ demo/
 │   ├── building_tooltip.tscn / emitter_type_panel.tscn
 ├── resources/                    # 图标资源（8 个 .svg）
 ├── save/                         # 运行时存档（gitignore）
-├── tests/                        # GUT 测试（29 unit + 3 integration）
+├── tests/                        # GUT 测试（30 unit + 3 integration）
 │   ├── unit/                     #   单元测试
 │   └── integration/              #   集成测试
 ├── project.godot

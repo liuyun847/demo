@@ -61,8 +61,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 	var building_node: Node2D = _BuildingFactory.create_building(building_type, grid_pos, world_pos, node_name)
 	add_child(building_node)
 
-	BuildingData.sync_capacity_from_node(data, building_node, restore_data)
-	BuildingData.sync_emitter_type_from_node(data, building_node, restore_data)
+	BuildingDataSyncService.sync_from_node(data, building_node, restore_data)
 
 	_building_nodes[grid_pos] = building_node
 	if building_node is PipeNode:
@@ -80,12 +79,12 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	var node := get_building_node(grid_pos)
 	if node == null:
 		return false
-	if BuildingData.is_container_building(node):
+	if BuildingTypeManager.is_container_node(node):
 		var data: BuildingData = buildings[grid_pos]
-		BuildingData.sync_capacity_from_node(data, node)
+		BuildingDataSyncService.sync_capacity(data, node)
 	if node is EmitterNode:
 		var data: BuildingData = buildings[grid_pos]
-		BuildingData.sync_emitter_type_from_node(data, node)
+		BuildingDataSyncService.sync_emitter(data, node)
 	node.queue_free()
 
 	var node_to_remove: Node2D = _building_nodes.get(grid_pos) as Node2D
@@ -172,9 +171,9 @@ func is_pipe_or_buffer_at(grid_pos: Vector2i) -> bool:
 	var data: BuildingData = buildings[grid_pos] as BuildingData
 	if data == null:
 		return false
-	return BuildingData.is_pipe_or_buffer(data.building_type) or \
-		BuildingData.is_emitter(data.building_type) or \
-		BuildingData.is_collector(data.building_type)
+	return BuildingTypeManager.is_pipe_or_buffer(data.building_type) or \
+		BuildingTypeManager.is_emitter(data.building_type) or \
+		BuildingTypeManager.is_collector(data.building_type)
 
 func place_buildings_in_line(cells: Array[Vector2i], building_type: String = "default") -> int:
 	var placed_count := 0

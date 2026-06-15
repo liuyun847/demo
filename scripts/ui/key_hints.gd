@@ -219,7 +219,7 @@ func _refresh_click_rows() -> void:
 			_left_click_desc.text = "放置/拖拽"
 			_right_click_desc.text = "删除"
 			var type_id: String = _inventory_bar.get_current_building_type()
-			if BuildingData.is_emitter(type_id):
+			if BuildingTypeManager.is_emitter(type_id):
 				_rotate_desc.text = "喷口方向"
 			else:
 				_rotate_desc.text = "拖拽时切换拐角"

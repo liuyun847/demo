@@ -7,6 +7,32 @@ var _grid: ElementGrid = null
 var _diffusion: ElementDiffusion = null
 var _bm: BuildingManager = null
 
+
+func before_all() -> void:
+	_ensure_building_types_registered()
+
+
+func _ensure_building_types_registered() -> void:
+	if BuildingTypeManager.has_capacity(GameConfig.container_type_id):
+		return
+	var types: Array[BuildingTypeData] = []
+	var entries: Array = [
+		[GameConfig.container_type_id, {"has_capacity": true, "is_buffer": true}],
+		[GameConfig.pipe_type_id,      {"is_pipe": true}],
+		[GameConfig.emitter_type_id,   {"is_emitter": true}],
+		[GameConfig.collector_type_id, {"is_collector": true}],
+		[GameConfig.brick_type_id,     {}],
+	]
+	for entry: Array in entries:
+		var td := BuildingTypeData.new()
+		td.type_id = entry[0]
+		var props: Dictionary = entry[1]
+		for k: String in props.keys():
+			td.set(k, props[k])
+		types.append(td)
+	BuildingTypeManager.register_all(types)
+
+
 func before_each() -> void:
 	_grid = autoqfree(ElementGrid.new())
 	_diffusion = autoqfree(ElementDiffusion.new())

@@ -131,7 +131,20 @@ func _init_default_types() -> void:
 				data.icon_texture = load(tex_path)
 		else:
 			data.display_name = "占位-%d" % i
+		# 类型行为元数据
+		match data.type_id:
+			GameConfig.container_type_id:
+				data.has_capacity = true
+				data.is_buffer = true
+			GameConfig.pipe_type_id:
+				data.is_pipe = true
+			GameConfig.emitter_type_id:
+				data.is_emitter = true
+			GameConfig.collector_type_id:
+				data.is_collector = true
 		building_types.append(data)
+	# 注册到 BuildingTypeManager（业务代码通过 type_id 查询行为属性）
+	BuildingTypeManager.register_all(building_types)
 
 func _setup_slots() -> void:
 	for i in range(building_types.size()):
