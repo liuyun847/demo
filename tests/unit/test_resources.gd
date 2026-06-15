@@ -6,6 +6,31 @@ const _BuildingData = preload("res://scripts/resources/building_data.gd")
 const _BM = preload("res://scripts/building/building_manager.gd")
 
 
+func before_all() -> void:
+	_ensure_building_types_registered()
+
+
+func _ensure_building_types_registered() -> void:
+	if BuildingTypeManager.has_capacity(GameConfig.container_type_id):
+		return
+	var types: Array[BuildingTypeData] = []
+	var entries: Array = [
+		[GameConfig.container_type_id, {"has_capacity": true, "is_buffer": true}],
+		[GameConfig.pipe_type_id,      {"is_pipe": true}],
+		[GameConfig.emitter_type_id,   {"is_emitter": true}],
+		[GameConfig.collector_type_id, {"is_collector": true}],
+		[GameConfig.brick_type_id,     {}],
+	]
+	for entry: Array in entries:
+		var td := BuildingTypeData.new()
+		td.type_id = entry[0]
+		var props: Dictionary = entry[1]
+		for k: String in props.keys():
+			td.set(k, props[k])
+		types.append(td)
+	BuildingTypeManager.register_all(types)
+
+
 func _setup_bm() -> BuildingManager:
 	var bm: BuildingManager = autoqfree(_BM.new() as BuildingManager)
 	var pr: PipeRenderSystem = preload("res://scripts/building/pipe_render_system.gd").new()
@@ -33,26 +58,26 @@ func test_building_data_defaults() -> void:
 	assert_eq(data.max_capacity, 100, "默认 max_capacity 应为 100")
 
 func test_has_capacity_for_container() -> void:
-	assert_true(BuildingData.has_capacity(GameConfig.container_type_id), "容器类型应有容量属性")
+	assert_true(BuildingTypeManager.has_capacity(GameConfig.container_type_id), "容器类型应有容量属性")
 
 func test_has_capacity_for_pipe() -> void:
-	assert_false(BuildingData.has_capacity(GameConfig.pipe_type_id), "管道类型不应有容量属性")
+	assert_false(BuildingTypeManager.has_capacity(GameConfig.pipe_type_id), "管道类型不应有容量属性")
 
 func test_has_capacity_for_default() -> void:
-	assert_false(BuildingData.has_capacity("default"), "默认类型不应有容量属性")
+	assert_false(BuildingTypeManager.has_capacity("default"), "默认类型不应有容量属性")
 
 func test_has_capacity_for_other_types() -> void:
-	assert_false(BuildingData.has_capacity("type_04"), "type_04 不应有容量属性")
-	assert_false(BuildingData.has_capacity("type_10"), "type_10 不应有容量属性")
+	assert_false(BuildingTypeManager.has_capacity("type_04"), "type_04 不应有容量属性")
+	assert_false(BuildingTypeManager.has_capacity("type_10"), "type_10 不应有容量属性")
 
 func test_is_pipe_or_buffer_for_container() -> void:
-	assert_true(BuildingData.is_pipe_or_buffer(GameConfig.container_type_id), "容器应为管道或缓存节点")
+	assert_true(BuildingTypeManager.is_pipe_or_buffer(GameConfig.container_type_id), "容器应为管道或缓存节点")
 
 func test_is_pipe_or_buffer_for_pipe() -> void:
-	assert_true(BuildingData.is_pipe_or_buffer(GameConfig.pipe_type_id), "管道应为管道或缓存节点")
+	assert_true(BuildingTypeManager.is_pipe_or_buffer(GameConfig.pipe_type_id), "管道应为管道或缓存节点")
 
 func test_is_pipe_or_buffer_for_default() -> void:
-	assert_false(BuildingData.is_pipe_or_buffer("default"), "默认类型不应为管道或缓存节点")
+	assert_false(BuildingTypeManager.is_pipe_or_buffer("default"), "默认类型不应为管道或缓存节点")
 
 func test_undo_command_place_type() -> void:
 	var cmd: UndoCommand = UndoCommand.new()
@@ -126,18 +151,18 @@ func test_undo_command_reverse_cut_does_not_restore_capacity() -> void:
 
 func test_is_container_building_with_container() -> void:
 	var node: ContainerNode = autoqfree(_ContainerNode.new())
-	assert_true(BuildingData.is_container_building(node), "ContainerNode 应判定为容器建筑")
+	assert_true(BuildingTypeManager.is_container_node(node), "ContainerNode 应判定为容器建筑")
 
 func test_is_container_building_with_other() -> void:
 	var node: Node2D = autoqfree(Node2D.new())
-	assert_false(BuildingData.is_container_building(node), "普通 Node2D 不应判定为容器建筑")
+	assert_false(BuildingTypeManager.is_container_node(node), "普通 Node2D 不应判定为容器建筑")
 
 func test_is_container_building_with_pipe() -> void:
 	var node: PipeNode = autoqfree(_PipeNodeScript.new())
-	assert_false(BuildingData.is_container_building(node), "PipeNode 不应判定为容器建筑")
+	assert_false(BuildingTypeManager.is_container_node(node), "PipeNode 不应判定为容器建筑")
 
 func test_is_container_building_with_null() -> void:
-	assert_false(BuildingData.is_container_building(null), "null 不应判定为容器建筑")
+	assert_false(BuildingTypeManager.is_container_node(null), "null 不应判定为容器建筑")
 
 func test_undo_command_forward_remove() -> void:
 	var bm: BuildingManager = _setup_bm()

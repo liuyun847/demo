@@ -31,7 +31,7 @@ func _ready() -> void:
 	_has_camera = get_viewport().get_camera_2d() != null
 
 func _on_slot_selected(index: int, type_id: String) -> void:
-	if index < 0 or not BuildingData.is_emitter(type_id):
+	if index < 0 or not BuildingTypeManager.is_emitter(type_id):
 		if ghost_preview:
 			ghost_preview.hide_emitter_ghost_direction()
 			ghost_preview.hide_ghost()
@@ -76,7 +76,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	if event.is_action_pressed("rotate_clipboard") and not event.is_echo():
 		var is_emitter_placement: bool = _is_building_placement_mode() and inventory_bar and \
-			BuildingData.is_emitter(inventory_bar.get_current_building_type())
+			BuildingTypeManager.is_emitter(inventory_bar.get_current_building_type())
 
 		if is_emitter_placement:
 			_emitter_dir_idx = (_emitter_dir_idx + 1) % 4
@@ -165,7 +165,7 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 			if _is_building_placement_mode() and inventory_bar:
 				var type_id: String = inventory_bar.get_current_building_type()
 				ghost_preview.show_ghost([grid_pos])
-				if BuildingData.is_emitter(type_id):
+				if BuildingTypeManager.is_emitter(type_id):
 					_update_emitter_ghost_direction()
 		InputStateMachine.State.DRAGGING:
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
@@ -231,7 +231,7 @@ func _update_emitter_ghost_direction() -> void:
 	if not ghost_preview:
 		return
 	var is_emitter_mode: bool = _is_building_placement_mode() and inventory_bar and \
-		BuildingData.is_emitter(inventory_bar.get_current_building_type())
+		BuildingTypeManager.is_emitter(inventory_bar.get_current_building_type())
 	if is_emitter_mode:
 		var dir := _EMITTER_DIRS[_emitter_dir_idx]
 		ghost_preview.set_emitter_ghost_direction(dir)
@@ -278,7 +278,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 			if building_manager.place_building(cell, building_type):
 				placed[cell] = {"type": building_type}
 		if not placed.is_empty():
-			if BuildingData.is_emitter(building_type):
+			if BuildingTypeManager.is_emitter(building_type):
 				var emitter_dir := _EMITTER_DIRS[_emitter_dir_idx]
 				for cell: Vector2i in placed.keys():
 					var placed_node := building_manager.get_building_node(cell)
@@ -289,7 +289,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 			cmd.type = UndoCommand.Type.PLACE
 			cmd.buildings = placed
 			SelectionManager.push_undo_command(cmd)
-			if BuildingData.is_emitter(building_type):
+			if BuildingTypeManager.is_emitter(building_type):
 				for cell: Vector2i in placed.keys():
 					var placed_node := building_manager.get_building_node(cell)
 					if placed_node is EmitterNode:
@@ -319,7 +319,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 				var entry: Dictionary = {"type": building_manager.get_building_type(cell)}
 				var bdata := building_manager.get_building_data(cell)
 				if bdata != null:
-					if BuildingData.is_emitter(bdata.building_type):
+					if BuildingTypeManager.is_emitter(bdata.building_type):
 						if not bdata.element_type_id.is_empty():
 							entry["element_type_id"] = bdata.element_type_id
 						entry["output_direction"] = [bdata.output_direction.x, bdata.output_direction.y]

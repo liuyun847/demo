@@ -37,7 +37,7 @@ func _sync_container_data() -> void:
 		var data: BuildingData = building_manager.buildings[grid_pos]
 		var node := building_manager.get_building_node(grid_pos)
 		if node:
-			BuildingData.sync_capacity_from_node(data, node)
+			BuildingDataSyncService.sync_capacity(data, node)
 
 func save_buildings() -> void:
 	if not building_manager:
@@ -75,24 +75,24 @@ func _build_save_dict() -> Dictionary:
 	for grid_pos: Vector2i in building_manager.buildings.keys():
 		var data: BuildingData = building_manager.buildings[grid_pos]
 
-		if BuildingData.has_capacity(data.building_type):
+		if BuildingTypeManager.has_capacity(data.building_type):
 			var node := building_manager.get_building_node(grid_pos)
 			if node:
-				BuildingData.sync_capacity_from_node(data, node)
+				BuildingDataSyncService.sync_capacity(data, node)
 
-		if BuildingData.is_emitter(data.building_type):
+		if BuildingTypeManager.is_emitter(data.building_type):
 			var node := building_manager.get_building_node(grid_pos)
 			if node:
-				BuildingData.sync_emitter_type_from_node(data, node)
+				BuildingDataSyncService.sync_emitter(data, node)
 
 		var key := "%d,%d" % [grid_pos.x, grid_pos.y]
 		var entry := {
 			"type": data.building_type
 		}
-		if BuildingData.has_capacity(data.building_type):
+		if BuildingTypeManager.has_capacity(data.building_type):
 			entry["capacity"] = data.capacity
 			entry["max_capacity"] = data.max_capacity
-		if BuildingData.is_emitter(data.building_type):
+		if BuildingTypeManager.is_emitter(data.building_type):
 			if not data.element_type_id.is_empty():
 				entry["element_type_id"] = data.element_type_id
 			entry["output_direction"] = [data.output_direction.x, data.output_direction.y]
@@ -157,10 +157,10 @@ func load_buildings() -> void:
 					continue
 				var b_type: String = b_data.get("type", "default")
 				var restore_data: Dictionary = {}
-				if BuildingData.has_capacity(b_type):
+				if BuildingTypeManager.has_capacity(b_type):
 					restore_data["capacity"] = b_data.get("capacity", 0)
 					restore_data["max_capacity"] = b_data.get("max_capacity", 100)
-				if BuildingData.is_emitter(b_type):
+				if BuildingTypeManager.is_emitter(b_type):
 					if b_data.has("element_type_id"):
 						restore_data["element_type_id"] = b_data["element_type_id"]
 					if b_data.has("output_direction"):

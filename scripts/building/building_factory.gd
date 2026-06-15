@@ -40,9 +40,9 @@ static func create_building(building_type: String, grid_pos: Vector2i, world_pos
 		brick.global_position = world_pos
 		brick.grid_position = grid_pos
 		building_node = brick
-	elif BuildingData.is_emitter(building_type):
+	elif BuildingTypeManager.is_emitter(building_type):
 		building_node = _create_emitter(building_type, grid_pos, world_pos, node_name)
-	elif BuildingData.is_collector(building_type):
+	elif BuildingTypeManager.is_collector(building_type):
 		var collector := CollectorNode.new()
 		collector.name = node_name
 		collector.global_position = world_pos
