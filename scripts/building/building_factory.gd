@@ -22,13 +22,7 @@ static func _create_emitter(_type_id: String, grid_pos: Vector2i, world_pos: Vec
 static func create_building(building_type: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
 	var building_node: Node2D
 
-	if building_type == GameConfig.container_type_id:
-		var container := ContainerNode.new()
-		container.name = node_name
-		container.global_position = world_pos
-		container.grid_position = grid_pos
-		building_node = container
-	elif building_type == GameConfig.pipe_type_id:
+	if building_type == GameConfig.pipe_type_id:
 		var pipe := PipeNode.new()
 		pipe.name = node_name
 		pipe.global_position = world_pos

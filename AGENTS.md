@@ -38,7 +38,7 @@ demo/
 │   │   ├── building_type_manager.gd  #   建筑类型注册表与判断
 │   │   ├── building_data_sync_service.gd # 建筑数据/节点同步服务
 │   │   ├── brick_node.gd         #   砖块（含碰撞体）
-│   │   ├── container_node.gd     #   容器（容量管理）
+│   │   ├── core_node.gd          #   核心节点（地图中心，网络激活器）
 │   │   ├── emitter_node.gd       #   发射器（元素方向）
 │   │   ├── collector_node.gd     #   收集器（半径收集）
 │   │   ├── pipe_node.gd          #   管道（连接掩码）
@@ -124,8 +124,8 @@ Root (Node2D) → main.gd
 
 - **输入状态机**: 6 个状态（IDLE/DRAGGING/REMOVING/SELECTING/DESELECTING/PASTE_DRAGGING），根据模式切换幽灵预览
 - **幽灵预览**: GhostPreviewManager 维护多组预览数组（ghost/selected/paste/remove），`_draw()` 统一渲染
-- **建筑系统**: 5 种建筑（容器/管道/发射器/收集器/砖块），通过 BuildingFactory 创建，ECS-Lite 管道批量渲染
-- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑，每 tick 执行发射→扩散→收集流程
+- **建筑系统**: 4 种建筑（管道/发射器/收集器/砖块）+ 地图中心核心，通过 BuildingFactory 创建，ECS-Lite 管道批量渲染
+- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心开始搜索），每 tick 执行发射→扩散→收集流程。只有连通到核心的管道网络才能激活发射器/收集器
 - **元素系统**: 仅水元素（注册表 + Resource 类型定义），重力驱动扩散（下落 + 填充），水源标记维持水体连续
 - **源质经济**: EssencePool 管理货币，ProgressSystem 按阈值解锁建筑类型
 - **框选与剪贴板**: 选中 → Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z/Y 撤销/重做（栈上限 100），粘贴支持旋转和拖拽

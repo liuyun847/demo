@@ -4,7 +4,6 @@ extends HBoxContainer
 signal slot_selected(index: int, type_id: String)
 
 const SLOT_SCENE := preload("res://scenes/inventory_slot.tscn")
-const MAX_BUILDING_TYPES := 10
 const FALLBACK_TYPE_ID := "default"
 
 var current_slot_index: int = -1
@@ -97,51 +96,28 @@ func _update_all_locks() -> void:
 				slot.set_locked(not unlocked)
 
 func _init_default_types() -> void:
-	for i in range(1, MAX_BUILDING_TYPES + 1):
+	# 用数组定义实际建筑类型，type_id 直接使用 GameConfig 常量
+	var type_entries: Array[Dictionary] = [
+		{"id": GameConfig.pipe_type_id,      "name": "管道",   "icon": "res://resources/pipe_icon.svg",           "is_pipe": true},
+		{"id": GameConfig.emitter_type_id,   "name": "喷口",   "icon": "res://resources/emitter_water_icon.svg",  "is_emitter": true},
+		{"id": GameConfig.brick_type_id,     "name": "砖块",   "icon": "res://resources/brick_icon.svg",          "is_pipe": false},
+		{"id": GameConfig.collector_type_id, "name": "收集器", "icon": "res://resources/collector_icon.svg",      "is_collector": true},
+	]
+	for entry: Dictionary in type_entries:
 		var data: BuildingTypeData = BuildingTypeData.new()
-		data.type_id = "type_%02d" % i
-		if i == 1:
-			data.display_name = "容器"
-			var tex_path: String = "res://resources/container_icon.svg"
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
-		elif i == 2:
-			data.display_name = "管道"
-			var tex_path: String = "res://resources/pipe_icon.svg"
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
-		elif i == 3:
-			data.display_name = "喷口"
-			var tex_path: String = "res://resources/emitter_water_icon.svg"
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
-		elif i == 4:
-			data.display_name = "砖块"
-			var tex_path: String = "res://resources/brick_icon.svg"
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
-		elif i == 5:
-			data.display_name = ""
-		elif i == 6:
-			data.display_name = ""
-		elif i == 7:
-			data.display_name = "收集器"
-			var tex_path: String = "res://resources/collector_icon.svg"
-			if ResourceLoader.exists(tex_path):
-				data.icon_texture = load(tex_path)
-		else:
-			data.display_name = "占位-%d" % i
-		# 类型行为元数据
-		match data.type_id:
-			GameConfig.container_type_id:
-				data.has_capacity = true
-				data.is_buffer = true
-			GameConfig.pipe_type_id:
-				data.is_pipe = true
-			GameConfig.emitter_type_id:
-				data.is_emitter = true
-			GameConfig.collector_type_id:
-				data.is_collector = true
+		data.type_id = entry.id
+		data.display_name = entry.name
+		if ResourceLoader.exists(entry.icon):
+			data.icon_texture = load(entry.icon)
+		data.is_pipe = entry.get("is_pipe", false)
+		data.is_emitter = entry.get("is_emitter", false)
+		data.is_collector = entry.get("is_collector", false)
+		building_types.append(data)
+	# 补齐占位锁定槽位（显示未来可解锁的建筑类型）
+	for i in range(building_types.size(), 10):
+		var data: BuildingTypeData = BuildingTypeData.new()
+		data.type_id = ""
+		data.display_name = ""
 		building_types.append(data)
 	# 注册到 BuildingTypeManager（业务代码通过 type_id 查询行为属性）
 	BuildingTypeManager.register_all(building_types)

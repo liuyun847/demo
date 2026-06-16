@@ -5,6 +5,16 @@ var buildings: Dictionary[Vector2i, BuildingData] = {} # key: Vector2i, value: B
 var _building_nodes: Dictionary[Vector2i, Node2D] = {} # key: Vector2i, value: Node2D
 var network_pipes: Array[PipeNode] = []
 
+var core_node: CoreNode = null  # 地图中心的核心节点
+
+# 核心占据的 2x2 格子（从 -1,-1 到 0,0，以地图原点 (0,0) 为中心）
+const CORE_CELLS: Array[Vector2i] = [
+	Vector2i(-1, -1),
+	Vector2i(0, -1),
+	Vector2i(-1, 0),
+	Vector2i(0, 0),
+]
+
 const _GridUtils: GDScript = preload("res://scripts/grid/grid_utils.gd")
 const _BuildingFactory: GDScript = preload("res://scripts/building/building_factory.gd")
 
@@ -15,6 +25,23 @@ var element_renderer: Node2D = null
 func _ready() -> void:
 	_init_element_renderer()
 	_init_reaction_coordinator()
+	_init_core_node()
+
+func _init_core_node() -> void:
+	# 在地图原点创建核心节点（2x2 区域，对称于原点）
+	var core := CoreNode.new()
+	core.name = "CoreNode"
+	core.global_position = Vector2.ZERO
+	add_child(core)
+	core_node = core
+
+	# 注册核心占用的格子到 buildings 字典
+	for cell: Vector2i in CORE_CELLS:
+		var data := BuildingData.new()
+		data.grid_position = cell
+		data.building_type = GameConfig.core_type_id
+		buildings[cell] = data
+		_building_nodes[cell] = core
 
 func _init_element_renderer() -> void:
 	var ElementRendererScript: GDScript = load("res://scripts/reaction/element_renderer.gd")
@@ -43,6 +70,10 @@ func has_building(grid_pos: Vector2i) -> bool:
 
 func place_building(grid_pos: Vector2i, building_type: String = "default", restore_data: Dictionary = {}) -> bool:
 	if has_building(grid_pos):
+		return false
+
+	# 核心占据的格子不能放置其他建筑
+	if _is_core_cell(grid_pos):
 		return false
 
 	var cost: float = GameConfig.building_essence_costs.get(building_type, 0.0)
@@ -76,12 +107,13 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	if not has_building(grid_pos):
 		return false
 
+	# 核心不可删除
+	if _is_core_cell(grid_pos):
+		return false
+
 	var node := get_building_node(grid_pos)
 	if node == null:
 		return false
-	if BuildingTypeManager.is_container_node(node):
-		var data: BuildingData = buildings[grid_pos]
-		BuildingDataSyncService.sync_capacity(data, node)
 	if node is EmitterNode:
 		var data: BuildingData = buildings[grid_pos]
 		BuildingDataSyncService.sync_emitter(data, node)
@@ -117,17 +149,24 @@ func get_all_buildings_data() -> Dictionary:
 	return copy
 
 func clear_all_buildings() -> void:
-	for grid_pos: Vector2i in buildings.keys():
-		remove_building(grid_pos)
+	var positions: Array[Vector2i] = []
+	positions.assign(buildings.keys())
+	for grid_pos: Vector2i in positions:
+		if not _is_core_cell(grid_pos):
+			remove_building(grid_pos)
 
-## 静默清除所有建筑，不触发事件也不刷新管道。
+## 静默清除所有非核心建筑，不触发事件也不刷新管道。
 ## 与 clear_all_buildings() 不同，此方法不发送 building_placed/building_removed 信号。
 func clear_all_buildings_silent() -> void:
 	for node: Node2D in _building_nodes.values():
-		node.queue_free()
+		if node != core_node:
+			node.queue_free()
 	_building_nodes.clear()
 	buildings.clear()
 	network_pipes.clear()
+	# 重新注册核心
+	if core_node and is_instance_valid(core_node):
+		_init_core_node_registration()
 	if pipe_render:
 		pipe_render.clear_all()
 	if element_renderer:
@@ -135,6 +174,15 @@ func clear_all_buildings_silent() -> void:
 	var coordinator := get_node_or_null("ReactionCoordinator") as ReactionCoordinator
 	if coordinator:
 		coordinator.mark_dirty()
+
+func _init_core_node_registration() -> void:
+	# 重新注册核心占用的格子（clear 后重建）
+	for cell: Vector2i in CORE_CELLS:
+		var data := BuildingData.new()
+		data.grid_position = cell
+		data.building_type = GameConfig.core_type_id
+		buildings[cell] = data
+		_building_nodes[cell] = core_node
 
 func get_buildings_in_cells(cells: Array[Vector2i]) -> Dictionary:
 	var result: Dictionary = {}
@@ -163,6 +211,8 @@ func get_building_data(grid_pos: Vector2i) -> BuildingData:
 	return buildings.get(grid_pos) as BuildingData
 
 func get_building_node(grid_pos: Vector2i) -> Node:
+	if _is_core_cell(grid_pos):
+		return core_node
 	return _building_nodes.get(grid_pos) as Node
 
 func is_pipe_or_buffer_at(grid_pos: Vector2i) -> bool:
@@ -171,9 +221,13 @@ func is_pipe_or_buffer_at(grid_pos: Vector2i) -> bool:
 	var data: BuildingData = buildings[grid_pos] as BuildingData
 	if data == null:
 		return false
-	return BuildingTypeManager.is_pipe_or_buffer(data.building_type) or \
+	return BuildingTypeManager.is_pipe(data.building_type) or \
 		BuildingTypeManager.is_emitter(data.building_type) or \
-		BuildingTypeManager.is_collector(data.building_type)
+		BuildingTypeManager.is_collector(data.building_type) or \
+		_is_core_cell(grid_pos)
+
+func _is_core_cell(grid_pos: Vector2i) -> bool:
+	return grid_pos in CORE_CELLS
 
 func place_buildings_in_line(cells: Array[Vector2i], building_type: String = "default") -> int:
 	var placed_count := 0

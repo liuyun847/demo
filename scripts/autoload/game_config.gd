@@ -37,8 +37,8 @@ var shift_speed_multiplier: float = DEFAULT_SHIFT_SPEED_MULTIPLIER:
 	set(value):
 		shift_speed_multiplier = clampf(value, SHIFT_MULTIPLIER_MIN, SHIFT_MULTIPLIER_MAX)
 
-# 容器建筑类型标识
-const container_type_id: String = "type_01"
+# 核心建筑类型标识
+const core_type_id: String = "type_00"
 
 # 管道建筑类型标识
 const pipe_type_id: String = "type_02"
@@ -54,7 +54,6 @@ const collector_type_id: String = "type_07"
 
 # 建筑放置源质消耗（key: building_type_id, value: cost）
 const building_essence_costs: Dictionary = {
-	"type_01": 0.0,  # 容器
 	"type_02": 0.0,  # 管道
 	"type_03": 0.0,  # 发射器
 	"type_04": 0.0,  # 砖块

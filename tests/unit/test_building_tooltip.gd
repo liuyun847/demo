@@ -15,7 +15,7 @@ func test_initial_hidden() -> void:
 
 func test_on_building_hovered_shows() -> void:
 	var mock_node := Node2D.new()
-	mock_node.set_script(preload("res://scripts/building/container_node.gd"))
+	mock_node.set_script(preload("res://scripts/building/pipe_node.gd"))
 	add_child_autoqfree(mock_node)
 	_tooltip._on_building_hovered(Vector2i(0, 0), mock_node)
 	assert_true(_tooltip.visible, "收到 hovered 信号后应显示")
@@ -29,10 +29,10 @@ func test_on_building_hover_exited_hides() -> void:
 
 func test_update_content_shows_building_name() -> void:
 	var mock_node := Node2D.new()
-	mock_node.set_script(preload("res://scripts/building/container_node.gd"))
+	mock_node.set_script(preload("res://scripts/building/pipe_node.gd"))
 	add_child_autoqfree(mock_node)
 	_tooltip._on_building_hovered(Vector2i(0, 0), mock_node)
-	assert_eq(_tooltip._name_label.text, "缓存节点", "应显示建筑名称 '缓存节点'")
+	assert_eq(_tooltip._name_label.text, "管道", "应显示建筑名称 '管道'")
 
 
 func test_update_content_shows_summary() -> void:
@@ -57,7 +57,7 @@ func test_update_content_empty_summary_shows_placeholder() -> void:
 
 func test_on_building_removed_hides() -> void:
 	var mock_node := Node2D.new()
-	mock_node.set_script(preload("res://scripts/building/container_node.gd"))
+	mock_node.set_script(preload("res://scripts/building/pipe_node.gd"))
 	add_child_autoqfree(mock_node)
 	_tooltip._on_building_hovered(Vector2i(0, 0), mock_node)
 	assert_true(_tooltip.visible, "hovered 后应显示")
