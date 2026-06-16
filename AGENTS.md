@@ -22,10 +22,6 @@ demo/
 │   ├── commit-msg
 │   └── pre-commit
 ├── addons/
-│   ├── godot_mcp/                # MCP 运行时插件（编辑器集成）
-│   │   ├── mcp_client.gd / tool_executor.gd / plugin.gd
-│   │   ├── runtime/mcp_runtime.gd
-│   │   └── utils/paths.gd / variant_codec.gd
 │   └── gut/                      # GUT 测试框架
 ├── scripts/                      # 源码（44 个 .gd 文件）
 │   ├── autoload/                 # Autoload 单例（6 个）
