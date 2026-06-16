@@ -66,10 +66,9 @@ func _on_tick() -> void:
 		return
 	if _paused:
 		return
-	var all_pipes: Array[PipeNode] = _building_manager.network_pipes
 
 	if _dirty:
-		_rebuild_networks(all_pipes)
+		_rebuild_networks()
 		_dirty = false
 
 	_process_emitters()
@@ -94,31 +93,45 @@ func _process_emitters() -> void:
 				EssencePool.subtract(emitter.essence_cost_per_tick)
 				_element_grid.mark_as_source(target_pos)
 
-func _rebuild_networks(pipes: Array[PipeNode]) -> void:
+func _rebuild_networks() -> void:
 	_cached_networks.clear()
 
-	if pipes.is_empty():
+	var core: CoreNode = _building_manager.core_node
+	if core == null or not is_instance_valid(core):
 		return
 
 	var visited: Dictionary[int, bool] = {}
 
-	for i in pipes.size():
-		var node: Node = pipes[i]
-		if visited.has(node.get_instance_id()):
-			continue
-		var network := _bfs_network(node, visited)
-		if network.pipes.size() > 0 or network.containers.size() > 0 or \
-		   network.emitters.size() > 0 or network.collectors.size() > 0:
-			_cached_networks.append(network)
-
+	# 从核心的四个邻居开始 BFS
+	var core_cells: Array[Vector2i] = BuildingManager.CORE_CELLS
+	for cell: Vector2i in core_cells:
+		for dir: Vector2i in GridCoordinate.DIR_4:
+			var neighbor_pos: Vector2i = cell + dir
+			var neighbor: Node = _building_manager.get_building_node(neighbor_pos)
+			if neighbor == null:
+				continue
+			if visited.has(neighbor.get_instance_id()):
+				continue
+			if neighbor is PipeNode:
+				visited[neighbor.get_instance_id()] = true
+				var network := _bfs_network(neighbor, visited)
+				if network.pipes.size() > 0 or \
+				   network.emitters.size() > 0 or network.collectors.size() > 0:
+					_cached_networks.append(network)
+			elif neighbor is EmitterNode or neighbor is CollectorNode:
+				# 直接连接到核心的发射器/收集器也加入激活网络
+				var network := {"pipes": [], "emitters": [], "collectors": []}
+				if neighbor is EmitterNode:
+					network.emitters.append(neighbor as EmitterNode)
+				else:
+					network.collectors.append(neighbor as CollectorNode)
+				_cached_networks.append(network)
 
 func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionary:
 	if _building_manager == null:
-		return {"pipes": [], "containers": [], "emitters": [], "collectors": []}
+		return {"pipes": [], "emitters": [], "collectors": []}
 
 	var pipes: Array[Node] = []
-	var containers: Array[Node] = []
-	var container_dict: Dictionary[int, bool] = {}
 	var emitters: Array[EmitterNode] = []
 	var emitter_dict: Dictionary[int, bool] = {}
 	var collectors: Array[CollectorNode] = []
@@ -126,7 +139,6 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 
 	var queue: Array[Node] = [start_node]
 	var head: int = 0
-	visited[start_node.get_instance_id()] = true
 
 	while head < queue.size():
 		var node: Node = queue[head]
@@ -134,28 +146,28 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 
 		if node is PipeNode:
 			pipes.append(node)
-		elif node is ContainerNode:
-			if not container_dict.has(node.get_instance_id()):
-				container_dict[node.get_instance_id()] = true
-				containers.append(node)
+		elif node is EmitterNode:
+			if not emitter_dict.has(node.get_instance_id()):
+				emitter_dict[node.get_instance_id()] = true
+				emitters.append(node)
+		elif node is CollectorNode:
+			if not collector_dict.has(node.get_instance_id()):
+				collector_dict[node.get_instance_id()] = true
+				collectors.append(node)
 
-		if not (node is PipeNode or node is ContainerNode):
+		if not (node is PipeNode):
 			continue
 
+		var pipe_node: PipeNode = node as PipeNode
 		var dirs: Array[Vector2i] = GridCoordinate.DIR_4
 
 		for dir_idx: int in 4:
-			if node is PipeNode:
-				var pipe_node: PipeNode = node as PipeNode
-				if (pipe_node.connection_mask & (1 << dir_idx)) == 0:
-					continue
+			if (pipe_node.connection_mask & (1 << dir_idx)) == 0:
+				continue
 
 			var neighbor_pos: Vector2i = node.grid_position + dirs[dir_idx]
 			var neighbor: Node = _building_manager.get_building_node(neighbor_pos)
 			if neighbor == null:
-				continue
-
-			if node is ContainerNode and neighbor is ContainerNode:
 				continue
 
 			if neighbor is PipeNode:
@@ -163,13 +175,6 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 				var opposite_dir: int = dir_idx ^ 2
 				if (neighbor_pipe.connection_mask & (1 << opposite_dir)) == 0:
 					continue
-				if not visited.has(neighbor.get_instance_id()):
-					visited[neighbor.get_instance_id()] = true
-					queue.append(neighbor)
-			elif neighbor is ContainerNode:
-				if not container_dict.has(neighbor.get_instance_id()):
-					container_dict[neighbor.get_instance_id()] = true
-					containers.append(neighbor)
 				if not visited.has(neighbor.get_instance_id()):
 					visited[neighbor.get_instance_id()] = true
 					queue.append(neighbor)
@@ -186,7 +191,6 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 
 	return {
 		"pipes": pipes,
-		"containers": containers,
 		"emitters": emitters,
 		"collectors": collectors,
 	}

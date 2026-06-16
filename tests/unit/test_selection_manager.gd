@@ -8,11 +8,10 @@ func before_all() -> void:
 
 
 func _ensure_building_types_registered() -> void:
-	if BuildingTypeManager.has_capacity(GameConfig.container_type_id):
+	if BuildingTypeManager.is_pipe(GameConfig.pipe_type_id):
 		return
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
-		[GameConfig.container_type_id, {"has_capacity": true, "is_buffer": true}],
 		[GameConfig.pipe_type_id,      {"is_pipe": true}],
 		[GameConfig.emitter_type_id,   {"is_emitter": true}],
 		[GameConfig.collector_type_id, {"is_collector": true}],
@@ -144,7 +143,6 @@ func test_undo_empty_stack_does_not_crash() -> void:
 	assert_true(SelectionManager.undo_stack.is_empty(), "空撤销栈调用 undo() 不应崩溃")
 
 func test_perform_paste_batch_with_building_manager() -> void:
-	load("res://scripts/building/container_node.gd")
 	load("res://scripts/building/pipe_node.gd")
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
@@ -162,23 +160,22 @@ func test_perform_paste_batch_with_building_manager() -> void:
 	SelectionManager.undo_stack.clear()
 	SelectionManager._building_manager = bm
 	var buildings: Array[Dictionary] = [
-		{"offset": Vector2i(0, 0), "type": GameConfig.container_type_id},
+		{"offset": Vector2i(0, 0), "type": GameConfig.pipe_type_id},
 		{"offset": Vector2i(1, 0), "type": GameConfig.pipe_type_id},
 	]
 	SelectionManager.clipboard = {
 		"buildings": buildings,
 	}
 
-	var anchors: Array[Vector2i] = [Vector2i(0, 0), Vector2i(3, 0)]
+	var anchors: Array[Vector2i] = [Vector2i(2, 0), Vector2i(5, 0)]
 	SelectionManager.perform_paste_batch(anchors)
 
-	assert_true(bm.has_building(Vector2i(0, 0)), "第一个锚点的 offset(0,0) 应放置建筑")
-	assert_true(bm.has_building(Vector2i(1, 0)), "第一个锚点的 offset(1,0) 应放置建筑")
-	assert_true(bm.has_building(Vector2i(3, 0)), "第二个锚点的 offset(0,0) 应放置建筑")
-	assert_true(bm.has_building(Vector2i(4, 0)), "第二个锚点的 offset(1,0) 应放置建筑")
+	assert_true(bm.has_building(Vector2i(2, 0)), "第一个锚点的 offset(0,0) 应放置建筑")
+	assert_true(bm.has_building(Vector2i(3, 0)), "第一个锚点的 offset(1,0) 应放置建筑")
+	assert_true(bm.has_building(Vector2i(5, 0)), "第二个锚点的 offset(0,0) 应放置建筑")
+	assert_true(bm.has_building(Vector2i(6, 0)), "第二个锚点的 offset(1,0) 应放置建筑")
 
 func test_perform_paste_batch_skip_occupied() -> void:
-	load("res://scripts/building/container_node.gd")
 	load("res://scripts/building/pipe_node.gd")
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
@@ -194,23 +191,23 @@ func test_perform_paste_batch_skip_occupied() -> void:
 
 	SelectionManager.undo_stack.clear()
 	SelectionManager._building_manager = bm
-	bm.place_building(Vector2i(3, 0), GameConfig.container_type_id)
+	bm.place_building(Vector2i(4, 0), GameConfig.pipe_type_id)
 
 	var buildings: Array[Dictionary] = [
-		{"offset": Vector2i(0, 0), "type": GameConfig.container_type_id},
+		{"offset": Vector2i(0, 0), "type": GameConfig.pipe_type_id},
 		{"offset": Vector2i(1, 0), "type": GameConfig.pipe_type_id},
 	]
 	SelectionManager.clipboard = {
 		"buildings": buildings,
 	}
 
-	var anchors: Array[Vector2i] = [Vector2i(0, 0), Vector2i(3, 0)]
+	var anchors: Array[Vector2i] = [Vector2i(2, 0), Vector2i(4, 0)]
 	SelectionManager.perform_paste_batch(anchors)
 
-	assert_true(bm.has_building(Vector2i(0, 0)), "offset(0,0) 应放置")
-	assert_true(bm.has_building(Vector2i(1, 0)), "offset(1,0) 应放置")
-	assert_eq(bm.get_building_type(Vector2i(3, 0)), GameConfig.container_type_id, "已占用位置应保留原建筑")
-	assert_true(bm.has_building(Vector2i(4, 0)), "第二个锚点的 offset(1,0) 应放置")
+	assert_true(bm.has_building(Vector2i(2, 0)), "offset(0,0) 应放置")
+	assert_true(bm.has_building(Vector2i(3, 0)), "offset(1,0) 应放置")
+	assert_eq(bm.get_building_type(Vector2i(4, 0)), GameConfig.pipe_type_id, "已占用位置应保留原建筑")
+	assert_true(bm.has_building(Vector2i(5, 0)), "第二个锚点的 offset(1,0) 应放置")
 
 func test_perform_paste_batch_empty_clipboard() -> void:
 	var bm: BuildingManager = autoqfree(load("res://scripts/building/building_manager.gd").new())
@@ -228,7 +225,7 @@ func test_perform_paste_batch_empty_clipboard() -> void:
 	var anchors: Array[Vector2i] = [Vector2i(0, 0)]
 	SelectionManager.perform_paste_batch(anchors)
 
-	assert_eq(bm.get_all_buildings_data().size(), 0, "空剪贴板不应放置任何建筑")
+	assert_eq(bm.get_all_buildings_data().size(), 4, "空剪贴板不应放置任何建筑（仅核心 4 格）")
 
 func test_redo_empty_stack_does_not_crash() -> void:
 	SelectionManager.redo_stack.clear()
@@ -246,7 +243,6 @@ func test_new_action_clears_redo_stack() -> void:
 	assert_eq(SelectionManager.redo_stack.size(), 0, "新操作后 redo 栈应被清空")
 
 func test_redo_after_undo_restores_building() -> void:
-	load("res://scripts/building/container_node.gd")
 	load("res://scripts/building/pipe_node.gd")
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
@@ -264,23 +260,22 @@ func test_redo_after_undo_restores_building() -> void:
 	SelectionManager.redo_stack.clear()
 	SelectionManager._building_manager = bm
 
-	bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
 	var cmd := UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(0, 0): {"type": GameConfig.container_type_id}}
+	cmd.buildings = {Vector2i(2, 0): {"type": GameConfig.pipe_type_id}}
 	SelectionManager.push_undo_command(cmd)
-	assert_true(bm.has_building(Vector2i(0, 0)), "放置后应有建筑")
+	assert_true(bm.has_building(Vector2i(2, 0)), "放置后应有建筑")
 
 	SelectionManager.undo()
-	assert_false(bm.has_building(Vector2i(0, 0)), "undo 后建筑应被删除")
+	assert_false(bm.has_building(Vector2i(2, 0)), "undo 后建筑应被删除")
 	assert_eq(SelectionManager.redo_stack.size(), 1, "undo 后 redo 栈应有 1 个元素")
 
 	SelectionManager.redo()
-	assert_true(bm.has_building(Vector2i(0, 0)), "redo 后建筑应被恢复")
+	assert_true(bm.has_building(Vector2i(2, 0)), "redo 后建筑应被恢复")
 	assert_eq(SelectionManager.undo_stack.size(), 1, "redo 后 undo 栈应有 1 个元素，可再次撤销")
 
 func test_redo_undo_cycle() -> void:
-	load("res://scripts/building/container_node.gd")
 	load("res://scripts/building/pipe_node.gd")
 	load("res://scripts/building/ghost_preview_manager.gd")
 	load("res://scripts/grid/input_state_machine.gd")
@@ -298,20 +293,20 @@ func test_redo_undo_cycle() -> void:
 	SelectionManager.redo_stack.clear()
 	SelectionManager._building_manager = bm
 
-	bm.place_building(Vector2i(0, 0), GameConfig.container_type_id)
+	bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
 	var cmd := UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(0, 0): {"type": GameConfig.container_type_id}}
+	cmd.buildings = {Vector2i(2, 0): {"type": GameConfig.pipe_type_id}}
 	SelectionManager.push_undo_command(cmd)
 
 	SelectionManager.undo()
-	assert_false(bm.has_building(Vector2i(0, 0)), "第1次 undo: 建筑应被删除")
+	assert_false(bm.has_building(Vector2i(2, 0)), "第1次 undo: 建筑应被删除")
 	SelectionManager.redo()
-	assert_true(bm.has_building(Vector2i(0, 0)), "第1次 redo: 建筑应被恢复")
+	assert_true(bm.has_building(Vector2i(2, 0)), "第1次 redo: 建筑应被恢复")
 	SelectionManager.undo()
-	assert_false(bm.has_building(Vector2i(0, 0)), "第2次 undo: 建筑应再次被删除")
+	assert_false(bm.has_building(Vector2i(2, 0)), "第2次 undo: 建筑应再次被删除")
 	SelectionManager.redo()
-	assert_true(bm.has_building(Vector2i(0, 0)), "第2次 redo: 建筑应再次被恢复")
+	assert_true(bm.has_building(Vector2i(2, 0)), "第2次 redo: 建筑应再次被恢复")
 
 func test_rotate_clipboard_90_degrees() -> void:
 	SelectionManager.is_paste_mode = true

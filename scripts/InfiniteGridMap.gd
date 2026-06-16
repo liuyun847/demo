@@ -126,11 +126,6 @@ func _draw() -> void:
 		thick_points.append(Vector2(left, bottom))
 		thick_points.append(Vector2(right, bottom))
 	draw_multiline(thick_points, GameConfig.line_color, adjusted_thick_width)
-	
-	var marker_size: float = GameConfig.cell_size * 2
-	var marker_half: float = marker_size / 2.0
-	var marker_rect: Rect2 = Rect2(Vector2(-marker_half, -marker_half), Vector2(marker_size, marker_size))
-	draw_rect(marker_rect, Color.BLACK, true)
 
 func mark_block_visible(block_coord: Vector2i) -> void:
 	loaded_blocks[block_coord] = true

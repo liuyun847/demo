@@ -30,15 +30,6 @@ func _do_save() -> void:
 	_save_pending = false
 	save_buildings()
 
-func _sync_container_data() -> void:
-	if not building_manager:
-		return
-	for grid_pos: Vector2i in building_manager.buildings.keys():
-		var data: BuildingData = building_manager.buildings[grid_pos]
-		var node := building_manager.get_building_node(grid_pos)
-		if node:
-			BuildingDataSyncService.sync_capacity(data, node)
-
 func save_buildings() -> void:
 	if not building_manager:
 		push_error("SaveManager: 找不到 BuildingManager 节点")
@@ -75,10 +66,9 @@ func _build_save_dict() -> Dictionary:
 	for grid_pos: Vector2i in building_manager.buildings.keys():
 		var data: BuildingData = building_manager.buildings[grid_pos]
 
-		if BuildingTypeManager.has_capacity(data.building_type):
-			var node := building_manager.get_building_node(grid_pos)
-			if node:
-				BuildingDataSyncService.sync_capacity(data, node)
+		# 核心不保存（自动生成）
+		if data.building_type == GameConfig.core_type_id:
+			continue
 
 		if BuildingTypeManager.is_emitter(data.building_type):
 			var node := building_manager.get_building_node(grid_pos)
@@ -89,9 +79,6 @@ func _build_save_dict() -> Dictionary:
 		var entry := {
 			"type": data.building_type
 		}
-		if BuildingTypeManager.has_capacity(data.building_type):
-			entry["capacity"] = data.capacity
-			entry["max_capacity"] = data.max_capacity
 		if BuildingTypeManager.is_emitter(data.building_type):
 			if not data.element_type_id.is_empty():
 				entry["element_type_id"] = data.element_type_id
@@ -156,10 +143,10 @@ func load_buildings() -> void:
 					push_warning("SaveManager: 建筑数据格式无效，跳过: %s" % key)
 					continue
 				var b_type: String = b_data.get("type", "default")
+				# 跳过旧存档中的容器（type_01）和核心
+				if b_type == "type_01" or b_type == GameConfig.core_type_id:
+					continue
 				var restore_data: Dictionary = {}
-				if BuildingTypeManager.has_capacity(b_type):
-					restore_data["capacity"] = b_data.get("capacity", 0)
-					restore_data["max_capacity"] = b_data.get("max_capacity", 100)
 				if BuildingTypeManager.is_emitter(b_type):
 					if b_data.has("element_type_id"):
 						restore_data["element_type_id"] = b_data["element_type_id"]
@@ -174,8 +161,6 @@ func _finalize_loading() -> void:
 		var node := building_manager.get_building_node(grid_pos)
 		if node is PipeNode:
 			node.refresh_connections(building_manager.is_pipe_or_buffer_at)
-		elif node is ContainerNode:
-			node.queue_redraw()
 
 	_is_loading = false
 	EventBus.buildings_loaded.emit()

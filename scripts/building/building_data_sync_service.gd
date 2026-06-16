@@ -11,30 +11,12 @@ static func sync_from_node(data: BuildingData, node: Node, restore_data: Diction
 	if node == null:
 		push_warning("BuildingDataSyncService.sync_from_node: node 为 null，跳过同步")
 		return
-	if BuildingTypeManager.has_capacity(data.building_type):
-		_sync_capacity(data, node, restore_data)
 	if BuildingTypeManager.is_emitter(data.building_type):
 		_sync_emitter(data, node, restore_data)
 
 
-static func sync_capacity(data: BuildingData, node: Node, restore_data: Dictionary = {}) -> void:
-	_sync_capacity(data, node, restore_data)
-
-
 static func sync_emitter(data: BuildingData, node: Node, restore_data: Dictionary = {}) -> void:
 	_sync_emitter(data, node, restore_data)
-
-
-static func _sync_capacity(data: BuildingData, node: Node, restore_data: Dictionary) -> void:
-	if not BuildingTypeManager.is_container_node(node):
-		return
-
-	if not restore_data.is_empty():
-		_apply_property(data, node, restore_data, "capacity")
-		_apply_property(data, node, restore_data, "max_capacity")
-	else:
-		_pull_property(data, node, "capacity")
-		_pull_property(data, node, "max_capacity")
 
 
 static func _sync_emitter(data: BuildingData, node: Node, restore_data: Dictionary) -> void:
@@ -57,21 +39,6 @@ static func _sync_emitter(data: BuildingData, node: Node, restore_data: Dictiona
 	else:
 		data.element_type_id = node.element_type_id
 		data.output_direction = node.output_direction
-
-
-static func _apply_property(data: BuildingData, node: Node, restore_data: Dictionary, property: String) -> void:
-	if not restore_data.has(property):
-		return
-	if not (property in node):
-		return
-	var value: Variant = restore_data[property]
-	data.set(property, value)
-	node.set(property, value)
-
-
-static func _pull_property(data: BuildingData, node: Node, property: String) -> void:
-	if property in node:
-		data.set(property, node.get(property))
 
 
 static func _parse_direction(value: Variant) -> Vector2i:

@@ -37,15 +37,6 @@ static func is_pipe(type_id: String) -> bool:
 	return td != null and td.is_pipe
 
 
-static func is_buffer(type_id: String) -> bool:
-	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
-	return td != null and td.is_buffer
-
-
-static func is_pipe_or_buffer(type_id: String) -> bool:
-	return is_pipe(type_id) or is_buffer(type_id)
-
-
 static func is_emitter(type_id: String) -> bool:
 	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
 	return td != null and td.is_emitter
@@ -54,7 +45,3 @@ static func is_emitter(type_id: String) -> bool:
 static func is_collector(type_id: String) -> bool:
 	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
 	return td != null and td.is_collector
-
-
-static func is_container_node(node: Node) -> bool:
-	return node is ContainerNode

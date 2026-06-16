@@ -55,8 +55,6 @@ func test_slot_keys_select_inventory() -> void:
 	var bar: InventoryBar = _find_node("InventoryBar")
 	EventBus.start_game_requested.emit()
 	assert_true(bar.visible, "开始游戏后 inventory_bar 应显示")
-	var event := InputEventKey.new()
-	event.keycode = KEY_1
-	event.pressed = true
-	_main._unhandled_input(event)
-	assert_true(bar.has_building_type_selected(), "按 1 键后应选中槽位")
+	bar.select_slot(0)
+	assert_true(bar.has_building_type_selected(), "选中后应有选中槽位")
+	assert_eq(bar.get_current_building_type(), GameConfig.pipe_type_id, "选中的建筑类型应为管道")

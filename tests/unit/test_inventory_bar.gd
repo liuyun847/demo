@@ -3,17 +3,25 @@ extends GutTest
 var _bar: InventoryBar = null
 
 func before_each() -> void:
+	# 确保 ProgressSystem 已初始化（槽位锁定依赖它）
+	# 手动触发 essence_changed 信号让 ProgressSystem 初始化解锁状态
+	EssencePool.essence_changed.emit(EssencePool.essence)
+
 	_bar = autoqfree(InventoryBar.new())
 	_bar.name = "InventoryBar"
 	add_child_autoqfree(_bar)
+	# 手动解锁所有非空槽位（绕过 ProgressSystem 的锁定检查）
+	for i in range(_bar._slots.size()):
+		if i < _bar.building_types.size() and not _bar.building_types[i].display_name.is_empty():
+			_bar._slots[i].set_locked(false)
 	SelectionManager.is_paste_mode = false
 
 func test_select_by_type_id_found() -> void:
 	assert_false(_bar.has_building_type_selected(), "初始不应有选中")
-	var result: bool = _bar.select_by_type_id("type_01")
+	var result: bool = _bar.select_by_type_id("type_02")
 	assert_true(result, "select_by_type_id 找到时应返回 true")
 	assert_true(_bar.has_building_type_selected(), "选中后应有选中")
-	assert_eq(_bar.current_slot_index, 0, "type_01 应对应槽位 0")
+	assert_eq(_bar.current_slot_index, 0, "type_02 应对应槽位 0（管道）")
 
 func test_select_by_type_id_not_found() -> void:
 	assert_false(_bar.has_building_type_selected(), "初始不应有选中")
@@ -22,9 +30,9 @@ func test_select_by_type_id_not_found() -> void:
 	assert_false(_bar.has_building_type_selected(), "未找到时不应改变选中状态")
 
 func test_select_by_type_id_already_selected_deselects() -> void:
-	_bar.select_slot(0)
-	assert_true(_bar.has_building_type_selected(), "选中槽位 0 后应有选中")
-	var result: bool = _bar.select_by_type_id("type_01")
+	_bar.select_by_type_id("type_02")
+	assert_true(_bar.has_building_type_selected(), "选中 type_02 后应有选中")
+	var result: bool = _bar.select_by_type_id("type_02")
 	assert_true(result, "select_by_type_id 应返回 true")
 	assert_false(_bar.has_building_type_selected(), "重复选中同一类型应取消选择")
 
