@@ -4,6 +4,7 @@ extends Node2D
 var _ghost_layers: Dictionary = {}
 var paste_ghost_types: Dictionary[Vector2i, String] = {}
 var emitter_ghost_direction: Vector2i = Vector2i.ZERO
+var _collector_ghost_active: bool = false
 
 
 func _ready() -> void:
@@ -96,6 +97,16 @@ func hide_emitter_ghost_direction() -> void:
 	queue_redraw()
 
 
+func show_collector_ghost_range() -> void:
+	_collector_ghost_active = true
+	queue_redraw()
+
+
+func hide_collector_ghost_range() -> void:
+	_collector_ghost_active = false
+	queue_redraw()
+
+
 func get_layer_cells(layer_name: String) -> Array:
 	return _ghost_layers.get(layer_name, [])
 
@@ -142,6 +153,17 @@ func _draw() -> void:
 		for grid_pos: Vector2i in ghost_cells:
 			_draw_emitter_arrow_at(grid_pos, emitter_ghost_direction)
 
+	if _collector_ghost_active and not ghost_cells.is_empty():
+		var radius := GameConfig.collector_default_radius
+		for grid_pos: Vector2i in ghost_cells:
+			for dx in range(-radius, radius + 1):
+				for dy in range(-radius, radius + 1):
+					if dx == 0 and dy == 0:
+						continue
+					var arrow_pos := grid_pos + Vector2i(dx, dy)
+					var arrow_dir := Vector2i(-dx, -dy)
+					_draw_arrow_at(arrow_pos, arrow_dir)
+
 
 func _draw_cell_highlight(cells: Array, fill_color: Color, border_color: Color, use_building_size: bool = false, border_width: float = 2.0) -> void:
 	var cell_size: float = GameConfig.building_size if use_building_size else GameConfig.cell_size
@@ -163,13 +185,15 @@ func _get_building_color(building_type: String) -> Color:
 	return GameConfig.building_default_color
 
 
-func _draw_emitter_arrow_at(grid_pos: Vector2i, direction: Vector2i) -> void:
+func _draw_arrow_at(cell_pos: Vector2i, direction: Vector2i) -> void:
+	# 在指定格子中心画一个箭头，指向 direction 方向
 	var half: float = GameConfig.building_size / 2.0
-	var world_pos := GridCoordinate.grid_to_world(grid_pos + direction)
+	var world_pos := GridCoordinate.grid_to_world(cell_pos)
+	var dir_vec := Vector2(direction)
 	var arrow_size: float = half * 0.65
-	var center_offset := Vector2(direction) * arrow_size * 0.2
-	var tip_offset := Vector2(direction) * arrow_size * 0.55
-	var perp := Vector2(-direction.y, direction.x)
+	var center_offset := dir_vec * arrow_size * 0.2
+	var tip_offset := dir_vec * arrow_size * 0.55
+	var perp := Vector2(-dir_vec.y, dir_vec.x)
 	var tip := world_pos + center_offset + tip_offset
 	var left := world_pos + center_offset + perp * arrow_size * 0.3
 	var right := world_pos + center_offset - perp * arrow_size * 0.3
@@ -177,6 +201,10 @@ func _draw_emitter_arrow_at(grid_pos: Vector2i, direction: Vector2i) -> void:
 	draw_colored_polygon(vertices, Color(1, 1, 1, GameConfig.ghost_alpha))
 	draw_polyline(vertices, Color.WHITE, 1.5)
 	draw_line(vertices[2], vertices[0], Color.WHITE, 1.5)
+
+
+func _draw_emitter_arrow_at(grid_pos: Vector2i, direction: Vector2i) -> void:
+	_draw_arrow_at(grid_pos + direction, direction)
 
 
 func _get_building_manager() -> BuildingManager:
