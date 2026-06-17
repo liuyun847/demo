@@ -39,16 +39,19 @@ func _on_slot_selected(index: int, type_id: String) -> void:
 		return
 	_emitter_dir_idx = 0
 	_update_emitter_ghost_direction()
+	ghost_preview.hide_collector_ghost_range()
 
 func _on_paste_mode_changed(_active: bool) -> void:
 	if ghost_preview:
 		ghost_preview.hide_emitter_ghost_direction()
+		ghost_preview.hide_collector_ghost_range()
 	_cancel_all_dragging()
 
 func _cancel_all_dragging() -> void:
 	if ghost_preview:
 		ghost_preview.clear_paste_preview()
 		ghost_preview.hide_emitter_ghost_direction()
+		ghost_preview.hide_collector_ghost_range()
 	_state_machine.reset()
 
 func _get_grid_pos(event: InputEvent) -> Vector2i:
@@ -167,6 +170,7 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 				ghost_preview.show_ghost([grid_pos])
 				if BuildingTypeManager.is_emitter(type_id):
 					_update_emitter_ghost_direction()
+				_update_collector_ghost_range()
 		InputStateMachine.State.DRAGGING:
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
 			if grid_pos != start_grid:
@@ -174,6 +178,7 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 				var cells: Array[Vector2i] = GridUtils.get_l_cells(start_grid, grid_pos, _drag_corner_first_horizontal)
 				ghost_preview.show_ghost(cells)
 			_update_emitter_ghost_direction()
+			_update_collector_ghost_range()
 			viewport.set_input_as_handled()
 		InputStateMachine.State.REMOVING:
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
@@ -237,6 +242,17 @@ func _update_emitter_ghost_direction() -> void:
 		ghost_preview.set_emitter_ghost_direction(dir)
 	else:
 		ghost_preview.hide_emitter_ghost_direction()
+
+
+func _update_collector_ghost_range() -> void:
+	if not ghost_preview:
+		return
+	var is_collector_mode: bool = _is_building_placement_mode() and inventory_bar and \
+		BuildingTypeManager.is_collector(inventory_bar.get_current_building_type())
+	if is_collector_mode:
+		ghost_preview.show_collector_ghost_range()
+	else:
+		ghost_preview.hide_collector_ghost_range()
 
 
 func _open_emitter_type_panel(emitter_node: EmitterNode) -> void:
