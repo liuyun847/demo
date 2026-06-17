@@ -27,6 +27,29 @@ static func reset_for_test() -> void:
 	_type_table.clear()
 
 
+# 提前注册默认建筑类型，使用字符串字面量以避免 GameConfig 编译时依赖。
+# 由 GameConfig._ready() 在启动早期调用，确保 SaveManager.load_buildings()
+# 执行时 BuildingTypeManager 已就绪，工厂能正确识别各类建筑。
+static func register_defaults() -> void:
+	if not _type_table.is_empty():
+		return
+	var types: Array[BuildingTypeData] = []
+	var entries: Array[Dictionary] = [
+		{"id": "type_02", "is_pipe": true},
+		{"id": "type_03", "is_emitter": true},
+		{"id": "type_04", "is_pipe": false},
+		{"id": "type_07", "is_collector": true},
+	]
+	for entry: Dictionary in entries:
+		var td := BuildingTypeData.new()
+		td.type_id = entry["id"]
+		for k: String in entry.keys():
+			if k != "id":
+				td.set(k, entry[k])
+		types.append(td)
+	register_all(types)
+
+
 static func has_capacity(type_id: String) -> bool:
 	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
 	return td != null and td.has_capacity
