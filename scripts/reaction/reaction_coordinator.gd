@@ -75,6 +75,8 @@ func _on_tick() -> void:
 
 	_element_diffusion.diffuse_all(_element_grid)
 
+	_process_collectors()
+
 func _process_emitters() -> void:
 	for network: Dictionary in _cached_networks:
 		for emitter: EmitterNode in network.emitters:
@@ -88,10 +90,23 @@ func _process_emitters() -> void:
 			if not EssencePool.has(emitter.essence_cost_per_tick):
 				continue
 
-			var success: bool = _element_grid.set_fluid(target_pos, target_pos.y)
-			if success:
-				EssencePool.subtract(emitter.essence_cost_per_tick)
+			# 每次发射器运行时都消耗源质（运行成本）
+			EssencePool.subtract(emitter.essence_cost_per_tick)
+
+			# 目标格子已有流体时无需重复创建,仅重新标记为水源以维持水体
+			if _element_grid.has_fluid(target_pos):
 				_element_grid.mark_as_source(target_pos)
+			else:
+				var success: bool = _element_grid.set_fluid(target_pos, target_pos.y)
+				if success:
+					_element_grid.mark_as_source(target_pos)
+
+func _process_collectors() -> void:
+	for network: Dictionary in _cached_networks:
+		for collector: CollectorNode in network.collectors:
+			var collected: float = collector.try_collect(_element_grid)
+			if collected > 0.0:
+				EssencePool.add(collected)
 
 func _rebuild_networks() -> void:
 	_cached_networks.clear()

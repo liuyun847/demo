@@ -88,6 +88,7 @@ func _init() -> void:
 	_update_game_settings_path()
 
 func _ready() -> void:
+	BuildingTypeManager.register_defaults()
 	load_game_settings()
 
 func _get_config_file_path(file_name: String) -> String:
