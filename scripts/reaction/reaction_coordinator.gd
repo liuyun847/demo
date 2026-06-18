@@ -90,9 +90,6 @@ func _process_emitters() -> void:
 			if not EssencePool.has(emitter.essence_cost_per_tick):
 				continue
 
-			# 每次发射器运行时都消耗源质（运行成本）
-			EssencePool.subtract(emitter.essence_cost_per_tick)
-
 			# 目标格子已有流体时无需重复创建,仅重新标记为水源以维持水体
 			if _element_grid.has_fluid(target_pos):
 				_element_grid.mark_as_source(target_pos)
@@ -100,6 +97,8 @@ func _process_emitters() -> void:
 				var success: bool = _element_grid.set_fluid(target_pos, target_pos.y)
 				if success:
 					_element_grid.mark_as_source(target_pos)
+					# 仅在成功创建新流体时消耗源质
+					EssencePool.subtract(emitter.essence_cost_per_tick)
 
 func _process_collectors() -> void:
 	for network: Dictionary in _cached_networks:

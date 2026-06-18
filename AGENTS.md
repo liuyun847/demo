@@ -182,16 +182,3 @@ git add -A && git commit -m "feat: 你的改动说明"
 
 **验证**: 命令退出码 `exit_code == 0` 且 `save/test_output.xml` 中 `failures="0"` 即为全部通过。
 
-# 已修复的 Bug
-
-## 发射器不消耗源质（2025-06-17）
-
-- **症状**: 发射器只在第一次 tick 消耗源质，后续不再消耗
-- **根因**: `_process_emitters()` 中将源质消耗放在 `set_fluid()` 成功后才执行。首次发射后，目标格子被水体永久占据（扩散只向外扩展，不移除已有格子），后续 `set_fluid()` 始终返回 false，导致永远不会消耗源质，水源标记也无法持续刷新
-- **修复**: 将源质消耗移到 `set_fluid()` 之外，每次发射器运行时都消耗源质。目标格子已有流体时仅重新标记为水源，无需重复创建
-
-## 读档后喷口/收集器被替换为占位符（2025-06-17）
-
-- **症状**: 读档后喷口（type_03）显示为"占位-3"，收集器（type_07）显示为"占位-7"
-- **根因**: 初始化时序问题。`SaveManager._ready()` → `load_buildings()` 执行时，`BuildingTypeManager` 尚未注册任何建筑类型（注册在 `InventoryBar._init_default_types()` 中才完成），导致 `BuildingFactory` 调用 `is_emitter("type_03")` 返回 false，回退到占位符分支
-- **修复**: 在 [`BuildingTypeManager`](file:///c:/Users/MLTZ/Desktop/程序/godot/bili游戏大赛/demo/scripts/building/building_type_manager.gd) 添加 `register_defaults()` 静态方法，由 [`GameConfig._ready()`](file:///c:/Users/MLTZ/Desktop/程序/godot/bili游戏大赛/demo/scripts/autoload/game_config.gd#L90-L91)（第一个 autoload）在启动早期调用，确保 `SaveManager.load_buildings()` 执行时类型已就绪
