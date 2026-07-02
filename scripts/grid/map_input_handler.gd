@@ -25,6 +25,9 @@ func _ready() -> void:
 		inventory_bar = %InventoryBar as InventoryBar
 	if not ghost_preview and building_manager:
 		ghost_preview = building_manager.get_node_or_null("GhostPreviewManager") as GhostPreviewManager
+	if ghost_preview:
+		var ui_adapter: GhostUIAdapter = GhostUIAdapter.new(ghost_preview)
+		_state_machine.set_ui_adapter(ui_adapter)
 	if inventory_bar:
 		inventory_bar.slot_selected.connect(_on_slot_selected)
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
