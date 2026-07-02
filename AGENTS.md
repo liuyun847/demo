@@ -47,10 +47,11 @@ demo/
 │   ├── elements/                 # 元素系统（2 个 .gd）
 │   │   ├── element_registry.gd   #   [Autoload] 元素类型注册表
 │   │   └── element_type_data.gd  #   元素类型 Resource
-│   ├── grid/                     # 网格系统（4 个 .gd）
+│   ├── grid/                     # 网格系统（5 个 .gd）
 │   │   ├── grid_coordinate.gd    #   坐标转换工具类
 │   │   ├── grid_utils.gd         #   格子工具（直线/L 型）
 │   │   ├── input_state_machine.gd#   输入状态机（6 状态）
+│   │   ├── ghost_ui_adapter.gd   #   状态-UI 映射适配器
 │   │   └── map_input_handler.gd  #   地图输入处理器
 │   ├── reaction/                 # 模拟系统（4 个 .gd）
 │   │   ├── reaction_coordinator.gd  # 模拟协调器（Timer 驱动）
