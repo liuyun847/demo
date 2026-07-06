@@ -1,6 +1,8 @@
 class_name SaveManager
 extends Node
 
+const FileIOHelper := preload("res://scripts/utils/file_io_helper.gd")
+
 @onready var building_manager: BuildingManager = (
 	get_node("%BuildingManager") if has_node("%BuildingManager") else get_node("../BuildingManager")
 ) as BuildingManager
@@ -36,24 +38,7 @@ func save_buildings() -> void:
 		return
 
 	var save_dict := _build_save_dict()
-
-	var dir_path := GameConfig.save_file_path.get_base_dir()
-	var err := DirAccess.make_dir_recursive_absolute(dir_path)
-	if err != OK:
-		push_error("SaveManager: 无法创建存档目录: %s" % dir_path)
-		return
-
-	var temp_path := GameConfig.save_file_path + ".tmp"
-	var file := FileAccess.open(temp_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(save_dict, "\t"))
-		file.close()
-		var rename_err := DirAccess.rename_absolute(temp_path, GameConfig.save_file_path)
-		if rename_err != OK:
-			push_error("SaveManager: 无法重命名临时文件，错误码: %d" % rename_err)
-			DirAccess.remove_absolute(temp_path)
-	else:
-		push_error("SaveManager: 无法写入存档文件: %s" % GameConfig.save_file_path)
+	FileIOHelper.write_json_file(GameConfig.save_file_path, save_dict, "SaveManager")
 
 func _build_save_dict() -> Dictionary:
 	var save_dict := {
@@ -92,33 +77,22 @@ func load_buildings() -> void:
 		EventBus.buildings_loaded.emit()
 		return
 
-	var file := FileAccess.open(GameConfig.save_file_path, FileAccess.READ)
-	if not file:
-		push_error("SaveManager: 无法读取存档文件: %s" % GameConfig.save_file_path)
-		return
+	var result := FileIOHelper.read_json_file(
+		GameConfig.save_file_path,
+		"SaveManager",
+		GameConfig.SAVE_VERSION,
+		_on_save_version_mismatch
+	)
 
-	var content := file.get_as_text()
-	file.close()
-
-	var save_data: Dictionary = JSON.parse_string(content) as Dictionary
-	if save_data == null or not save_data is Dictionary:
-		push_error("SaveManager: 存档格式无效")
-		return
-
-	if not save_data.has("version"):
-		push_error("SaveManager: 存档缺少版本号")
-		return
-
-	if save_data.version != GameConfig.SAVE_VERSION:
-		push_warning("SaveManager: 存档版本不匹配，期望 %s，实际 %s" % [GameConfig.SAVE_VERSION, save_data.version])
-		var backup_path := GameConfig.save_file_path.replace(".json", "_v%s.json.bak" % save_data.version)
-		var backup_err := DirAccess.copy_absolute(GameConfig.save_file_path, backup_path)
-		if backup_err == OK:
-			push_warning("SaveManager: 已备份旧存档到: %s" % backup_path)
-		else:
-			push_warning("SaveManager: 无法备份旧存档（错误码: %d），将直接忽略" % backup_err)
+	if not result.success:
+		push_warning(result.error_message)
 		EventBus.buildings_loaded.emit()
 		return
+
+	if result.version_mismatch:
+		push_warning(result.error_message)
+
+	var save_data: Dictionary = result.data
 
 	if not building_manager:
 		push_error("SaveManager: 找不到 BuildingManager 节点")
@@ -155,6 +129,14 @@ func load_buildings() -> void:
 				building_manager.place_building(grid_pos, b_type, restore_data)
 
 	call_deferred("_finalize_loading")
+
+func _on_save_version_mismatch(data: Dictionary, file_path: String) -> void:
+	var backup_path := "%s_v%s.json.bak" % [file_path.get_basename(), data.version]
+	var backup_err := DirAccess.copy_absolute(file_path, backup_path)
+	if backup_err == OK:
+		push_warning("SaveManager: 已备份旧存档到: %s" % backup_path)
+	else:
+		push_warning("SaveManager: 无法备份旧存档（错误码: %d），将直接忽略" % backup_err)
 
 func _finalize_loading() -> void:
 	for grid_pos: Vector2i in building_manager.buildings.keys():

@@ -1,5 +1,7 @@
 extends Node
 
+const FileIOHelper := preload("res://scripts/utils/file_io_helper.gd")
+
 # 网格配置
 const cell_size: int = 64
 const big_cell_size: int = 10
@@ -112,21 +114,19 @@ func load_game_settings() -> void:
 	if not FileAccess.file_exists(game_settings_file_path):
 		return
 
-	var file := FileAccess.open(game_settings_file_path, FileAccess.READ)
-	if not file:
-		push_error("GameConfig: 无法读取游戏设置文件: %s" % game_settings_file_path)
-		return
+	# 游戏设置文件不验证版本号，兼容旧版无 version 字段的文件
+	var result := FileIOHelper.read_json_file(
+		game_settings_file_path,
+		"GameConfig"
+	)
 
-	var content := file.get_as_text()
-	file.close()
-
-	var data: Variant = JSON.parse_string(content)
-	if data == null or not data is Dictionary:
-		push_error("GameConfig: 游戏设置格式无效，使用默认值")
+	if not result.success:
+		push_warning(result.error_message)
 		zoom_speed = DEFAULT_ZOOM_SPEED
 		shift_speed_multiplier = DEFAULT_SHIFT_SPEED_MULTIPLIER
 		return
 
+	var data: Dictionary = result.data
 	var zoom_val: Variant = data.get("zoom_speed", DEFAULT_ZOOM_SPEED)
 	var shift_val: Variant = data.get("shift_speed_multiplier", DEFAULT_SHIFT_SPEED_MULTIPLIER)
 	zoom_speed = zoom_val if zoom_val is float or zoom_val is int else DEFAULT_ZOOM_SPEED
@@ -140,16 +140,5 @@ func save_game_settings() -> void:
 		"shift_speed_multiplier": shift_speed_multiplier,
 	}
 
-	var dir_path := game_settings_file_path.get_base_dir()
-	var dir_result := DirAccess.make_dir_recursive_absolute(dir_path)
-	if dir_result != OK:
-		push_error("GameConfig: 无法创建设置目录: %s (错误码: %d)" % [dir_path, dir_result])
-		return
-
-	var file := FileAccess.open(game_settings_file_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(settings_data, "\t"))
-		file.close()
-	else:
-		push_error("GameConfig: 无法写入游戏设置文件: %s" % game_settings_file_path)
+	FileIOHelper.write_json_file(game_settings_file_path, settings_data, "GameConfig")
 
