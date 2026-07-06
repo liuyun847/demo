@@ -1,5 +1,7 @@
 extends Node
 
+const FileIOHelper := preload("res://scripts/utils/file_io_helper.gd")
+
 const KEYBIND_VERSION: String = "1.0.0"
 
 const ACTION_CONFIGS: Dictionary = {
@@ -247,45 +249,27 @@ func save_keybindings() -> void:
 		if events.size() > 0:
 			keybind_data.keybindings[action] = [_serialize_event(events[0])]
 
-	var dir_path := GameConfig.keybind_file_path.get_base_dir()
-	var dir_err := DirAccess.make_dir_recursive_absolute(dir_path)
-	if dir_err != OK:
-		push_error("KeybindManager: 无法创建按键配置目录: %s (错误码: %d)" % [dir_path, dir_err])
-		return
-
-	var file := FileAccess.open(GameConfig.keybind_file_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(keybind_data, "\t"))
-		file.close()
-	else:
-		push_error("KeybindManager: 无法写入按键配置文件: %s" % GameConfig.keybind_file_path)
+	FileIOHelper.write_json_file(GameConfig.keybind_file_path, keybind_data, "KeybindManager")
 
 func load_keybindings() -> void:
 	if not FileAccess.file_exists(GameConfig.keybind_file_path):
 		return
 
-	var file := FileAccess.open(GameConfig.keybind_file_path, FileAccess.READ)
-	if not file:
-		push_error("KeybindManager: 无法读取按键配置文件: %s" % GameConfig.keybind_file_path)
-		return
+	var result := FileIOHelper.read_json_file(
+		GameConfig.keybind_file_path,
+		"KeybindManager",
+		KEYBIND_VERSION
+	)
 
-	var content := file.get_as_text()
-	file.close()
-
-	var data: Variant = JSON.parse_string(content)
-	if data == null or not data is Dictionary:
-		push_error("KeybindManager: 按键配置格式无效")
-		return
-
-	if not data.has("version"):
-		push_error("KeybindManager: 按键配置缺少版本号")
-		return
-
-	if str(data.version) != KEYBIND_VERSION:
-		push_warning("KeybindManager: 按键配置版本不匹配，期望 %s，实际 %s，回退默认值" % [KEYBIND_VERSION, data.version])
+	if not result.success:
+		push_warning(result.error_message)
 		_apply_default_keybindings()
 		return
 
+	if result.version_mismatch:
+		push_warning(result.error_message)
+
+	var data: Dictionary = result.data
 	if not data.has("keybindings") or not data.keybindings is Dictionary:
 		push_error("KeybindManager: 按键配置缺少 keybindings 字段")
 		return
