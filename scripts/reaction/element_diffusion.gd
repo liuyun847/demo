@@ -83,12 +83,20 @@ func _expand_body(element_grid: ElementGrid, body: WaterBody) -> void:
 
 	candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
 
+	var total_to_expand: int = min(candidates.size(), body.rate)
+	var cost_per_cell: float = GameConfig.emitter_essence_cost_per_tick
+	var total_cost: float = total_to_expand * cost_per_cell
+
+	if not EssencePool.has(total_cost):
+		return
+
 	var count: int = 0
 	for pos: Vector2i in candidates:
-		if count >= body.rate:
+		if count >= total_to_expand:
 			break
-		element_grid.set_fluid(pos, body.min_source_y)
-		count += 1
+		if element_grid.set_fluid(pos, body.min_source_y):
+			EssencePool.subtract(cost_per_cell)
+			count += 1
 
 # 断开连接的水体：逐 tick 逐渐缩小直至消失
 func _shrink_body(element_grid: ElementGrid, body: WaterBody) -> void:
