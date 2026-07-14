@@ -51,6 +51,9 @@ func _on_paste_mode_changed(_active: bool) -> void:
 	_cancel_all_dragging()
 
 func _cancel_all_dragging() -> void:
+	if is_instance_valid(_current_emitter_panel):
+		_current_emitter_panel.queue_free()
+		_current_emitter_panel = null
 	if ghost_preview:
 		ghost_preview.clear_paste_preview()
 		ghost_preview.hide_emitter_ghost_direction()
@@ -265,7 +268,10 @@ func _open_emitter_type_panel(emitter_node: EmitterNode) -> void:
 
 	var panel: Control = EMITTER_PANEL_SCENE.instantiate()
 	panel.target_emitter = emitter_node
-	var ui_overlay := get_node("../UIOverlay")
+	var ui_overlay := get_node_or_null("../UIOverlay")
+	if ui_overlay == null:
+		panel.queue_free()
+		return
 	ui_overlay.add_child(panel)
 	_current_emitter_panel = panel
 
@@ -309,10 +315,13 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 			cmd.buildings = placed
 			SelectionManager.push_undo_command(cmd)
 			if BuildingTypeManager.is_emitter(building_type):
+				var last_emitter: EmitterNode = null
 				for cell: Vector2i in placed.keys():
 					var placed_node := building_manager.get_building_node(cell)
 					if placed_node is EmitterNode:
-						placed_node.set_element_type("water")
+						last_emitter = placed_node
+				if last_emitter:
+					_open_emitter_type_panel(last_emitter)
 		_state_machine.transition_to(InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
@@ -359,6 +368,12 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 
 func _handle_selection_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.is_action("place_building") and event.pressed:
+		if building_manager.has_building(grid_pos):
+			var node := building_manager.get_building_node(grid_pos)
+			if node is EmitterNode:
+				_open_emitter_type_panel(node)
+				viewport.set_input_as_handled()
+				return
 		_state_machine.transition_to(InputStateMachine.State.SELECTING, {
 			"start_grid": grid_pos,
 			"building_manager": building_manager,

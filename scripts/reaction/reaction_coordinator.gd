@@ -9,11 +9,26 @@ var _cached_networks: Array[Dictionary] = []
 
 var _element_grid: ElementGrid = null
 var _element_diffusion: ElementDiffusion = null
+var _reaction_registry: ReactionRegistry = null
+var _reaction_processor: ReactionProcessor = null
 
 var _paused: bool = false
 
+## 源质服务（依赖注入），未注入时回退到全局 EssencePool
+var _essence_service: Variant = null
+
 func init(building_manager: BuildingManager) -> void:
 	_building_manager = building_manager
+
+## 注入源质服务（用于测试解耦）
+func set_essence_service(service: Variant) -> void:
+	_essence_service = service
+
+## 获取源质服务，未注入时回退到全局 EssencePool
+func _get_essence() -> Variant:
+	if _essence_service == null:
+		return EssencePool
+	return _essence_service
 
 func _ready() -> void:
 	EventBus.building_placed.connect(_on_building_placed)
@@ -30,7 +45,13 @@ func _ready() -> void:
 	add_child(_element_grid)
 
 	_element_diffusion = ElementDiffusion.new()
+	_element_diffusion.set_essence_service(_get_essence())
 	add_child(_element_diffusion)
+
+	# 反应系统
+	_reaction_registry = ReactionRegistry.new()
+	_register_default_reactions()
+	_reaction_processor = ReactionProcessor.new(_reaction_registry, _element_grid, _get_essence())
 
 func _exit_tree() -> void:
 	if EventBus.building_placed.is_connected(_on_building_placed):
@@ -43,9 +64,9 @@ func _exit_tree() -> void:
 func _on_building_placed(grid_pos: Vector2i) -> void:
 	_dirty = true
 	_cached_networks.clear()
-	# 清除放置位置的水，防止建筑建在水体上
-	if _element_grid.has_fluid(grid_pos):
-		_element_grid.remove_fluid(grid_pos)
+	# 清除放置位置的元素，防止建筑建在元素上
+	if _element_grid.has_element(grid_pos):
+		_element_grid.remove_element(grid_pos)
 
 func _on_building_removed(_grid_pos: Vector2i) -> void:
 	_dirty = true
@@ -71,13 +92,19 @@ func _on_tick() -> void:
 		_rebuild_networks()
 		_dirty = false
 
+	# 递减反应产物存续计时器
+	_element_grid.tick_products()
+
 	_process_emitters()
 
 	_element_diffusion.diffuse_all(_element_grid)
 
+	_reaction_processor.process_all()
+
 	_process_collectors()
 
 func _process_emitters() -> void:
+	var es: Variant = _get_essence()
 	for network: Dictionary in _cached_networks:
 		for emitter: EmitterNode in network.emitters:
 			if not emitter.has_type_selected():
@@ -87,25 +114,27 @@ func _process_emitters() -> void:
 			if _element_grid.is_building_at(target_pos):
 				continue
 
-			if not EssencePool.has(emitter.essence_cost_per_tick):
-				continue
-
-			# 目标格子已有流体时无需重复创建,仅重新标记为水源以维持水体
-			if _element_grid.has_fluid(target_pos):
-				_element_grid.mark_as_source(target_pos)
+			# 目标格子已有元素时无需重复创建,仅重新标记为水源以维持水体
+			if _element_grid.has_element(target_pos):
+				# 仅当元素类型匹配时才标记为水源（防止异类元素被错误标记）
+				if _element_grid.get_element_id(target_pos) == emitter.element_type_id:
+					_element_grid.mark_as_source(target_pos)
 			else:
-				var success: bool = _element_grid.set_fluid(target_pos, target_pos.y)
+				# 创建新元素需要消耗源质，源质不足时跳过
+				if not es.has(emitter.essence_cost_per_tick):
+					continue
+				var success: bool = _element_grid.set_element(target_pos, emitter.element_type_id, target_pos.y)
 				if success:
 					_element_grid.mark_as_source(target_pos)
-					# 仅在成功创建新流体时消耗源质
-					EssencePool.subtract(emitter.essence_cost_per_tick)
+					es.subtract(emitter.essence_cost_per_tick)
 
 func _process_collectors() -> void:
+	var es: Variant = _get_essence()
 	for network: Dictionary in _cached_networks:
 		for collector: CollectorNode in network.collectors:
 			var collected: float = collector.try_collect(_element_grid)
 			if collected > 0.0:
-				EssencePool.add(collected)
+				es.add(collected)
 
 func _rebuild_networks() -> void:
 	_cached_networks.clear()
@@ -208,3 +237,8 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 		"emitters": emitters,
 		"collectors": collectors,
 	}
+
+## 注册默认反应规则
+func _register_default_reactions() -> void:
+	# 水 + 火 → 蒸汽 + 副产物源质
+	_reaction_registry.register("water", "fire", "steam", 1.0)

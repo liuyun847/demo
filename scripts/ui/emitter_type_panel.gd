@@ -5,7 +5,10 @@ var target_emitter: EmitterNode = null
 
 const OFFSET_Y: float = -20.0
 
-@onready var _water_btn: Button = $Panel/VBoxContainer/WaterButton
+## 存储动态创建的按钮: {element_id: Button}
+var _buttons: Dictionary = {}
+
+@onready var _vbox: VBoxContainer = $Panel/VBoxContainer
 
 func _ready() -> void:
 	if not is_instance_valid(target_emitter):
@@ -13,12 +16,37 @@ func _ready() -> void:
 		return
 
 	EventBus.emitter_type_panel_opened.emit()
+	_create_buttons()
 	_update_selection_highlight()
-
-	_water_btn.pressed.connect(_on_type_selected.bind("water"))
 
 func _exit_tree() -> void:
 	EventBus.emitter_type_panel_closed.emit()
+
+## 根据 ElementRegistry 动态创建按钮
+func _create_buttons() -> void:
+	# 仅清除已有的 Button 子节点（保留 TitleLabel、HSeparator 等非按钮节点）
+	for child: Node in _vbox.get_children():
+		if child is Button:
+			child.queue_free()
+	_buttons.clear()
+
+	var all_types: Dictionary = ElementRegistry.get_all_element_types()
+	for element_id: String in all_types:
+		var type_data: ElementTypeData = all_types[element_id]
+		var btn := Button.new()
+		btn.text = type_data.display_name
+		btn.custom_minimum_size = Vector2(120, 32)
+
+		# 使用元素颜色作为按钮背景提示
+		var style := StyleBoxFlat.new()
+		style.bg_color = type_data.color
+		style.bg_color.a = 0.3
+		style.set_corner_radius_all(4)
+		btn.add_theme_stylebox_override("normal", style)
+
+		btn.pressed.connect(_on_type_selected.bind(element_id))
+		_vbox.add_child(btn)
+		_buttons[element_id] = btn
 
 func _on_type_selected(type_id: String) -> void:
 	if not is_instance_valid(target_emitter):
@@ -59,11 +87,11 @@ func _gui_input(event: InputEvent) -> void:
 			queue_free()
 			accept_event()
 
+## 高亮当前选中的元素按钮
 func _update_selection_highlight() -> void:
 	var selected: String = target_emitter.element_type_id
-	var buttons := {"water": _water_btn}
-	for type_id: String in buttons.keys():
-		var btn: Button = buttons[type_id]
+	for type_id: String in _buttons.keys():
+		var btn: Button = _buttons[type_id]
 		var is_selected: bool = type_id == selected
 		var style: StyleBoxFlat = btn.get_theme_stylebox("normal") as StyleBoxFlat
 		if style:

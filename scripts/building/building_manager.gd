@@ -7,6 +7,9 @@ var network_pipes: Array[PipeNode] = []
 
 var core_node: CoreNode = null  # 地图中心的核心节点
 
+## 源质服务（依赖注入），未注入时回退到全局 EssencePool
+var _essence_service: Variant = null
+
 # 核心占据的 2x2 格子（从 -1,-1 到 0,0，以地图原点 (0,0) 为中心）
 const CORE_CELLS: Array[Vector2i] = [
 	Vector2i(-1, -1),
@@ -62,11 +65,22 @@ func _init_reaction_coordinator() -> void:
 	if coordinator == null:
 		return
 	coordinator.name = "ReactionCoordinator"
-	coordinator.init(self )
+	coordinator.init(self)
+	coordinator.set_essence_service(_get_essence())
 	add_child(coordinator)
 
 func has_building(grid_pos: Vector2i) -> bool:
 	return buildings.has(grid_pos)
+
+## 注入源质服务（用于测试解耦）
+func set_essence_service(service: Variant) -> void:
+	_essence_service = service
+
+## 获取源质服务，未注入时回退到全局 EssencePool
+func _get_essence() -> Variant:
+	if _essence_service == null:
+		return EssencePool
+	return _essence_service
 
 func place_building(grid_pos: Vector2i, building_type: String = "default", restore_data: Dictionary = {}) -> bool:
 	if has_building(grid_pos):
@@ -78,9 +92,10 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 
 	var cost: float = GameConfig.building_essence_costs.get(building_type, 0.0)
 	if cost > 0.0 and restore_data.is_empty():
-		if not EssencePool.has(cost):
+		var es: Variant = _get_essence()
+		if not es.has(cost):
 			return false
-		EssencePool.subtract(cost)
+		es.subtract(cost)
 
 	var data := BuildingData.new()
 	data.grid_position = grid_pos

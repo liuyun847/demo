@@ -4,7 +4,7 @@ func test_building_type_constants() -> void:
 	assert_eq(GameConfig.core_type_id, "type_00", "core_type_id 应为 type_00")
 	assert_eq(GameConfig.pipe_type_id, "type_02", "pipe_type_id 应为 type_02")
 
-func test_fluid_config_constants() -> void:
+func test_simulation_config_constants() -> void:
 	assert_eq(GameConfig.simulation_tick_interval, 0.2, "simulation_tick_interval 应为 0.2")
 
 func test_save_and_load_settings() -> void:

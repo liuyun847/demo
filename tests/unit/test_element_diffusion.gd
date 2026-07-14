@@ -54,58 +54,58 @@ func after_each() -> void:
 
 func test_without_source_vanishes() -> void:
 	var pos := _O + Vector2i(0, 0)
-	_grid.set_fluid(pos, pos.y)
+	_grid.set_element(pos, "water", pos.y)
 
 	_diffusion.diffuse_all(_grid)
 
-	var count: int = _grid.get_all_fluid_positions().size()
+	var count: int = _grid.get_all_element_positions().size()
 	assert_eq(count, 0, "无源水体应逐渐缩小直至消失")
 
 func test_with_source_does_not_lose_source_cell() -> void:
 	var pos := _O + Vector2i(0, 0)
-	_grid.set_fluid(pos, pos.y)
+	_grid.set_element(pos, "water", pos.y)
 	_grid.mark_as_source(pos)
 
 	_diffusion.diffuse_all(_grid)
 
-	assert_true(_grid.has_fluid(pos), "有源水体水源格应保留")
+	assert_true(_grid.has_element(pos), "有源水体水源格应保留")
 
 func test_with_source_expands_downward() -> void:
 	var pos := _O + Vector2i(0, 0)
-	_grid.set_fluid(pos, pos.y)
+	_grid.set_element(pos, "water", pos.y)
 	_grid.mark_as_source(pos)
 
 	_diffusion.diffuse_all(_grid)
 
-	assert_true(_grid.has_fluid(_O + Vector2i(0, 1)), "优先向下方扩张")
+	assert_true(_grid.has_element(_O + Vector2i(0, 1)), "优先向下方扩张")
 
 func test_with_source_expands_downward_multiple_ticks() -> void:
 	var pos := _O + Vector2i(0, 0)
-	_grid.set_fluid(pos, pos.y)
+	_grid.set_element(pos, "water", pos.y)
 	_grid.mark_as_source(pos)
 
 	for _i in range(3):
 		_diffusion.diffuse_all(_grid)
 
-	assert_true(_grid.has_fluid(_O + Vector2i(0, 3)), "3 tick 后应扩张到 Y=3")
-	assert_eq(_grid.get_all_fluid_positions().size(), 4, "水源格 + 3 次扩张 = 4 格")
+	assert_true(_grid.has_element(_O + Vector2i(0, 3)), "3 tick 后应扩张到 Y=3")
+	assert_eq(_grid.get_all_element_positions().size(), 4, "水源格 + 3 次扩张 = 4 格")
 
 func test_spreads_sideways_when_blocked_below() -> void:
 	var pos := _O + Vector2i(1, 0)
-	_grid.set_fluid(pos, pos.y)
+	_grid.set_element(pos, "water", pos.y)
 	_grid.mark_as_source(pos)
 	_bm.place_building(_O + Vector2i(1, 1), GameConfig.brick_type_id)
 
 	_diffusion.diffuse_all(_grid)
 
-	assert_true(_grid.has_fluid(pos), "水源格应保留")
+	assert_true(_grid.has_element(pos), "水源格应保留")
 	assert_true(
-		_grid.has_fluid(_O + Vector2i(0, 0)) or _grid.has_fluid(_O + Vector2i(2, 0)),
+		_grid.has_element(_O + Vector2i(0, 0)) or _grid.has_element(_O + Vector2i(2, 0)),
 		"正下方被堵时侧边应扩张")
 
 func test_stays_when_trapped_below_source() -> void:
 	var pos := _O + Vector2i(2, 0)
-	_grid.set_fluid(pos, pos.y)
+	_grid.set_element(pos, "water", pos.y)
 	_grid.mark_as_source(pos)
 	_bm.place_building(_O + Vector2i(2, 1), GameConfig.brick_type_id)
 	_bm.place_building(_O + Vector2i(1, 0), GameConfig.brick_type_id)
@@ -113,29 +113,29 @@ func test_stays_when_trapped_below_source() -> void:
 
 	_diffusion.diffuse_all(_grid)
 
-	assert_true(_grid.has_fluid(pos), "被困时水源格应保留")
-	assert_eq(_grid.get_all_fluid_positions().size(), 1, "被困时不应扩张出新的水格")
+	assert_true(_grid.has_element(pos), "被困时水源格应保留")
+	assert_eq(_grid.get_all_element_positions().size(), 1, "被困时不应扩张出新的水格")
 
 func test_multiple_sources_expand_faster() -> void:
 	var pos_a := _O + Vector2i(0, 0)
 	var pos_b := _O + Vector2i(0, 1)
-	_grid.set_fluid(pos_a, pos_a.y)
+	_grid.set_element(pos_a, "water", pos_a.y)
 	_grid.mark_as_source(pos_a)
-	_grid.set_fluid(pos_b, pos_b.y)
+	_grid.set_element(pos_b, "water", pos_b.y)
 	_grid.mark_as_source(pos_b)
 
 	_diffusion.diffuse_all(_grid)
 
-	assert_eq(_grid.get_all_fluid_positions().size(), 4, "双水源应一次扩张 2 格")
+	assert_eq(_grid.get_all_element_positions().size(), 4, "双水源应一次扩张 2 格")
 
 func test_adjacent_sources_form_single_body() -> void:
 	var pos_a := _O + Vector2i(0, 0)
 	var pos_b := _O + Vector2i(1, 0)
-	_grid.set_fluid(pos_a, pos_a.y)
+	_grid.set_element(pos_a, "water", pos_a.y)
 	_grid.mark_as_source(pos_a)
-	_grid.set_fluid(pos_b, pos_b.y)
+	_grid.set_element(pos_b, "water", pos_b.y)
 	_grid.mark_as_source(pos_b)
 
 	_diffusion.diffuse_all(_grid)
 
-	assert_eq(_grid.get_all_fluid_positions().size(), 4, "相邻两源形成合并水体，一次扩张 2 格 = 4 格总和")
+	assert_eq(_grid.get_all_element_positions().size(), 4, "相邻两源形成合并水体，一次扩张 2 格 = 4 格总和")

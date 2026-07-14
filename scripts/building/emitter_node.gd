@@ -5,8 +5,12 @@ var element_type_id: String = "water"
 var output_direction: Vector2i = Vector2i(0, 1)
 var essence_cost_per_tick: float = GameConfig.emitter_essence_cost_per_tick
 
+## 元素类型是否已确认。放置后等待用户选择，确认后才开始发射。
+var _type_confirmed: bool = false
+
 func set_element_type(type_id: String) -> void:
 	element_type_id = type_id
+	_type_confirmed = true
 	queue_redraw()
 
 func set_output_direction(dir: Vector2i) -> void:
@@ -14,7 +18,7 @@ func set_output_direction(dir: Vector2i) -> void:
 	queue_redraw()
 
 func has_type_selected() -> bool:
-	return true
+	return _type_confirmed
 
 
 func _draw() -> void:

@@ -17,7 +17,12 @@ func before_each() -> void:
 
 func test_emitter_default_water() -> void:
 	assert_eq(_emitter.element_type_id, "water", "默认 element_type_id 应为 water")
-	assert_true(_emitter.has_type_selected(), "has_type_selected 应返回 true")
+	assert_false(_emitter.has_type_selected(), "未确认类型前 has_type_selected 应返回 false")
+
+func test_emitter_type_confirmed_after_set() -> void:
+	_emitter.set_element_type("fire")
+	assert_true(_emitter.has_type_selected(), "set_element_type 后 has_type_selected 应返回 true")
+	assert_eq(_emitter.element_type_id, "fire", "element_type_id 应为 fire")
 
 func test_emitter_has_required_properties() -> void:
 	assert_eq(_emitter.element_type_id, "water", "默认应为 water")
