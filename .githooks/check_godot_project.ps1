@@ -212,10 +212,11 @@ function Format-Output {
 # 0/4 BOM 检测（防止 UTF-8 BOM 导致 Godot 场景/脚本解析失败）
 Write-Host "`n0/4 BOM detection..."
 $bomFiles = @()
-$textExtensions = @('.gd', '.tscn', '.tres', '.cfg', '.import')
+$textExtensions = @('.gd', '.tscn', '.tres', '.cfg', '.import', '.gdshader')
 $allTextFiles = Get-ChildItem -Path $ProjectPath -Recurse -File | Where-Object {
     $textExtensions -contains $_.Extension -and
     $_.FullName -notmatch "\\.[\\/]git[\\/]" -and
+    $_.FullName -notmatch "\\.[\\/]godot[\\/]" -and
     $_.FullName -notmatch "addons[\\/]"
 }
 foreach ($file in $allTextFiles) {
