@@ -13,6 +13,13 @@ trap cleanup EXIT
 
 cd "$PROJECT_DIR" || exit 1
 
+# ── 步骤 0：刷新 Godot 导入缓存 ────────────────────────
+echo "=== [pre-commit] 0/2 刷新 Godot 导入缓存 ==="
+
+"$GODOT" --headless --path "$PROJECT_DIR" --import > /dev/null 2>&1
+
+echo "=== [pre-commit] ✅ 导入缓存已刷新 ==="
+
 # ── 步骤 1：Godot 项目错误检查（godot-debug）───────────
 echo "=== [pre-commit] 1/2 Godot 项目错误检查（godot-debug）==="
 
