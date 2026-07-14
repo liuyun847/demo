@@ -12,7 +12,8 @@ func after_each() -> void:
 
 func test_default_elements_registered() -> void:
 	assert_not_null(_registry.get_element_type("water"), "water 元素应已注册")
-	assert_null(_registry.get_element_type("fire"), "fire 元素不应存在于默认注册中")
+	assert_not_null(_registry.get_element_type("fire"), "fire 元素应已注册")
+	assert_not_null(_registry.get_element_type("steam"), "steam 元素应已注册")
 	assert_null(_registry.get_element_type("earth"), "earth 元素不应存在于默认注册中")
 	assert_null(_registry.get_element_type("lava"), "lava 元素不应存在于默认注册中")
 	assert_null(_registry.get_element_type("rock"), "rock 元素不应存在于默认注册中")

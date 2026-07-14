@@ -236,7 +236,7 @@ func test_clear_all_buildings_silent_removes_all_buildings() -> void:
 	assert_eq(_bm.get_all_buildings_data().size(), 4, "clear_all_buildings_silent 后只剩核心的 4 个格子")
 
 
-func test_clear_all_buildings_silent_clears_fluid_lists() -> void:
+func test_clear_all_buildings_silent_clears_pipe_lists() -> void:
 	_bm.place_building(Vector2i(5, 5), GameConfig.pipe_type_id)
 	_bm.clear_all_buildings_silent()
 	assert_true(_bm.network_pipes.is_empty(), "clear_all_buildings_silent 后 network_pipes 应为空")

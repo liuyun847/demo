@@ -23,7 +23,7 @@ demo/
 │   └── pre-commit
 ├── addons/
 │   └── gut/                      # GUT 测试框架
-├── scripts/                      # 源码（44 个 .gd 文件）
+├── scripts/                      # 源码（46 个 .gd 文件）
 │   ├── autoload/                 # Autoload 单例（6 个）
 │   │   ├── game_config.gd        #   游戏配置与常量
 │   │   ├── event_bus.gd          #   事件总线
@@ -53,9 +53,11 @@ demo/
 │   │   ├── input_state_machine.gd#   输入状态机（6 状态）
 │   │   ├── ghost_ui_adapter.gd   #   状态-UI 映射适配器
 │   │   └── map_input_handler.gd  #   地图输入处理器
-│   ├── reaction/                 # 模拟系统（4 个 .gd）
+│   ├── reaction/                 # 模拟系统（6 个 .gd）
 │   │   ├── reaction_coordinator.gd  # 模拟协调器（Timer 驱动）
-│   │   ├── element_grid.gd       #   流体格子数据
+│   │   ├── reaction_registry.gd  #   反应规则注册与查询
+│   │   ├── reaction_processor.gd #   每 tick 检测相邻格子反应并执行
+│   │   ├── element_grid.gd       #   流体格子数据（含产物存续计时器）
 │   │   ├── element_diffusion.gd  #   水体扩散/收缩算法
 │   │   └── element_renderer.gd   #   流体批量渲染
 │   ├── ui/                       # UI 组件（6 个 .gd）
@@ -83,7 +85,7 @@ demo/
 │   ├── building_tooltip.tscn / emitter_type_panel.tscn
 ├── resources/                    # 图标资源（8 个 .svg）
 ├── save/                         # 运行时存档（gitignore）
-├── tests/                        # GUT 测试（30 unit + 3 integration）
+├── tests/                        # GUT 测试（32 unit + 3 integration）
 │   ├── unit/                     #   单元测试
 │   └── integration/              #   集成测试
 ├── project.godot
@@ -127,8 +129,9 @@ Root (Node2D) → main.gd
 - **幽灵预览**: GhostPreviewManager 维护多组预览数组（ghost/selected/paste/remove），`_draw()` 统一渲染
 - **建筑系统**: 4 种建筑（管道/发射器/收集器/砖块）+ 地图中心核心，通过 BuildingFactory 创建，ECS-Lite 管道批量渲染
 - **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心开始搜索），每 tick 执行发射→扩散→收集流程。只有连通到核心的管道网络才能激活发射器/收集器
-- **元素系统**: 仅水元素（注册表 + Resource 类型定义），重力驱动扩散（下落 + 填充），水源标记维持水体连续
-- **源质经济**: EssencePool 管理货币，ProgressSystem 按阈值解锁建筑类型
+- **元素系统**: 水/火/蒸汽三种元素（注册表 + Resource 类型定义），按状态差异化扩散（液体向下、气体向上、固体不动），反应产物存续标记防止瞬间消失
+- **反应系统**: ReactionRegistry 注册反应规则（无序匹配），ReactionProcessor 每 tick 检测相邻格子反应，密度决定产物位置
+- **源质经济**: EssencePool 管理货币，ProgressSystem 按阈值解锁建筑类型。BuildingManager/ReactionCoordinator/ElementDiffusion/ReactionProcessor 通过依赖注入（`_essence_service` + `set_essence_service()`）解耦全局单例，未注入时回退到 EssencePool，支持测试隔离
 - **框选与剪贴板**: 选中 → Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z/Y 撤销/重做（栈上限 100），粘贴支持旋转和拖拽
 - **持久化**: 建筑/按键/设置自动保存到 save/ 目录，启动时加载
 - **可视化**: 管道 ECS 批量渲染（PackedVector2Array）、流体批量渲染、无限网格分块渲染

@@ -12,7 +12,7 @@ func try_collect(element_grid: ElementGrid) -> float:
 			if dx == 0 and dy == 0:
 				continue
 			var check_pos: Vector2i = grid_position + Vector2i(dx, dy)
-			if not element_grid.has_fluid(check_pos):
+			if not element_grid.has_element(check_pos):
 				continue
 			if element_grid.is_building_at(check_pos):
 				continue
@@ -20,7 +20,7 @@ func try_collect(element_grid: ElementGrid) -> float:
 			cells_to_collect.append(check_pos)
 
 	for pos: Vector2i in cells_to_collect:
-		element_grid.remove_fluid(pos)
+		element_grid.remove_element(pos)
 
 	return total_essence
 
