@@ -209,8 +209,34 @@ function Format-Output {
     return $Lines
 }
 
-# 1/3 项目级静态检查（编辑器模式 + --verbose 可选）
-Write-Host "`n1/3 Project static checking (editor mode)..."
+# 0/4 BOM 检测（防止 UTF-8 BOM 导致 Godot 场景/脚本解析失败）
+Write-Host "`n0/4 BOM detection..."
+$bomFiles = @()
+$textExtensions = @('.gd', '.tscn', '.tres', '.cfg', '.import')
+$allTextFiles = Get-ChildItem -Path $ProjectPath -Recurse -File | Where-Object {
+    $textExtensions -contains $_.Extension -and
+    $_.FullName -notmatch "\\.[\\/]git[\\/]" -and
+    $_.FullName -notmatch "addons[\\/]"
+}
+foreach ($file in $allTextFiles) {
+    $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        $relPath = $file.FullName.Substring($ProjectPath.Length).TrimStart('/', '\')
+        $bomFiles += $relPath
+    }
+}
+if ($bomFiles.Count -gt 0) {
+    Write-Host "  Found $($bomFiles.Count) file(s) with UTF-8 BOM:" -ForegroundColor Red
+    foreach ($f in $bomFiles) {
+        Write-Host "    $f" -ForegroundColor Red
+    }
+    Write-Host "`n  Fix: Remove BOM from these files (use UTF-8 without BOM)" -ForegroundColor Yellow
+    exit 1
+}
+Write-Host "  No BOM detected" -ForegroundColor Green
+
+# 1/4 项目级静态检查（编辑器模式 + --verbose 可选）
+Write-Host "`n1/4 Project static checking (editor mode)..."
 $projectArgs = @(
     "--path", $ProjectPath,
     "--editor",
@@ -222,8 +248,8 @@ if ($projectResult.TimedOut) { Write-Host "  Timed out after 10 seconds" -Foregr
 $staticProjectErrors = @(Filter-Errors $projectResult.Lines | Sort-Object -Unique)
 Format-Output $staticProjectErrors "Project static"
 
-# 2/3 逐文件静态语法检查（补充捕获编辑器模式可能遗漏的文件，过滤 autoload 误报，加上 --debug 以获取警告）
-Write-Host "`n2/3 Per-file static syntax checking..."
+# 2/4 逐文件静态语法检查（补充捕获编辑器模式可能遗漏的文件，过滤 autoload 误报，加上 --debug 以获取警告）
+Write-Host "`n2/4 Per-file static syntax checking..."
 $gdFiles = Get-ChildItem -Path $ProjectPath -Filter "*.gd" -Recurse -File | Where-Object {
     $_.FullName -notmatch "\\.[\\/]git[\\/]" -and $_.FullName -notmatch "addons[\\/]"
 }
@@ -278,8 +304,8 @@ else {
     Write-Host "  No .gd files found" -ForegroundColor Yellow
 }
 
-# 3/3 运行时错误检查
-Write-Host "`n3/3 Runtime error checking..."
+# 3/4 运行时错误检查
+Write-Host "`n3/4 Runtime error checking..."
 $runtimeArgs = @(
     "--path", $ProjectPath,
     "--headless",
