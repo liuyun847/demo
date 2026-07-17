@@ -22,32 +22,32 @@ func test_world_to_grid_negative() -> void:
 	assert_eq(result, Vector2i(-1, -2), "负坐标应向下取整")
 
 func test_world_to_grid_boundary() -> void:
-	var result: Vector2i = GridCoordinate.world_to_grid(Vector2(GameConfig.cell_size - 1, GameConfig.cell_size - 1))
+	var result: Vector2i = GridCoordinate.world_to_grid(Vector2(GameConfig.CELL_SIZE - 1, GameConfig.CELL_SIZE - 1))
 	assert_eq(result, Vector2i(0, 0), "边界内一点应仍属于 (0, 0)")
 
 func test_world_to_grid_exact() -> void:
-	var result: Vector2i = GridCoordinate.world_to_grid(Vector2(GameConfig.cell_size, GameConfig.cell_size))
+	var result: Vector2i = GridCoordinate.world_to_grid(Vector2(GameConfig.CELL_SIZE, GameConfig.CELL_SIZE))
 	assert_eq(result, Vector2i(1, 1), "恰好到达边界应映射到 (1, 1)")
 
 func test_grid_to_world_basic() -> void:
 	var result: Vector2 = GridCoordinate.grid_to_world(Vector2i(0, 0))
-	var half_size: float = GameConfig.building_size / 2.0
-	var expected_x: float = GameConfig.building_border + half_size
-	var expected_y: float = GameConfig.building_border + half_size
+	var half_size: float = GameConfig.BUILDING_SIZE / 2.0
+	var expected_x: float = GameConfig.BUILDING_BORDER + half_size
+	var expected_y: float = GameConfig.BUILDING_BORDER + half_size
 	assert_eq(result, Vector2(expected_x, expected_y), "(0, 0) 应映射到正确的世界坐标")
 
 func test_grid_to_world_positive() -> void:
 	var result: Vector2 = GridCoordinate.grid_to_world(Vector2i(2, 3))
-	var half_size: float = GameConfig.building_size / 2.0
-	var expected_x: float = 2 * GameConfig.cell_size + GameConfig.building_border + half_size
-	var expected_y: float = 3 * GameConfig.cell_size + GameConfig.building_border + half_size
+	var half_size: float = GameConfig.BUILDING_SIZE / 2.0
+	var expected_x: float = 2 * GameConfig.CELL_SIZE + GameConfig.BUILDING_BORDER + half_size
+	var expected_y: float = 3 * GameConfig.CELL_SIZE + GameConfig.BUILDING_BORDER + half_size
 	assert_eq(result, Vector2(expected_x, expected_y), "(2, 3) 应映射到正确的世界坐标")
 
 func test_grid_to_world_negative() -> void:
 	var result: Vector2 = GridCoordinate.grid_to_world(Vector2i(-1, -2))
-	var half_size: float = GameConfig.building_size / 2.0
-	var expected_x: float = -1 * GameConfig.cell_size + GameConfig.building_border + half_size
-	var expected_y: float = -2 * GameConfig.cell_size + GameConfig.building_border + half_size
+	var half_size: float = GameConfig.BUILDING_SIZE / 2.0
+	var expected_x: float = -1 * GameConfig.CELL_SIZE + GameConfig.BUILDING_BORDER + half_size
+	var expected_y: float = -2 * GameConfig.CELL_SIZE + GameConfig.BUILDING_BORDER + half_size
 	assert_eq(result, Vector2(expected_x, expected_y), "负网格坐标应映射到正确的世界坐标")
 
 func test_world_to_grid_roundtrip() -> void:

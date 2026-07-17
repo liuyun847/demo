@@ -292,6 +292,11 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 	EventBus.selection_changed.emit(_get_selected_cells_array())
 
 func undo() -> void:
+	## 撤销：从 undo 栈弹出命令并逆向执行，然后压入 redo 栈。
+	## 已知限制：先 pop_back 再执行 reverse，若 reverse 运行时异常，
+	## append 不会执行，命令将丢失。当前选择接受此风险（注释说明而非修复），
+	## 理由：reverse 仅调用 building_manager 的 place/remove，这些方法已有自身校验；
+	## 且早期原型阶段，运行时异常应通过日志暴露而非静默吞掉。
 	if undo_stack.is_empty():
 		return
 	var building_manager := _get_building_manager()
@@ -302,6 +307,8 @@ func undo() -> void:
 	redo_stack.append(cmd)
 
 func redo() -> void:
+	## 重做：从 redo 栈弹出命令并正向执行，然后压入 undo 栈。
+	## 与 undo 同理，先 pop 后执行，运行时异常会导致命令丢失（已接受此风险）。
 	if redo_stack.is_empty():
 		return
 	var building_manager := _get_building_manager()

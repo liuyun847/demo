@@ -34,15 +34,15 @@ func diffuse_all(element_grid: ElementGrid) -> void:
 			continue
 
 		match type_data.state:
-			"solid":
+			ElementTypeData.State.SOLID:
 				# 固体不扩散也不收缩
 				continue
-			"gas":
+			ElementTypeData.State.GAS:
 				if body.has_source:
 					_expand_body(element_grid, body, true)
 				else:
 					_shrink_body(element_grid, body, true)
-			_:  # liquid 及其他默认为液体行为
+			_:  # LIQUID 及其他默认为液体行为
 				if body.has_source:
 					_expand_body(element_grid, body, false)
 				else:
@@ -62,7 +62,7 @@ func _detect_element_bodies(element_grid: ElementGrid) -> Array[ElementBody]:
 		body.cells = []
 		body.element_id = element_id
 		body.has_source = false
-		body.min_source_y = 999999
+		body.min_source_y = GameConfig.SOURCE_Y_SENTINEL
 		body.rate = 1
 
 		var queue: Array[Vector2i] = []
@@ -135,42 +135,74 @@ func _expand_body(element_grid: ElementGrid, body: ElementBody, upward: bool) ->
 		candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
 
 	var total_to_expand: int = min(candidates.size(), body.rate)
-	var cost_per_cell: float = GameConfig.emitter_essence_cost_per_tick
-	var total_cost: float = total_to_expand * cost_per_cell
+	var cost_per_cell: float = GameConfig.EMITTER_ESSENCE_COST_PER_TICK
 
 	var es: Variant = _get_essence()
-	if not es.has(total_cost):
-		return
-
+	# 逐个检查可负担性，避免源质够 1 个不够 N 个时一个都不扩张
 	var count: int = 0
 	for pos: Vector2i in candidates:
 		if count >= total_to_expand:
 			break
+		if not es.has(cost_per_cell):
+			break  # 源质不足，停止扩张
 		if element_grid.set_element(pos, element_id, body.min_source_y):
 			es.subtract(cost_per_cell)
 			count += 1
 
 ## 无源区域收缩
-## upward: true=气体(优先移除下方), false=液体(优先移除上方)
+## upward: true=气体(均匀收缩), false=液体(优先移除上方)
 func _shrink_body(element_grid: ElementGrid, body: ElementBody, upward: bool) -> void:
 	if body.cells.is_empty():
 		return
 
-	var sorted: Array[Vector2i] = body.cells.duplicate()
-
-	# 液体: 优先移除 Y 较小（上方）；气体: 优先移除 Y 较大（下方）
-	if upward:
-		sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
-	else:
-		sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
-
 	# 过滤掉有存续标记的格子（反应产物在存续期内不收缩）
-	var removable: Array[Vector2i] = sorted.filter(
+	var removable: Array[Vector2i] = body.cells.filter(
 		func(pos: Vector2i) -> bool: return not element_grid.is_product(pos)
 	)
 	if removable.is_empty():
 		return
 
-	var remove_count: int = min(removable.size(), 3)
+	if upward:
+		# 气体：均匀收缩，从边缘开始
+		_shrink_uniform(element_grid, removable)
+	else:
+		# 液体：保持原逻辑，优先移除上方（Y 较小）
+		var sorted: Array[Vector2i] = removable.duplicate()
+		sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
+		var remove_count: int = min(sorted.size(), 3)
+		for i in range(remove_count):
+			element_grid.remove_element(sorted[i])
+
+## 气体均匀收缩：从边缘开始，按 (x+y) 升序确定性排序
+func _shrink_uniform(element_grid: ElementGrid, cells: Array[Vector2i]) -> void:
+	var cell_set: Dictionary = {}
+	for c: Vector2i in cells:
+		cell_set[c] = true
+
+	# 找边缘格子：至少有一个 DIR_4 邻居不在 body 中
+	var edges: Array[Vector2i] = []
+	for c: Vector2i in cells:
+		for dir: Vector2i in GridCoordinate.DIR_4:
+			if not cell_set.has(c + dir):
+				edges.append(c)
+				break
+
+	# 确定性排序（按 x+y 升序，保持稳定行为，不使用随机）
+	edges.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return (a.x + a.y) < (b.x + b.y))
+
+	# 收缩速率：max(3, body 大小 / 10)，适配大 body
+	var rate: int = max(3, cells.size() / 10)
+	var remove_count: int = min(edges.size(), rate)
+
+	# 边缘不足时从内部按 (x+y) 升序补充
+	if remove_count < rate and remove_count < cells.size():
+		var non_edges: Array[Vector2i] = cells.filter(
+			func(c: Vector2i) -> bool: return not edges.has(c)
+		)
+		non_edges.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return (a.x + a.y) < (b.x + b.y))
+		for i in range(min(non_edges.size(), rate - remove_count)):
+			edges.append(non_edges[i])
+		remove_count = min(edges.size(), rate)
+
 	for i in range(remove_count):
-		element_grid.remove_element(removable[i])
+		element_grid.remove_element(edges[i])

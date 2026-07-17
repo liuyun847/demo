@@ -13,7 +13,8 @@ var _save_pending: bool = false
 func _ready() -> void:
 	EventBus.building_placed.connect(_on_building_changed)
 	EventBus.building_removed.connect(_on_building_changed)
-	load_buildings()
+	# 延迟到所有子节点 _ready 完成后加载，避免 building_manager 未就绪
+	call_deferred("load_buildings")
 
 func _exit_tree() -> void:
 	if EventBus.building_placed.is_connected(_on_building_changed):
@@ -38,7 +39,9 @@ func save_buildings() -> void:
 		return
 
 	var save_dict := _build_save_dict()
-	FileIOHelper.write_json_file(GameConfig.save_file_path, save_dict, "SaveManager")
+	var success := FileIOHelper.write_json_file(GameConfig.save_file_path, save_dict, "SaveManager")
+	if not success:
+		push_error("SaveManager: 存档写入失败，进度可能未保存")
 
 func _build_save_dict() -> Dictionary:
 	var save_dict := {
@@ -52,7 +55,7 @@ func _build_save_dict() -> Dictionary:
 		var data: BuildingData = building_manager.buildings[grid_pos]
 
 		# 核心不保存（自动生成）
-		if data.building_type == GameConfig.core_type_id:
+		if data.building_type == GameConfig.CORE_TYPE_ID:
 			continue
 
 		if BuildingTypeManager.is_emitter(data.building_type):
@@ -101,8 +104,8 @@ func load_buildings() -> void:
 	_is_loading = true
 	building_manager.clear_all_buildings_silent()
 
-	if save_data.has("essence") and save_data.essence is float:
-		EssencePool.set_value(save_data.essence)
+	if save_data.has("essence") and (save_data.essence is float or save_data.essence is int):
+		EssencePool.set_value(float(save_data.essence))
 
 	if save_data.has("buildings") and save_data.buildings is Dictionary:
 		for key: String in save_data.buildings.keys():
@@ -118,7 +121,7 @@ func load_buildings() -> void:
 					continue
 				var b_type: String = b_data.get("type", "default")
 				# 跳过旧存档中的容器（type_01）和核心
-				if b_type == "type_01" or b_type == GameConfig.core_type_id:
+				if b_type == "type_01" or b_type == GameConfig.CORE_TYPE_ID:
 					continue
 				var restore_data: Dictionary = {}
 				if BuildingTypeManager.is_emitter(b_type):

@@ -4,14 +4,6 @@ extends BuildingBase
 # 核心节点：占据地图中心 2x2 区域，不可删除/移动。
 # 管道网络必须连通到核心才能激活（发射器/收集器才能工作）。
 
-# 核心占据的四个格子（2x2 区域，从 -1,-1 到 0,0，以原点为中心）
-const CORE_OCCUPIED_CELLS: Array[Vector2i] = [
-	Vector2i(-1, -1),
-	Vector2i(0, -1),
-	Vector2i(-1, 0),
-	Vector2i(0, 0),
-]
-
 var _pulse_time: float = 0.0
 
 func _ready() -> void:
@@ -22,7 +14,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var half_size := GameConfig.building_size / 2.0
+	var half_size := GameConfig.BUILDING_SIZE / 2.0
 	# 2x2 核心的视觉缩放因子
 	var visual_radius := half_size * 2.0
 	var core_center := Vector2.ZERO

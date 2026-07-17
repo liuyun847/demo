@@ -8,14 +8,14 @@ func before_all() -> void:
 
 
 func _ensure_building_types_registered() -> void:
-	if BuildingTypeManager.is_pipe(GameConfig.pipe_type_id):
+	if BuildingTypeManager.is_pipe(GameConfig.PIPE_TYPE_ID):
 		return
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
-		[GameConfig.pipe_type_id,      {"is_pipe": true}],
-		[GameConfig.emitter_type_id,   {"is_emitter": true}],
-		[GameConfig.collector_type_id, {"is_collector": true}],
-		[GameConfig.brick_type_id,     {}],
+		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
+		[GameConfig.EMITTER_TYPE_ID,   {"category": BuildingTypeData.Category.EMITTER}],
+		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
+		[GameConfig.BRICK_TYPE_ID,     {}],
 	]
 	for entry: Array in entries:
 		var td := BuildingTypeData.new()
@@ -160,8 +160,8 @@ func test_perform_paste_batch_with_building_manager() -> void:
 	SelectionManager.undo_stack.clear()
 	SelectionManager._building_manager = bm
 	var buildings: Array[Dictionary] = [
-		{"offset": Vector2i(0, 0), "type": GameConfig.pipe_type_id},
-		{"offset": Vector2i(1, 0), "type": GameConfig.pipe_type_id},
+		{"offset": Vector2i(0, 0), "type": GameConfig.PIPE_TYPE_ID},
+		{"offset": Vector2i(1, 0), "type": GameConfig.PIPE_TYPE_ID},
 	]
 	SelectionManager.clipboard = {
 		"buildings": buildings,
@@ -191,11 +191,11 @@ func test_perform_paste_batch_skip_occupied() -> void:
 
 	SelectionManager.undo_stack.clear()
 	SelectionManager._building_manager = bm
-	bm.place_building(Vector2i(4, 0), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(4, 0), GameConfig.PIPE_TYPE_ID)
 
 	var buildings: Array[Dictionary] = [
-		{"offset": Vector2i(0, 0), "type": GameConfig.pipe_type_id},
-		{"offset": Vector2i(1, 0), "type": GameConfig.pipe_type_id},
+		{"offset": Vector2i(0, 0), "type": GameConfig.PIPE_TYPE_ID},
+		{"offset": Vector2i(1, 0), "type": GameConfig.PIPE_TYPE_ID},
 	]
 	SelectionManager.clipboard = {
 		"buildings": buildings,
@@ -206,7 +206,7 @@ func test_perform_paste_batch_skip_occupied() -> void:
 
 	assert_true(bm.has_building(Vector2i(2, 0)), "offset(0,0) 应放置")
 	assert_true(bm.has_building(Vector2i(3, 0)), "offset(1,0) 应放置")
-	assert_eq(bm.get_building_type(Vector2i(4, 0)), GameConfig.pipe_type_id, "已占用位置应保留原建筑")
+	assert_eq(bm.get_building_type(Vector2i(4, 0)), GameConfig.PIPE_TYPE_ID, "已占用位置应保留原建筑")
 	assert_true(bm.has_building(Vector2i(5, 0)), "第二个锚点的 offset(1,0) 应放置")
 
 func test_perform_paste_batch_empty_clipboard() -> void:
@@ -260,10 +260,10 @@ func test_redo_after_undo_restores_building() -> void:
 	SelectionManager.redo_stack.clear()
 	SelectionManager._building_manager = bm
 
-	bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(2, 0), GameConfig.PIPE_TYPE_ID)
 	var cmd := UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(2, 0): {"type": GameConfig.pipe_type_id}}
+	cmd.buildings = {Vector2i(2, 0): {"type": GameConfig.PIPE_TYPE_ID}}
 	SelectionManager.push_undo_command(cmd)
 	assert_true(bm.has_building(Vector2i(2, 0)), "放置后应有建筑")
 
@@ -293,10 +293,10 @@ func test_redo_undo_cycle() -> void:
 	SelectionManager.redo_stack.clear()
 	SelectionManager._building_manager = bm
 
-	bm.place_building(Vector2i(2, 0), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(2, 0), GameConfig.PIPE_TYPE_ID)
 	var cmd := UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(2, 0): {"type": GameConfig.pipe_type_id}}
+	cmd.buildings = {Vector2i(2, 0): {"type": GameConfig.PIPE_TYPE_ID}}
 	SelectionManager.push_undo_command(cmd)
 
 	SelectionManager.undo()

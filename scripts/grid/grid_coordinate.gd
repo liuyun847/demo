@@ -22,13 +22,13 @@ static func screen_to_grid(camera: Camera2D, screen_pos: Vector2) -> Vector2i:
 
 static func world_to_grid(world_pos: Vector2) -> Vector2i:
 	return Vector2i(
-		floori(world_pos.x / GameConfig.cell_size),
-		floori(world_pos.y / GameConfig.cell_size)
+		floori(world_pos.x / GameConfig.CELL_SIZE),
+		floori(world_pos.y / GameConfig.CELL_SIZE)
 	)
 
 static func grid_to_world(grid_pos: Vector2i) -> Vector2:
-	var half_size := GameConfig.building_size / 2.0
+	var half_size := GameConfig.BUILDING_SIZE / 2.0
 	return Vector2(
-		grid_pos.x * GameConfig.cell_size + GameConfig.building_border + half_size,
-		grid_pos.y * GameConfig.cell_size + GameConfig.building_border + half_size
+		grid_pos.x * GameConfig.CELL_SIZE + GameConfig.BUILDING_BORDER + half_size,
+		grid_pos.y * GameConfig.CELL_SIZE + GameConfig.BUILDING_BORDER + half_size
 	)

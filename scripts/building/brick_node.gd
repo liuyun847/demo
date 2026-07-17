@@ -11,13 +11,11 @@ func _setup_collision() -> void:
 	var shape_node := CollisionShape2D.new()
 	shape_node.name = "CollisionShape2D"
 	var rect := RectangleShape2D.new()
-	rect.size = Vector2(GameConfig.building_size, GameConfig.building_size)
+	rect.size = Vector2(GameConfig.BUILDING_SIZE, GameConfig.BUILDING_SIZE)
 	shape_node.shape = rect
 
 	body.add_child(shape_node)
-	shape_node.owner = body
 	add_child(body)
-	body.owner = self
 
 func get_building_name() -> String:
 	return "砖块"
@@ -26,8 +24,8 @@ func get_tooltip_summary() -> Dictionary:
 	return {}
 
 func _draw() -> void:
-	var half := GameConfig.building_size / 2.0
-	var w := float(GameConfig.building_size)
+	var half := GameConfig.BUILDING_SIZE / 2.0
+	var w := float(GameConfig.BUILDING_SIZE)
 
 	var color_brick := Color(0.72, 0.25, 0.12)
 	var color_line := Color(0.45, 0.15, 0.08, 0.6)

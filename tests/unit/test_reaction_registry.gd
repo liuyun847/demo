@@ -33,3 +33,20 @@ func test_byproduct_essence_stored() -> void:
 	_registry.register("a", "b", "c", 2.5)
 	var rule: Dictionary = _registry.find_reaction("a", "b")
 	assert_eq(rule["byproduct_essence"], 2.5, "byproduct_essence 应为 2.5")
+
+func test_register_duplicate_skips() -> void:
+	_registry.register("water", "fire", "steam", 1.0)
+	# 重复注册相同反应对（同序）应跳过并 push_warning
+	_registry.register("water", "fire", "ice", 2.0)
+	assert_push_warning("已存在", "同序重复注册应 push_warning")
+	# 规则数应仍为 1（跳过重复，不追加）
+	var rules: Array[Dictionary] = _registry.get_all_rules()
+	assert_eq(rules.size(), 1, "重复注册应跳过，规则数仍为 1")
+	# 应保留首次注册的规则，不被覆盖
+	var rule: Dictionary = _registry.find_reaction("water", "fire")
+	assert_eq(rule["product"], "steam", "应保留首次注册的产物 steam，不被覆盖为 ice")
+	assert_eq(rule["byproduct_essence"], 1.0, "应保留首次注册的 byproduct_essence 1.0")
+	# 反序注册相同反应对也应跳过（无序匹配）
+	_registry.register("fire", "water", "ice", 3.0)
+	assert_push_warning("已存在", "反序重复注册应 push_warning")
+	assert_eq(_registry.get_all_rules().size(), 1, "反序重复注册也应跳过")

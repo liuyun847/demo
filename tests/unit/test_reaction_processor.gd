@@ -15,6 +15,15 @@ class MockEssenceService:
 	func has(amount: float) -> bool:
 		return essence >= amount
 
+## Mock ElementGrid，可在产物放置阶段令 set_element 返回 false，
+## 用于验证 ReactionProcessor 的防御性回滚分支（push_error 且不标记存续）。
+class _FailProductGrid extends ElementGrid:
+	var fail_set: bool = false
+	func set_element(pos: Vector2i, element_id: String, source_y_val: int) -> bool:
+		if fail_set:
+			return false
+		return super.set_element(pos, element_id, source_y_val)
+
 var _grid: ElementGrid = null
 var _registry: ReactionRegistry = null
 var _processor: ReactionProcessor = null
@@ -23,6 +32,8 @@ var _saved_element_types: Dictionary = {}
 
 func before_each() -> void:
 	_grid = autoqfree(ElementGrid.new())
+	# 注入未 add_child 的 BuildingManager 实例，使 is_building_at 返回 false（见 test_element_grid.gd 注释）
+	_grid.building_manager_ref = autoqfree(BuildingManager.new())
 	_registry = ReactionRegistry.new()
 	_registry.register("water", "fire", "steam", 1.0)
 	# 生产环境使用 EssencePool 单例，Mock 隔离测试见 test_byproduct_uses_injected_service
@@ -102,7 +113,7 @@ func test_non_reactive_element_no_reaction() -> void:
 	inert.element_id = "inert"
 	inert.display_name = "惰性"
 	inert.color = Color.GRAY
-	inert.state = "solid"
+	inert.state = ElementTypeData.State.SOLID
 	inert.density = 5.0
 	inert.reactive = false
 	ElementRegistry.register_element_type(inert)
@@ -147,3 +158,32 @@ func test_byproduct_uses_injected_service() -> void:
 	assert_eq(mock.add_calls[0], 1.0, "副产物源质应为 1.0")
 	assert_eq(mock.essence, 1.0, "Mock 服务应记录源质增加")
 	assert_eq(EssencePool.essence, 0.0, "全局 EssencePool 不应被修改")
+
+## 测试2: 产物放置失败时 push_error 且产物不标记存续
+## ReactionProcessor.process_all 在 set_element 失败时应 push_error、跳过 mark_as_product
+## 且不产生副产物源质。使用 _FailProductGrid 模拟产物放置失败。
+func test_product_place_failure_no_mark() -> void:
+	var grid: _FailProductGrid = autoqfree(_FailProductGrid.new())
+	# 注入未 add_child 的 BuildingManager，使 is_building_at 返回 false（参考 test_element_grid.gd）
+	grid.building_manager_ref = autoqfree(BuildingManager.new())
+	var processor := ReactionProcessor.new(_registry, grid, EssencePool)
+
+	var pos_a := _O + Vector2i(0, 0)
+	var pos_b := _O + Vector2i(1, 0)
+	# 放置 reactant（fail_set=false，成功）
+	grid.set_element(pos_a, "water", pos_a.y)
+	grid.set_element(pos_b, "fire", pos_b.y)
+
+	# 令产物放置阶段 set_element 失败
+	grid.fail_set = true
+	EssencePool.set_value(0.0)
+
+	processor.process_all()
+
+	# 声明该 push_error 为预期，避免 GUT 将其计为失败，同时断言错误已触发
+	assert_push_error("产物放置失败", "产物放置失败时应 push_error")
+	# water density(1.0) > fire density(0.3)，产物位置 = pos_a
+	assert_false(grid.is_product(pos_a), "产物放置失败时不应标记存续")
+	assert_false(grid.has_element(pos_a), "产物不应被放置")
+	assert_false(grid.has_element(pos_b), "fire reactant 已被消耗")
+	assert_eq(EssencePool.essence, 0.0, "产物失败时不应产生副产物源质")

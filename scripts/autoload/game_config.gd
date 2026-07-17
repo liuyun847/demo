@@ -3,27 +3,31 @@ extends Node
 const FileIOHelper := preload("res://scripts/utils/file_io_helper.gd")
 
 # 网格配置
-const cell_size: int = 64
-const big_cell_size: int = 10
+const CELL_SIZE: int = 64
+const BIG_CELL_SIZE: int = 10
+## 无效格子坐标哨兵，用于表示"未设置"状态
+const INVALID_GRID_POS: Vector2i = Vector2i(-99999, -99999)
 
 # 线条配置
-const thin_line_width: float = 1.0
-const thick_line_width: float = 3.0
+const THIN_LINE_WIDTH: float = 1.0
+const THICK_LINE_WIDTH: float = 3.0
+## 可见大格子数超过此阈值时隐藏细线，避免渲染过载
+const THIN_LINE_VISIBLE_THRESHOLD: int = 6
 
 # 颜色配置
-const background_color: Color = Color("#1e3a5f")
-const line_color: Color = Color("#e0e0e0", 0.5)
+const BACKGROUND_COLOR: Color = Color("#1e3a5f")
+const LINE_COLOR: Color = Color("#e0e0e0", 0.5)
 
 # 建筑配置
-const building_size: int = 60
-const building_border: int = 2
-const building_default_color: Color = Color("#2ecc71")
-const ghost_alpha: float = 0.35
-const remove_ghost_alpha: float = 0.3
+const BUILDING_SIZE: int = 60
+const BUILDING_BORDER: int = 2
+const BUILDING_DEFAULT_COLOR: Color = Color("#2ecc71")
+const GHOST_ALPHA: float = 0.35
+const REMOVE_GHOST_ALPHA: float = 0.3
 
-const selection_highlight_color: Color = Color(0.2, 0.6, 1.0, 0.4)
-const selection_border_color: Color = Color(0.2, 0.6, 1.0, 0.8)
-const paste_ghost_alpha: float = 0.45
+const SELECTION_HIGHLIGHT_COLOR: Color = Color(0.2, 0.6, 1.0, 0.4)
+const SELECTION_BORDER_COLOR: Color = Color(0.2, 0.6, 1.0, 0.8)
+const PASTE_GHOST_ALPHA: float = 0.45
 
 # 游戏数值设置
 const DEFAULT_ZOOM_SPEED: float = 0.2
@@ -40,22 +44,30 @@ var shift_speed_multiplier: float = DEFAULT_SHIFT_SPEED_MULTIPLIER:
 		shift_speed_multiplier = clampf(value, SHIFT_MULTIPLIER_MIN, SHIFT_MULTIPLIER_MAX)
 
 # 核心建筑类型标识
-const core_type_id: String = "type_00"
+const CORE_TYPE_ID: String = "type_00"
+
+# 核心占据的 2x2 格子（从 -1,-1 到 0,0，以地图原点 (0,0) 为中心）
+const CORE_CELLS: Array[Vector2i] = [
+	Vector2i(-1, -1),
+	Vector2i(0, -1),
+	Vector2i(-1, 0),
+	Vector2i(0, 0),
+]
 
 # 管道建筑类型标识
-const pipe_type_id: String = "type_02"
+const PIPE_TYPE_ID: String = "type_02"
 
 # 砖块建筑类型标识
-const brick_type_id: String = "type_04"
+const BRICK_TYPE_ID: String = "type_04"
 
 # 发射器建筑类型标识
-const emitter_type_id: String = "type_03"
+const EMITTER_TYPE_ID: String = "type_03"
 
 # 收集器建筑类型标识
-const collector_type_id: String = "type_07"
+const COLLECTOR_TYPE_ID: String = "type_07"
 
 # 建筑放置源质消耗（key: building_type_id, value: cost）
-const building_essence_costs: Dictionary = {
+const BUILDING_ESSENCE_COSTS: Dictionary = {
 	"type_02": 0.0,  # 管道
 	"type_03": 0.0,  # 发射器
 	"type_04": 0.0,  # 砖块
@@ -63,19 +75,31 @@ const building_essence_costs: Dictionary = {
 }
 
 # 发射器每 tick 消耗源质
-const emitter_essence_cost_per_tick: float = 1.0
+const EMITTER_ESSENCE_COST_PER_TICK: float = 1.0
 
 # 收集器默认收集半径
-const collector_default_radius: int = 1
+const COLLECTOR_DEFAULT_RADIUS: int = 1
 
 # 初始源质
-const initial_essence: float = 100.0
+const INITIAL_ESSENCE: float = 100.0
 
 # 扩散系统配置
-const simulation_tick_interval: float = 0.2
-const diffusion_steps_per_tick: int = 1
-const element_abandon_distance: int = 100
-const cleanup_interval_ticks: int = 10
+const SIMULATION_TICK_INTERVAL: float = 0.2
+const DIFFUSION_STEPS_PER_TICK: int = 1
+const ELEMENT_ABANDON_DISTANCE: int = 100
+const CLEANUP_INTERVAL_TICKS: int = 10
+## 反应产物存续 tick 数，防止产物瞬间消失
+const PRODUCT_SURVIVAL_TICKS: int = 3
+## 源 Y 坐标哨兵，表示"未设置"，用于扩散算法初始化
+const SOURCE_Y_SENTINEL: int = 999999
+
+# 元素渲染配置
+## 元素填充透明度
+const ELEMENT_ALPHA: float = 0.85
+
+# UI 配置
+## 源质显示相对摄像机的偏移
+const ESSENCE_DISPLAY_OFFSET: Vector2 = Vector2(8, -8)
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"

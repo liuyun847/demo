@@ -97,11 +97,12 @@ func _update_all_locks() -> void:
 
 func _init_default_types() -> void:
 	# 用数组定义实际建筑类型，type_id 直接使用 GameConfig 常量
+	# category 用 BuildingTypeData.Category 枚举值，替代旧的 is_pipe/is_emitter/is_collector 三个 bool
 	var type_entries: Array[Dictionary] = [
-		{"id": GameConfig.pipe_type_id,      "name": "管道",   "icon": "res://resources/pipe_icon.svg",           "is_pipe": true},
-		{"id": GameConfig.emitter_type_id,   "name": "喷口",   "icon": "res://resources/emitter_water_icon.svg",  "is_emitter": true},
-		{"id": GameConfig.brick_type_id,     "name": "砖块",   "icon": "res://resources/brick_icon.svg",          "is_pipe": false},
-		{"id": GameConfig.collector_type_id, "name": "收集器", "icon": "res://resources/collector_icon.svg",      "is_collector": true},
+		{"id": GameConfig.PIPE_TYPE_ID,      "name": "管道",   "icon": "res://resources/pipe_icon.svg",           "category": BuildingTypeData.Category.PIPE},
+		{"id": GameConfig.EMITTER_TYPE_ID,   "name": "喷口",   "icon": "res://resources/emitter_water_icon.svg",  "category": BuildingTypeData.Category.EMITTER},
+		{"id": GameConfig.BRICK_TYPE_ID,     "name": "砖块",   "icon": "res://resources/brick_icon.svg",          "category": BuildingTypeData.Category.BRICK},
+		{"id": GameConfig.COLLECTOR_TYPE_ID, "name": "收集器", "icon": "res://resources/collector_icon.svg",      "category": BuildingTypeData.Category.COLLECTOR},
 	]
 	for entry: Dictionary in type_entries:
 		var data: BuildingTypeData = BuildingTypeData.new()
@@ -109,9 +110,7 @@ func _init_default_types() -> void:
 		data.display_name = entry.name
 		if ResourceLoader.exists(entry.icon):
 			data.icon_texture = load(entry.icon)
-		data.is_pipe = entry.get("is_pipe", false)
-		data.is_emitter = entry.get("is_emitter", false)
-		data.is_collector = entry.get("is_collector", false)
+		data.category = entry.get("category", BuildingTypeData.Category.GENERIC)
 		building_types.append(data)
 	# 补齐占位锁定槽位（显示未来可解锁的建筑类型）
 	for i in range(building_types.size(), 10):

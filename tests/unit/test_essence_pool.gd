@@ -5,8 +5,10 @@ var _pool: Node = null
 func before_each() -> void:
 	_pool = autoqfree(Node.new())
 	_pool.set_script(load("res://scripts/autoload/essence_pool.gd"))
-	_pool.set_value(0.0)
 	add_child_autoqfree(_pool)
+	# _ready() 在 add_child 时触发，会将 essence 设置为 INITIAL_ESSENCE(100.0)，
+	# 需在 add_child 之后重置为 0 以匹配测试预期
+	_pool.set_value(0.0)
 
 func test_initial_essence_is_zero() -> void:
 	assert_eq(_pool.essence, 0.0, "初始源质应为 0")
@@ -76,6 +78,32 @@ func test_essence_changed_signal_on_subtract() -> void:
 	_pool.subtract(4.0)
 	assert_eq(signal_values.size(), 1, "subtract 应发射信号")
 	assert_eq(signal_values[0], 6.0, "信号值应为 6")
+
+# 测试5: essence setter 负值拦截测试
+# 验证 essence 属性的 setter 通过 clampf(value, 0.0, MAX_ESSENCE) 拦截负值
+func test_essence_setter_clamps_negative_value() -> void:
+	# 直接通过 essence 属性 setter 赋值负值，验证 clampf 拦截
+	_pool.essence = -50.0
+	assert_eq(_pool.essence, 0.0, "essence setter 应通过 clampf 拦截负值，essence 不会变为负数")
+
+# 测试10: EssencePool 初始值与存档加载时序测试
+# 验证 _ready() 首次调用设置 INITIAL_ESSENCE，_initialized 防止重复初始化，set_value 可覆盖
+func test_ready_sets_initial_and_set_value_overrides() -> void:
+	# 创建新实例，add_child 触发 _ready() 首次调用，应设置 essence = INITIAL_ESSENCE
+	var fresh_pool: Node = autoqfree(Node.new())
+	fresh_pool.set_script(load("res://scripts/autoload/essence_pool.gd"))
+	add_child_autoqfree(fresh_pool)
+	assert_eq(fresh_pool.essence, GameConfig.INITIAL_ESSENCE, \
+		"_ready() 首次调用应设置 essence = INITIAL_ESSENCE(100.0)")
+
+	# set_value 可覆盖 _ready() 设置的初始值
+	fresh_pool.set_value(50.0)
+	assert_eq(fresh_pool.essence, 50.0, "set_value 应能覆盖初始值")
+
+	# _initialized 标记防止重复初始化，再次调用 _ready() 不应重置 essence
+	fresh_pool._ready()
+	assert_eq(fresh_pool.essence, 50.0, \
+		"_initialized 应防止 _ready() 重复初始化，essence 保持 50.0")
 
 func _on_essence_changed(new_value: float, values: Array[float]) -> void:
 	values.append(new_value)

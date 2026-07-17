@@ -35,7 +35,7 @@ func _ready() -> void:
 	EventBus.building_removed.connect(_on_building_removed)
 	EventBus.pause_state_changed.connect(_on_pause_state_changed)
 	_timer = Timer.new()
-	_timer.wait_time = GameConfig.simulation_tick_interval
+	_timer.wait_time = GameConfig.SIMULATION_TICK_INTERVAL
 	_timer.autostart = true
 	_timer.timeout.connect(_on_tick)
 	add_child(_timer)
@@ -121,12 +121,12 @@ func _process_emitters() -> void:
 					_element_grid.mark_as_source(target_pos)
 			else:
 				# 创建新元素需要消耗源质，源质不足时跳过
-				if not es.has(emitter.essence_cost_per_tick):
+				if not es.has(GameConfig.EMITTER_ESSENCE_COST_PER_TICK):
 					continue
 				var success: bool = _element_grid.set_element(target_pos, emitter.element_type_id, target_pos.y)
 				if success:
 					_element_grid.mark_as_source(target_pos)
-					es.subtract(emitter.essence_cost_per_tick)
+					es.subtract(GameConfig.EMITTER_ESSENCE_COST_PER_TICK)
 
 func _process_collectors() -> void:
 	var es: Variant = _get_essence()
@@ -146,7 +146,7 @@ func _rebuild_networks() -> void:
 	var visited: Dictionary[int, bool] = {}
 
 	# 从核心的四个邻居开始 BFS
-	var core_cells: Array[Vector2i] = BuildingManager.CORE_CELLS
+	var core_cells: Array[Vector2i] = GameConfig.CORE_CELLS
 	for cell: Vector2i in core_cells:
 		for dir: Vector2i in GridCoordinate.DIR_4:
 			var neighbor_pos: Vector2i = cell + dir
@@ -163,6 +163,11 @@ func _rebuild_networks() -> void:
 					_cached_networks.append(network)
 			elif neighbor is EmitterNode or neighbor is CollectorNode:
 				# 直接连接到核心的发射器/收集器也加入激活网络
+				# 必须检查并写入 visited，防止后续 BFS 重复加入同一节点
+				var nid: int = neighbor.get_instance_id()
+				if visited.has(nid):
+					continue
+				visited[nid] = true
 				var network := {"pipes": [], "emitters": [], "collectors": []}
 				if neighbor is EmitterNode:
 					network.emitters.append(neighbor as EmitterNode)
@@ -223,13 +228,18 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 					queue.append(neighbor)
 			elif neighbor is EmitterNode:
 				var nid: int = neighbor.get_instance_id()
-				if not emitter_dict.has(nid):
+				# 同时检查局部 emitter_dict 和全局 visited，
+				# 防止直连 core 分支已加入的节点被 BFS 再次加入
+				if not visited.has(nid) and not emitter_dict.has(nid):
 					emitter_dict[nid] = true
+					visited[nid] = true
 					emitters.append(neighbor)
 			elif neighbor is CollectorNode:
 				var nid: int = neighbor.get_instance_id()
-				if not collector_dict.has(nid):
+				# 同时检查局部 collector_dict 和全局 visited
+				if not visited.has(nid) and not collector_dict.has(nid):
 					collector_dict[nid] = true
+					visited[nid] = true
 					collectors.append(neighbor)
 
 	return {

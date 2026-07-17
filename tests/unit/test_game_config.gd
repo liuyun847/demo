@@ -1,11 +1,11 @@
 extends GutTest
 
 func test_building_type_constants() -> void:
-	assert_eq(GameConfig.core_type_id, "type_00", "core_type_id 应为 type_00")
-	assert_eq(GameConfig.pipe_type_id, "type_02", "pipe_type_id 应为 type_02")
+	assert_eq(GameConfig.CORE_TYPE_ID, "type_00", "core_type_id 应为 type_00")
+	assert_eq(GameConfig.PIPE_TYPE_ID, "type_02", "pipe_type_id 应为 type_02")
 
 func test_simulation_config_constants() -> void:
-	assert_eq(GameConfig.simulation_tick_interval, 0.2, "simulation_tick_interval 应为 0.2")
+	assert_eq(GameConfig.SIMULATION_TICK_INTERVAL, 0.2, "simulation_tick_interval 应为 0.2")
 
 func test_save_and_load_settings() -> void:
 	var original_save_path: String = GameConfig.game_settings_file_path
@@ -38,20 +38,20 @@ func _cleanup_test_settings() -> void:
 		DirAccess.remove_absolute("res://save/test_game_settings.json")
 
 func test_grid_config_constants() -> void:
-	assert_eq(GameConfig.cell_size, 64, "cell_size 应为 64")
-	assert_eq(GameConfig.big_cell_size, 10, "big_cell_size 应为 10")
+	assert_eq(GameConfig.CELL_SIZE, 64, "cell_size 应为 64")
+	assert_eq(GameConfig.BIG_CELL_SIZE, 10, "big_cell_size 应为 10")
 
 func test_line_config_constants() -> void:
-	assert_eq(GameConfig.thin_line_width, 1.0, "thin_line_width 应为 1.0")
-	assert_eq(GameConfig.thick_line_width, 3.0, "thick_line_width 应为 3.0")
+	assert_eq(GameConfig.THIN_LINE_WIDTH, 1.0, "thin_line_width 应为 1.0")
+	assert_eq(GameConfig.THICK_LINE_WIDTH, 3.0, "thick_line_width 应为 3.0")
 
 func test_color_config_constants() -> void:
-	assert_ne(GameConfig.background_color, Color.BLACK, "background_color 不应为纯黑")
-	assert_ne(GameConfig.line_color, Color.BLACK, "line_color 不应为纯黑")
+	assert_ne(GameConfig.BACKGROUND_COLOR, Color.BLACK, "background_color 不应为纯黑")
+	assert_ne(GameConfig.LINE_COLOR, Color.BLACK, "line_color 不应为纯黑")
 
 func test_building_config_constants() -> void:
-	assert_eq(GameConfig.building_size, 60, "building_size 应为 60")
-	assert_eq(GameConfig.building_border, 2, "building_border 应为 2")
+	assert_eq(GameConfig.BUILDING_SIZE, 60, "building_size 应为 60")
+	assert_eq(GameConfig.BUILDING_BORDER, 2, "building_border 应为 2")
 
 func test_default_game_settings() -> void:
 	assert_eq(GameConfig.DEFAULT_ZOOM_SPEED, 0.2, "DEFAULT_ZOOM_SPEED 应为 0.2")
@@ -61,9 +61,9 @@ func test_save_version_constant() -> void:
 	assert_eq(GameConfig.SAVE_VERSION, "1.0.0", "SAVE_VERSION 应为 '1.0.0'")
 
 func test_selection_constants() -> void:
-	assert_ne(GameConfig.selection_highlight_color, Color.BLACK, "selection_highlight_color 不应为纯黑")
-	assert_ne(GameConfig.selection_border_color, Color.BLACK, "selection_border_color 不应为纯黑")
-	assert_eq(GameConfig.paste_ghost_alpha, 0.45, "paste_ghost_alpha 应为 0.45")
+	assert_ne(GameConfig.SELECTION_HIGHLIGHT_COLOR, Color.BLACK, "selection_highlight_color 不应为纯黑")
+	assert_ne(GameConfig.SELECTION_BORDER_COLOR, Color.BLACK, "selection_border_color 不应为纯黑")
+	assert_eq(GameConfig.PASTE_GHOST_ALPHA, 0.45, "paste_ghost_alpha 应为 0.45")
 
 func test_load_settings_invalid_type_fallback() -> void:
 	var original_save_path: String = GameConfig.game_settings_file_path

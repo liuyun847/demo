@@ -7,6 +7,8 @@ var _collector: Node = null
 
 func before_each() -> void:
 	_element_grid = autoqfree(ElementGrid.new())
+	# 注入未 add_child 的 BuildingManager 实例，使 is_building_at 返回 false（见 test_element_grid.gd 注释）
+	_element_grid.building_manager_ref = autoqfree(BuildingManager.new())
 	add_child_autoqfree(_element_grid)
 	_collector = autoqfree(_CollectorScript.new())
 	_collector.grid_position = Vector2i(0, 0)

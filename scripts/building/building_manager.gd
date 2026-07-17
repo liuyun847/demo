@@ -10,20 +10,12 @@ var core_node: CoreNode = null  # 地图中心的核心节点
 ## 源质服务（依赖注入），未注入时回退到全局 EssencePool
 var _essence_service: Variant = null
 
-# 核心占据的 2x2 格子（从 -1,-1 到 0,0，以地图原点 (0,0) 为中心）
-const CORE_CELLS: Array[Vector2i] = [
-	Vector2i(-1, -1),
-	Vector2i(0, -1),
-	Vector2i(-1, 0),
-	Vector2i(0, 0),
-]
-
 const _GridUtils: GDScript = preload("res://scripts/grid/grid_utils.gd")
 const _BuildingFactory: GDScript = preload("res://scripts/building/building_factory.gd")
 
 @onready var pipe_render: PipeRenderSystem = $PipeRenderSystem
 
-var element_renderer: Node2D = null
+var element_renderer: ElementRenderer = null
 
 func _ready() -> void:
 	_init_element_renderer()
@@ -39,10 +31,10 @@ func _init_core_node() -> void:
 	core_node = core
 
 	# 注册核心占用的格子到 buildings 字典
-	for cell: Vector2i in CORE_CELLS:
+	for cell: Vector2i in GameConfig.CORE_CELLS:
 		var data := BuildingData.new()
 		data.grid_position = cell
-		data.building_type = GameConfig.core_type_id
+		data.building_type = GameConfig.CORE_TYPE_ID
 		buildings[cell] = data
 		_building_nodes[cell] = core
 
@@ -50,7 +42,7 @@ func _init_element_renderer() -> void:
 	var ElementRendererScript: GDScript = load("res://scripts/reaction/element_renderer.gd")
 	if ElementRendererScript == null:
 		return
-	var renderer: Node2D = ElementRendererScript.new() as Node2D
+	var renderer: ElementRenderer = ElementRendererScript.new() as ElementRenderer
 	if renderer == null:
 		return
 	renderer.name = "ElementRenderer"
@@ -90,7 +82,7 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 	if _is_core_cell(grid_pos):
 		return false
 
-	var cost: float = GameConfig.building_essence_costs.get(building_type, 0.0)
+	var cost: float = GameConfig.BUILDING_ESSENCE_COSTS.get(building_type, 0.0)
 	if cost > 0.0 and restore_data.is_empty():
 		var es: Variant = _get_essence()
 		if not es.has(cost):
@@ -164,11 +156,16 @@ func get_all_buildings_data() -> Dictionary:
 	return copy
 
 func clear_all_buildings() -> void:
-	var positions: Array[Vector2i] = []
-	positions.assign(buildings.keys())
-	for grid_pos: Vector2i in positions:
+	# 先收集所有非核心建筑位置，用于清除后逐个触发信号
+	var non_core_positions: Array[Vector2i] = []
+	for grid_pos: Vector2i in buildings.keys():
 		if not _is_core_cell(grid_pos):
-			remove_building(grid_pos)
+			non_core_positions.append(grid_pos)
+	# 复用 silent 方法清空所有非核心建筑（silent 已重建核心注册、清空渲染、标记 dirty）
+	clear_all_buildings_silent()
+	# 对每个非核心建筑触发 building_removed 信号，便于监听者按位置处理
+	for grid_pos: Vector2i in non_core_positions:
+		EventBus.building_removed.emit(grid_pos)
 
 ## 静默清除所有非核心建筑，不触发事件也不刷新管道。
 ## 与 clear_all_buildings() 不同，此方法不发送 building_placed/building_removed 信号。
@@ -192,10 +189,10 @@ func clear_all_buildings_silent() -> void:
 
 func _init_core_node_registration() -> void:
 	# 重新注册核心占用的格子（clear 后重建）
-	for cell: Vector2i in CORE_CELLS:
+	for cell: Vector2i in GameConfig.CORE_CELLS:
 		var data := BuildingData.new()
 		data.grid_position = cell
-		data.building_type = GameConfig.core_type_id
+		data.building_type = GameConfig.CORE_TYPE_ID
 		buildings[cell] = data
 		_building_nodes[cell] = core_node
 
@@ -242,7 +239,7 @@ func is_pipe_or_buffer_at(grid_pos: Vector2i) -> bool:
 		_is_core_cell(grid_pos)
 
 func _is_core_cell(grid_pos: Vector2i) -> bool:
-	return grid_pos in CORE_CELLS
+	return grid_pos in GameConfig.CORE_CELLS
 
 func place_buildings_in_line(cells: Array[Vector2i], building_type: String = "default") -> int:
 	var placed_count := 0

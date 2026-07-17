@@ -10,12 +10,22 @@ const EMITTER_PANEL_SCENE := preload("res://scenes/emitter_type_panel.tscn")
 var _state_machine: InputStateMachine = InputStateMachine.new()
 var _current_emitter_panel: Control = null
 
-var _last_hovered_grid: Vector2i = Vector2i(-99999, -99999)
+var _last_hovered_grid: Vector2i = GameConfig.INVALID_GRID_POS
 var _has_camera: bool = false
 var _drag_corner_first_horizontal: bool = true
 var _last_drag_grid: Vector2i = Vector2i.ZERO
 
-const _EMITTER_DIRS: Array[Vector2i] = [Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1), Vector2i(1, 0)]
+## 缓存 UIOverlay 引用，避免每次输入都 get_node_or_null 查找
+var _ui_overlay: CanvasLayer = null
+
+## 发射器旋转方向序列：逆时针 [DOWN, LEFT, UP, RIGHT]
+# index 0 = DOWN(0,1)，与 EmitterNode.output_direction 默认值一致；旋转按 DOWN→LEFT→UP→RIGHT 逆时针推进
+const _EMITTER_DIRS: Array[Vector2i] = [
+	Vector2i(0, 1),   # DOWN
+	Vector2i(-1, 0),  # LEFT
+	Vector2i(0, -1),  # UP
+	Vector2i(1, 0),   # RIGHT
+]
 var _emitter_dir_idx: int = 0
 
 func _ready() -> void:
@@ -32,6 +42,13 @@ func _ready() -> void:
 		inventory_bar.slot_selected.connect(_on_slot_selected)
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
 	_has_camera = get_viewport().get_camera_2d() != null
+	_ui_overlay = get_node_or_null("../UIOverlay") as CanvasLayer
+
+func _exit_tree() -> void:
+	if EventBus.paste_mode_changed.is_connected(_on_paste_mode_changed):
+		EventBus.paste_mode_changed.disconnect(_on_paste_mode_changed)
+	if inventory_bar and inventory_bar.slot_selected.is_connected(_on_slot_selected):
+		inventory_bar.slot_selected.disconnect(_on_slot_selected)
 
 func _on_slot_selected(index: int, type_id: String) -> void:
 	if index < 0 or not BuildingTypeManager.is_emitter(type_id):
@@ -77,10 +94,9 @@ func _is_selection_mode() -> bool:
 	return not _is_building_placement_mode() and not _is_paste_mode()
 
 func _unhandled_input(event: InputEvent) -> void:
-	var ui_overlay := get_node_or_null("../UIOverlay") as CanvasLayer
-	if ui_overlay:
-		var menu := ui_overlay.get_node_or_null("StartMenu") as Control
-		var settings := ui_overlay.get_node_or_null("SettingsPanel") as Control
+	if _ui_overlay:
+		var menu := _ui_overlay.get_node_or_null("StartMenu") as Control
+		var settings := _ui_overlay.get_node_or_null("SettingsPanel") as Control
 		if (menu and menu.visible) or (settings and settings.visible):
 			return
 	if event.is_action_pressed("rotate_clipboard") and not event.is_echo():
@@ -121,6 +137,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventMouseButton:
 		return
 
+	# 滚轮上下滚均选中当前悬停建筑的类型（有意设计，非复制粘贴遗留）。
+	# 设计意图：无论上滚还是下滚，都快速将物品栏切换到鼠标下方建筑对应的类型，
+	# 降低操作门槛。未来如需方向性切换，可在此区分 WHEEL_UP/DOWN 语义。
 	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
 		if building_manager.has_building(_last_hovered_grid):
 			var type_id: String = building_manager.get_building_type(_last_hovered_grid)
@@ -268,11 +287,10 @@ func _open_emitter_type_panel(emitter_node: EmitterNode) -> void:
 
 	var panel: Control = EMITTER_PANEL_SCENE.instantiate()
 	panel.target_emitter = emitter_node
-	var ui_overlay := get_node_or_null("../UIOverlay")
-	if ui_overlay == null:
+	if _ui_overlay == null:
 		panel.queue_free()
 		return
-	ui_overlay.add_child(panel)
+	_ui_overlay.add_child(panel)
 	_current_emitter_panel = panel
 
 func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:

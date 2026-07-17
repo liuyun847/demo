@@ -6,6 +6,11 @@ var _rules: Array[Dictionary] = []
 
 ## 注册反应规则（reactants 无序匹配）
 func register(reactant_a: String, reactant_b: String, product: String, byproduct_essence: float = 0.0) -> void:
+	# 检查是否已存在相同反应对的规则，避免重复注册产生死规则
+	var existing: Dictionary = find_reaction(reactant_a, reactant_b)
+	if not existing.is_empty():
+		push_warning("ReactionRegistry: 反应规则 %s + %s 已存在，跳过重复注册" % [reactant_a, reactant_b])
+		return
 	_rules.append({
 		"reactants": [reactant_a, reactant_b],
 		"product": product,

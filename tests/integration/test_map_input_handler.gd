@@ -85,8 +85,8 @@ func _make_mouse_event(button_index: int, pressed: bool, pos: Vector2 = Vector2(
 
 func _make_clipboard() -> Dictionary:
 	var buildings: Array[Dictionary] = []
-	buildings.append({"offset": Vector2i(0, 0), "type": GameConfig.pipe_type_id})
-	buildings.append({"offset": Vector2i(1, 0), "type": GameConfig.pipe_type_id})
+	buildings.append({"offset": Vector2i(0, 0), "type": GameConfig.PIPE_TYPE_ID})
+	buildings.append({"offset": Vector2i(1, 0), "type": GameConfig.PIPE_TYPE_ID})
 	return {"buildings": buildings}
 
 func test_place_single_building() -> void:
@@ -118,7 +118,7 @@ func test_place_building_line_drag() -> void:
 	assert_true(_bm.has_building(end), "拖拽后终点应有建筑")
 
 func test_remove_single_building() -> void:
-	_bm.place_building(Vector2i(5, 5), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
 	assert_true(_bm.has_building(Vector2i(5, 5)), "放置后建筑应存在")
 
 	var event_press := _make_mouse_event(MOUSE_BUTTON_RIGHT, true)
@@ -130,9 +130,9 @@ func test_remove_single_building() -> void:
 	assert_false(_bm.has_building(Vector2i(5, 5)), "右键单击后建筑应被删除")
 
 func test_selection_rect_selects_buildings() -> void:
-	_bm.place_building(Vector2i(5, 5), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(6, 5), GameConfig.pipe_type_id)
-	_bm.place_building(Vector2i(5, 6), GameConfig.pipe_type_id)
+	_bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
+	_bm.place_building(Vector2i(6, 5), GameConfig.PIPE_TYPE_ID)
+	_bm.place_building(Vector2i(5, 6), GameConfig.PIPE_TYPE_ID)
 
 	SelectionManager.clear_selection()
 	SelectionManager._building_manager = _bm
@@ -150,7 +150,7 @@ func test_selection_rect_selects_buildings() -> void:
 func test_hover_detects_building() -> void:
 	var screen_pos := Vector2(320, 240)
 	var grid_pos := _screen_to_grid(screen_pos)
-	_bm.place_building(grid_pos, GameConfig.pipe_type_id)
+	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
 
 	watch_signals(EventBus)
 	var motion_event := InputEventMouseMotion.new()
@@ -243,7 +243,7 @@ func test_paste_drag_updates_anchor() -> void:
 func test_hover_exited_signal() -> void:
 	var screen_pos := Vector2(320, 240)
 	var grid_pos := _screen_to_grid(screen_pos)
-	_bm.place_building(grid_pos, GameConfig.pipe_type_id)
+	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
 
 	watch_signals(EventBus)
 
@@ -263,7 +263,7 @@ func test_hover_exited_signal() -> void:
 
 func test_remove_records_type_in_undo() -> void:
 	var grid_pos := Vector2i(7, 7)
-	_bm.place_building(grid_pos, GameConfig.pipe_type_id)
+	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
 	assert_true(_bm.has_building(grid_pos), "管道应放置成功")
 
 	var event_press := _make_mouse_event(MOUSE_BUTTON_RIGHT, true)
@@ -291,7 +291,7 @@ func test_copy_selection_fills_clipboard() -> void:
 	SelectionManager.undo_stack.clear()
 
 	var grid_pos := Vector2i(5, 0)
-	_bm.place_building(grid_pos, GameConfig.pipe_type_id)
+	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
 	SelectionManager.select_cell(grid_pos)
 
 	SelectionManager.copy_selection()
@@ -299,7 +299,7 @@ func test_copy_selection_fills_clipboard() -> void:
 	assert_true(SelectionManager.clipboard.has("buildings"), "剪贴板应含 buildings 键")
 	var buildings: Array = SelectionManager.clipboard["buildings"]
 	assert_eq(buildings.size(), 1, "应复制了 1 个建筑")
-	assert_eq(buildings[0]["type"], GameConfig.pipe_type_id, "剪贴板中建筑类型应为管道")
+	assert_eq(buildings[0]["type"], GameConfig.PIPE_TYPE_ID, "剪贴板中建筑类型应为管道")
 	assert_eq(buildings[0]["offset"], Vector2i(0, 0), "单建筑偏移应为 (0, 0)")
 	var was_cut: bool = SelectionManager.clipboard.get("was_cut", true)
 	assert_false(was_cut, "复制操作的 was_cut 应为 false")
@@ -311,7 +311,7 @@ func test_cut_selection_records_undo_and_removes_building() -> void:
 	SelectionManager.undo_stack.clear()
 
 	var grid_pos := Vector2i(5, 1)
-	_bm.place_building(grid_pos, GameConfig.pipe_type_id)
+	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
 	SelectionManager.select_cell(grid_pos)
 
 	SelectionManager.cut_selection()

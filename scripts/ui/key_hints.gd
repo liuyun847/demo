@@ -34,6 +34,7 @@ func _ready() -> void:
 	_refresh_click_rows()
 
 	EventBus.keybind_changed.connect(_on_keybind_changed)
+	EventBus.keybinds_reset.connect(_on_keybinds_reset)
 	_inventory_bar.slot_selected.connect(_on_slot_selected)
 	EventBus.paste_mode_changed.connect(_on_paste_mode_changed)
 	EventBus.pause_state_changed.connect(_on_pause_state_changed)
@@ -41,6 +42,8 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if EventBus.keybind_changed.is_connected(_on_keybind_changed):
 		EventBus.keybind_changed.disconnect(_on_keybind_changed)
+	if EventBus.keybinds_reset.is_connected(_on_keybinds_reset):
+		EventBus.keybinds_reset.disconnect(_on_keybinds_reset)
 	if _inventory_bar.slot_selected.is_connected(_on_slot_selected):
 		_inventory_bar.slot_selected.disconnect(_on_slot_selected)
 	if EventBus.paste_mode_changed.is_connected(_on_paste_mode_changed):
@@ -238,6 +241,9 @@ func _get_current_mode() -> String:
 
 func _on_keybind_changed(_action: String) -> void:
 	_refresh_all()
+
+func _on_keybinds_reset() -> void:
+	_on_keybind_changed("")
 
 func _on_slot_selected(_index: int, _type_id: String) -> void:
 	_refresh_click_rows()

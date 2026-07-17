@@ -17,9 +17,6 @@ func _notify_bm_dirty() -> void:
 	if _data_changed_callback.is_valid():
 		_data_changed_callback.call(self)
 
-func _ready() -> void:
-	pass
-
 func refresh_connections(is_connectable: Callable) -> void:
 	var my_pos := grid_position
 	var mask := 0
