@@ -57,4 +57,4 @@ func test_slot_keys_select_inventory() -> void:
 	assert_true(bar.visible, "开始游戏后 inventory_bar 应显示")
 	bar.select_slot(0)
 	assert_true(bar.has_building_type_selected(), "选中后应有选中槽位")
-	assert_eq(bar.get_current_building_type(), GameConfig.pipe_type_id, "选中的建筑类型应为管道")
+	assert_eq(bar.get_current_building_type(), GameConfig.PIPE_TYPE_ID, "选中的建筑类型应为管道")

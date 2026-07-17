@@ -9,9 +9,6 @@ const NEIGHBORS: Array[Vector2i] = [
 	Vector2i(1, 0),
 ]
 
-## 反应产物存续 tick 数（0.2s/tick × 3 = 0.6s 可见时间）
-const PRODUCT_SURVIVAL_TICKS: int = 3
-
 var _registry: ReactionRegistry
 var _grid: ElementGrid
 ## 源质服务（依赖注入），未注入时回退到全局 EssencePool
@@ -106,10 +103,14 @@ func process_all() -> void:
 		_grid.remove_element(pos_a)
 		_grid.remove_element(pos_b)
 
-		# 放置产物（此时 reactant 已移除，位置空闲）
-		if _grid.set_element(product_pos, product_id, product_pos.y):
-			# 标记产物存续，防止下一 tick 扩散时立即收缩消失
-			_grid.mark_as_product(product_pos, PRODUCT_SURVIVAL_TICKS)
+		# 放置产物（此时两个 reactant 已移除，product_pos 必然空闲）
+		if not _grid.set_element(product_pos, product_id, product_pos.y):
+			# 防御性处理：极端边界（不应发生），跳过标记产物和源质，但不回滚
+			push_error("ReactionProcessor: 产物放置失败 pos=%s product=%s" % [str(product_pos), product_id])
+			continue
+
+		# 标记产物存续，防止下一 tick 扩散时立即收缩消失
+		_grid.mark_as_product(product_pos, GameConfig.PRODUCT_SURVIVAL_TICKS)
 
 		# 产生副产物源质
 		if byproduct_essence > 0.0:

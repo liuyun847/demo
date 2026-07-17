@@ -9,7 +9,7 @@ func before_each() -> void:
 
 
 func test_block_pixel_size() -> void:
-	var expected: int = GameConfig.cell_size * GameConfig.big_cell_size
+	var expected: int = GameConfig.CELL_SIZE * GameConfig.BIG_CELL_SIZE
 	assert_eq(_grid_map.block_pixel_size, expected, "block_pixel_size 应为 cell_size * big_cell_size")
 
 func test_loaded_blocks_exists() -> void:

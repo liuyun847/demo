@@ -11,6 +11,11 @@ func _ready() -> void:
 	EventBus.selection_changed.connect(_on_selection_changed)
 
 
+func _exit_tree() -> void:
+	if EventBus.selection_changed.is_connected(_on_selection_changed):
+		EventBus.selection_changed.disconnect(_on_selection_changed)
+
+
 func _on_selection_changed(cells: Array[Vector2i]) -> void:
 	_ghost_layers["selected"] = cells
 	queue_redraw()
@@ -116,7 +121,7 @@ func _draw() -> void:
 
 	var ghost_cells: Array = _ghost_layers.get("ghost", [])
 	if not ghost_cells.is_empty():
-		var ghost_fill := Color(1, 1, 1, GameConfig.ghost_alpha)
+		var ghost_fill := Color(1, 1, 1, GameConfig.GHOST_ALPHA)
 		var filtered_cells: Array[Vector2i] = []
 		for grid_pos: Vector2i in ghost_cells:
 			if bm == null or not bm.has_building(grid_pos):
@@ -125,11 +130,11 @@ func _draw() -> void:
 
 	var remove_ghost_cells: Array = _ghost_layers.get("remove_ghost", [])
 	if not remove_ghost_cells.is_empty():
-		_draw_cell_highlight(remove_ghost_cells, Color(1, 0, 0, GameConfig.remove_ghost_alpha), Color.RED, false, 2.0)
+		_draw_cell_highlight(remove_ghost_cells, Color(1, 0, 0, GameConfig.REMOVE_GHOST_ALPHA), Color.RED, false, 2.0)
 
 	var select_ghost_cells: Array = _ghost_layers.get("select_ghost", [])
 	if not select_ghost_cells.is_empty():
-		_draw_cell_highlight(select_ghost_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
+		_draw_cell_highlight(select_ghost_cells, GameConfig.SELECTION_HIGHLIGHT_COLOR, GameConfig.SELECTION_BORDER_COLOR, false, 2.0)
 
 	var deselect_ghost_cells: Array = _ghost_layers.get("deselect_ghost", [])
 	if not deselect_ghost_cells.is_empty():
@@ -137,14 +142,14 @@ func _draw() -> void:
 
 	var selected_cells: Array = _ghost_layers.get("selected", [])
 	if not selected_cells.is_empty():
-		_draw_cell_highlight(selected_cells, GameConfig.selection_highlight_color, GameConfig.selection_border_color, false, 2.0)
+		_draw_cell_highlight(selected_cells, GameConfig.SELECTION_HIGHLIGHT_COLOR, GameConfig.SELECTION_BORDER_COLOR, false, 2.0)
 
 	var paste_ghost_cells: Array = _ghost_layers.get("paste_ghost", [])
 	if not paste_ghost_cells.is_empty():
 		for grid_pos: Vector2i in paste_ghost_cells:
 			var building_type: String = paste_ghost_types.get(grid_pos, "default")
-			var color := _get_building_color(building_type)
-			color.a = GameConfig.paste_ghost_alpha
+			var color := BuildingTypeManager.get_building_color(building_type)
+			color.a = GameConfig.PASTE_GHOST_ALPHA
 			var border_color := color
 			border_color.a = mini(color.a + 0.35, 1.0)
 			_draw_cell_highlight([grid_pos], color, border_color, true, 2.0)
@@ -154,19 +159,13 @@ func _draw() -> void:
 			_draw_emitter_arrow_at(grid_pos, emitter_ghost_direction)
 
 	if _collector_ghost_active and not ghost_cells.is_empty():
-		var radius := GameConfig.collector_default_radius
-		for grid_pos: Vector2i in ghost_cells:
-			for dx in range(-radius, radius + 1):
-				for dy in range(-radius, radius + 1):
-					if dx == 0 and dy == 0:
-						continue
-					var arrow_pos := grid_pos + Vector2i(dx, dy)
-					var arrow_dir := Vector2i(-dx, -dy)
-					_draw_arrow_at(arrow_pos, arrow_dir)
+		# 仅对代表格画一个范围框，而非每个 ghost cell 都画 (2r+1)² 个箭头
+		var center: Vector2i = ghost_cells[0]
+		_draw_collector_range_rect(center, GameConfig.COLLECTOR_DEFAULT_RADIUS)
 
 
 func _draw_cell_highlight(cells: Array, fill_color: Color, border_color: Color, use_building_size: bool = false, border_width: float = 2.0) -> void:
-	var cell_size: float = GameConfig.building_size if use_building_size else GameConfig.cell_size
+	var cell_size: float = GameConfig.BUILDING_SIZE if use_building_size else GameConfig.CELL_SIZE
 	var half_size: float = cell_size / 2.0
 	for grid_pos: Vector2i in cells:
 		var world_pos := GridCoordinate.grid_to_world(grid_pos)
@@ -175,19 +174,9 @@ func _draw_cell_highlight(cells: Array, fill_color: Color, border_color: Color, 
 		draw_rect(rect, border_color, false, border_width)
 
 
-func _get_building_color(building_type: String) -> Color:
-	if building_type == "default":
-		return GameConfig.building_default_color
-	if building_type.begins_with("type_"):
-		var idx := building_type.substr(5).to_int()
-		if idx >= 1 and idx <= 10:
-			return Color.from_hsv(float(idx - 1) / 10.0, 0.7, 0.9)
-	return GameConfig.building_default_color
-
-
 func _draw_arrow_at(cell_pos: Vector2i, direction: Vector2i) -> void:
 	# 在指定格子中心画一个箭头，指向 direction 方向
-	var half: float = GameConfig.building_size / 2.0
+	var half: float = GameConfig.BUILDING_SIZE / 2.0
 	var world_pos := GridCoordinate.grid_to_world(cell_pos)
 	var dir_vec := Vector2(direction)
 	var arrow_size: float = half * 0.65
@@ -198,13 +187,26 @@ func _draw_arrow_at(cell_pos: Vector2i, direction: Vector2i) -> void:
 	var left := world_pos + center_offset + perp * arrow_size * 0.3
 	var right := world_pos + center_offset - perp * arrow_size * 0.3
 	var vertices := PackedVector2Array([tip, left, right])
-	draw_colored_polygon(vertices, Color(1, 1, 1, GameConfig.ghost_alpha))
+	draw_colored_polygon(vertices, Color(1, 1, 1, GameConfig.GHOST_ALPHA))
 	draw_polyline(vertices, Color.WHITE, 1.5)
 	draw_line(vertices[2], vertices[0], Color.WHITE, 1.5)
 
 
 func _draw_emitter_arrow_at(grid_pos: Vector2i, direction: Vector2i) -> void:
 	_draw_arrow_at(grid_pos + direction, direction)
+
+
+## 画收集器范围指示框：在中心格周围画半径为 radius 的矩形填充+边框
+func _draw_collector_range_rect(center: Vector2i, radius: int) -> void:
+	var center_world := GridCoordinate.grid_to_world(center)
+	# 范围框：以 center 为中心，边长 = (2*radius + 1) 个 cell
+	var cell_size := float(GameConfig.CELL_SIZE)
+	var half_size := cell_size * (radius + 0.5)
+	var rect := Rect2(center_world - Vector2(half_size, half_size), Vector2(half_size * 2.0, half_size * 2.0))
+	var fill_color := Color(0.2, 0.6, 1.0, 0.15)
+	var border_color := Color(0.2, 0.6, 1.0, 0.6)
+	draw_rect(rect, fill_color, true)
+	draw_rect(rect, border_color, false, 2.0)
 
 
 func _get_building_manager() -> BuildingManager:

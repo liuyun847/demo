@@ -197,7 +197,7 @@ func _update_position() -> void:
 
 	var tooltip_size: Vector2 = size
 	var canvas_scale_y: float = camera.get_canvas_transform().get_scale().y
-	var cell_top_y: float = screen_pos.y - GameConfig.cell_size * 0.5 * canvas_scale_y
+	var cell_top_y: float = screen_pos.y - GameConfig.CELL_SIZE * 0.5 * canvas_scale_y
 	var pos_x: float = screen_pos.x - tooltip_size.x / 2.0
 	var pos_y: float = cell_top_y - tooltip_size.y - GAP
 

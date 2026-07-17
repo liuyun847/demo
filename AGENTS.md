@@ -34,7 +34,7 @@ demo/
 │   ├── building/                 # 建筑系统（12 个 .gd）
 │   │   ├── building_base.gd      #   建筑基类 Node2D
 │   │   ├── building_manager.gd   #   建筑管理器
-│   │   ├── building_factory.gd   #   建筑工厂
+│   │   ├── building_factory.gd   #   建筑工厂（Category 枚举注册表模式）
 │   │   ├── building_type_manager.gd  #   建筑类型注册表与判断
 │   │   ├── building_data_sync_service.gd # 建筑数据/节点同步服务
 │   │   ├── brick_node.gd         #   砖块（含碰撞体）
@@ -85,7 +85,7 @@ demo/
 │   ├── building_tooltip.tscn / emitter_type_panel.tscn
 ├── resources/                    # 图标资源（8 个 .svg）
 ├── save/                         # 运行时存档（gitignore）
-├── tests/                        # GUT 测试（32 unit + 3 integration）
+├── tests/                        # GUT 测试（33 unit + 3 integration）
 │   ├── unit/                     #   单元测试
 │   └── integration/              #   集成测试
 ├── project.godot
@@ -103,7 +103,7 @@ demo/
 | ElementRegistry   | `elements/element_registry.gd`    | 元素类型注册表                  |
 | KeybindManager    | `autoload/keybind_manager.gd`     | 按键配置加载/保存/重映射        |
 | SelectionManager  | `autoload/selection_manager.gd`   | 选中状态/剪贴板/撤销栈管理      |
-| EssencePool       | `autoload/essence_pool.gd`        | 源质货币池（增减查）            |
+| EssencePool       | `autoload/essence_pool.gd`        | 源质货币池（增减查，MAX_ESSENCE 上限） |
 | ProgressSystem    | `autoload/progress_system.gd`     | 源质阈值进度系统（解锁建筑类型） |
 
 **初始化顺序**: GameConfig → EventBus → ElementRegistry → KeybindManager → SelectionManager → EssencePool → ProgressSystem
@@ -125,20 +125,20 @@ Root (Node2D) → main.gd
 
 # 核心系统摘要
 
-- **输入状态机**: 6 个状态（IDLE/DRAGGING/REMOVING/SELECTING/DESELECTING/PASTE_DRAGGING），根据模式切换幽灵预览
+- **输入状态机**: 6 个状态（IDLE/DRAGGING/REMOVING/SELECTING/DESELECTING/PASTE_DRAGGING），根据模式切换幽灵预览。发射器旋转方向序列 `MapInputHandler._EMITTER_DIRS` 为逆时针 `[DOWN, LEFT, UP, RIGHT]`，索引 0 = DOWN 必须与 `EmitterNode.output_direction` 默认值 `Vector2i(0, 1)` 一致（修改需同步检查 EmitterNode 默认值，已有回归测试 `test_emitter_dirs_index_0_matches_node_default` 保护）
 - **幽灵预览**: GhostPreviewManager 维护多组预览数组（ghost/selected/paste/remove），`_draw()` 统一渲染
-- **建筑系统**: 4 种建筑（管道/发射器/收集器/砖块）+ 地图中心核心，通过 BuildingFactory 创建，ECS-Lite 管道批量渲染
+- **建筑系统**: 4 种建筑（管道/发射器/收集器/砖块）+ 地图中心核心，通过 BuildingFactory 创建（基于 `BuildingTypeData.Category` 枚举的创建函数注册表，新增类型只需注册新 category），ECS-Lite 管道批量渲染。`clear_all_buildings()` 对每个非核心建筑逐个 emit `building_removed`（N 次），`clear_all_buildings_silent()` 静默清空不 emit 信号
 - **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心开始搜索），每 tick 执行发射→扩散→收集流程。只有连通到核心的管道网络才能激活发射器/收集器
-- **元素系统**: 水/火/蒸汽三种元素（注册表 + Resource 类型定义），按状态差异化扩散（液体向下、气体向上、固体不动），反应产物存续标记防止瞬间消失
-- **反应系统**: ReactionRegistry 注册反应规则（无序匹配），ReactionProcessor 每 tick 检测相邻格子反应，密度决定产物位置
-- **源质经济**: EssencePool 管理货币，ProgressSystem 按阈值解锁建筑类型。BuildingManager/ReactionCoordinator/ElementDiffusion/ReactionProcessor 通过依赖注入（`_essence_service` + `set_essence_service()`）解耦全局单例，未注入时回退到 EssencePool，支持测试隔离
+- **元素系统**: 水/火/蒸汽三种元素（注册表 + Resource 类型定义），按 `ElementTypeData.State` 枚举（LIQUID/GAS/SOLID）差异化扩散（液体向下、气体向上、固体不动），反应产物存续标记防止瞬间消失
+- **反应系统**: ReactionRegistry 注册反应规则（无序匹配，重复注册跳过并告警），ReactionProcessor 每 tick 检测相邻格子反应，密度决定产物位置
+- **源质经济**: EssencePool 管理货币（`MAX_ESSENCE` 上限约束，setter/`add()` 均通过 `clampf` 限制），ProgressSystem 按阈值解锁建筑类型。BuildingManager/ReactionCoordinator/ElementDiffusion/ReactionProcessor 通过依赖注入（`_essence_service` + `set_essence_service()`）解耦全局单例，未注入时回退到 EssencePool，支持测试隔离
 - **框选与剪贴板**: 选中 → Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z/Y 撤销/重做（栈上限 100），粘贴支持旋转和拖拽
 - **持久化**: 建筑/按键/设置自动保存到 save/ 目录，启动时加载
 - **可视化**: 管道 ECS 批量渲染（PackedVector2Array）、流体批量渲染、无限网格分块渲染
 
 # 通信方式
 
-通过 EventBus 进行模块间松耦合通信（同场景兄弟节点允许 `get_node()` 直接引用）。信号覆盖建筑放置/删除、元素生成/移除、源质变更、暂停、选中、粘贴模式、阈值解锁等。
+通过 EventBus 进行模块间松耦合通信（同场景兄弟节点允许 `get_node()` 直接引用）。信号覆盖建筑放置/删除、元素生成/移除、源质变更、暂停、选中、粘贴模式、阈值解锁、按键重置（`keybinds_reset`，区别于单键变更的 `keybind_changed`）等。
 
 # Git Hooks 与工具
 

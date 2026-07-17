@@ -4,9 +4,15 @@ extends Node2D
 var loaded_blocks: Dictionary[Vector2i, bool] = {}
 var block_pixel_size: int = 0
 
+## 线段点缓存，仅在 visible_range 变化时重新计算，避免每帧重复构建
+var _cached_thin_v_points: PackedVector2Array = PackedVector2Array()
+var _cached_thin_h_points: PackedVector2Array = PackedVector2Array()
+var _cached_thick_points: PackedVector2Array = PackedVector2Array()
+var _cache_dirty: bool = true
+
 func _ready() -> void:
-	block_pixel_size = GameConfig.cell_size * GameConfig.big_cell_size
-	RenderingServer.set_default_clear_color(GameConfig.background_color)
+	block_pixel_size = GameConfig.CELL_SIZE * GameConfig.BIG_CELL_SIZE
+	RenderingServer.set_default_clear_color(GameConfig.BACKGROUND_COLOR)
 	update_visible_blocks()
 	queue_redraw()
 	EventBus.camera_changed.connect(_on_camera_changed)
@@ -20,10 +26,12 @@ func _exit_tree() -> void:
 
 func _on_camera_changed() -> void:
 	update_visible_blocks()
+	_cache_dirty = true
 	queue_redraw()
 
 func _on_viewport_size_changed() -> void:
 	update_visible_blocks()
+	_cache_dirty = true
 	queue_redraw()
 
 
@@ -68,72 +76,85 @@ func _draw() -> void:
 	var camera: Camera2D = get_viewport().get_camera_2d()
 	if not camera:
 		return
-	
+
+	var current_zoom: float = camera.zoom.x
+	var adjusted_thin_width: float = GameConfig.THIN_LINE_WIDTH / current_zoom
+	var adjusted_thick_width: float = GameConfig.THICK_LINE_WIDTH / current_zoom
+
+	# 仅在缓存失效时重新计算线段点
+	if _cache_dirty:
+		_rebuild_line_cache()
+		_cache_dirty = false
+
+	draw_multiline(_cached_thin_v_points, GameConfig.LINE_COLOR, adjusted_thin_width, true)
+	draw_multiline(_cached_thin_h_points, GameConfig.LINE_COLOR, adjusted_thin_width, true)
+	draw_multiline(_cached_thick_points, GameConfig.LINE_COLOR, adjusted_thick_width)
+
+## 重建线段点缓存。根据当前视口和 loaded_blocks 计算 thin/thick 点数组。
+func _rebuild_line_cache() -> void:
+	_cached_thin_v_points.clear()
+	_cached_thin_h_points.clear()
+	_cached_thick_points.clear()
+
+	var camera: Camera2D = get_viewport().get_camera_2d()
+	if not camera:
+		return
+
 	var view_rect: Rect2 = get_viewport().get_visible_rect()
 	var top_left: Vector2 = GridCoordinate.screen_to_world(camera, view_rect.position)
 	var bottom_right: Vector2 = GridCoordinate.screen_to_world(camera, view_rect.end)
-	
-	var current_zoom: float = camera.zoom.x
-	var adjusted_thin_width: float = GameConfig.thin_line_width / current_zoom
-	var adjusted_thick_width: float = GameConfig.thick_line_width / current_zoom
-	
-	var visible_big_cells_x: float = view_rect.size.x / (block_pixel_size * current_zoom)
-	var show_thin_lines: bool = visible_big_cells_x < 6
-	
+
+	var visible_big_cells_x: float = view_rect.size.x / (block_pixel_size * camera.zoom.x)
+	var show_thin_lines: bool = visible_big_cells_x < GameConfig.THIN_LINE_VISIBLE_THRESHOLD
+
 	if show_thin_lines:
-		var thin_v_points := PackedVector2Array()
-		var thin_h_points := PackedVector2Array()
-		
 		var min_x: float = top_left.x
 		var max_x: float = bottom_right.x
 		var min_y: float = top_left.y
 		var max_y: float = bottom_right.y
-		
-		var start_cell_x: int = int(floor(min_x / GameConfig.cell_size))
-		var end_cell_x: int = int(ceil(max_x / GameConfig.cell_size))
-		var start_cell_y: int = int(floor(min_y / GameConfig.cell_size))
-		var end_cell_y: int = int(ceil(max_y / GameConfig.cell_size))
-		
+
+		var start_cell_x: int = int(floor(min_x / GameConfig.CELL_SIZE))
+		var end_cell_x: int = int(ceil(max_x / GameConfig.CELL_SIZE))
+		var start_cell_y: int = int(floor(min_y / GameConfig.CELL_SIZE))
+		var end_cell_y: int = int(ceil(max_y / GameConfig.CELL_SIZE))
+
 		for cell_x in range(start_cell_x, end_cell_x):
-			if cell_x % GameConfig.big_cell_size == 0:
+			if cell_x % GameConfig.BIG_CELL_SIZE == 0:
 				continue
-			var line_x: float = cell_x * GameConfig.cell_size
-			thin_v_points.append(Vector2(line_x, min_y))
-			thin_v_points.append(Vector2(line_x, max_y))
-		
+			var line_x: float = cell_x * GameConfig.CELL_SIZE
+			_cached_thin_v_points.append(Vector2(line_x, min_y))
+			_cached_thin_v_points.append(Vector2(line_x, max_y))
+
 		for cell_y in range(start_cell_y, end_cell_y):
-			if cell_y % GameConfig.big_cell_size == 0:
+			if cell_y % GameConfig.BIG_CELL_SIZE == 0:
 				continue
-			var line_y: float = cell_y * GameConfig.cell_size
-			thin_h_points.append(Vector2(min_x, line_y))
-			thin_h_points.append(Vector2(max_x, line_y))
-		
-		draw_multiline(thin_v_points, GameConfig.line_color, adjusted_thin_width, true)
-		draw_multiline(thin_h_points, GameConfig.line_color, adjusted_thin_width, true)
-	
-	var thick_points := PackedVector2Array()
+			var line_y: float = cell_y * GameConfig.CELL_SIZE
+			_cached_thin_h_points.append(Vector2(min_x, line_y))
+			_cached_thin_h_points.append(Vector2(max_x, line_y))
+
 	for block_coord: Vector2i in loaded_blocks:
 		var left: float = block_coord.x * block_pixel_size
 		var top: float = block_coord.y * block_pixel_size
 		var right: float = left + block_pixel_size
 		var bottom: float = top + block_pixel_size
-		thick_points.append(Vector2(left, top))
-		thick_points.append(Vector2(left, bottom))
-		thick_points.append(Vector2(left, top))
-		thick_points.append(Vector2(right, top))
-		thick_points.append(Vector2(right, top))
-		thick_points.append(Vector2(right, bottom))
-		thick_points.append(Vector2(left, bottom))
-		thick_points.append(Vector2(right, bottom))
-	draw_multiline(thick_points, GameConfig.line_color, adjusted_thick_width)
+		_cached_thick_points.append(Vector2(left, top))
+		_cached_thick_points.append(Vector2(left, bottom))
+		_cached_thick_points.append(Vector2(left, top))
+		_cached_thick_points.append(Vector2(right, top))
+		_cached_thick_points.append(Vector2(right, top))
+		_cached_thick_points.append(Vector2(right, bottom))
+		_cached_thick_points.append(Vector2(left, bottom))
+		_cached_thick_points.append(Vector2(right, bottom))
 
 func mark_block_visible(block_coord: Vector2i) -> void:
 	loaded_blocks[block_coord] = true
+	_cache_dirty = true
 	queue_redraw()
 
 func mark_block_hidden(block_coord: Vector2i) -> void:
 	if loaded_blocks.has(block_coord):
 		loaded_blocks.erase(block_coord)
+		_cache_dirty = true
 		queue_redraw()
 
 

@@ -2,7 +2,7 @@ class_name GridUtils
 extends RefCounted
 
 
-static func get_line_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
+static func get_axis_aligned_cells(from_pos: Vector2i, to_pos: Vector2i) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	var dx := to_pos.x - from_pos.x
 	var dy := to_pos.y - from_pos.y
@@ -31,8 +31,8 @@ static func get_l_cells(from_pos: Vector2i, to_pos: Vector2i, corner_first_horiz
 	else:
 		corner = Vector2i(from_pos.x, to_pos.y)
 
-	var seg1 := get_line_cells(from_pos, corner)
-	var seg2 := get_line_cells(corner, to_pos)
+	var seg1 := get_axis_aligned_cells(from_pos, corner)
+	var seg2 := get_axis_aligned_cells(corner, to_pos)
 	cells.append_array(seg1)
 	for pos in seg2:
 		if pos != corner:

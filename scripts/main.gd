@@ -103,12 +103,16 @@ func _on_buildings_loaded() -> void:
 		show_start_menu.call_deferred()
 
 func _on_game_started() -> void:
-	EssencePool.set_value(GameConfig.initial_essence)
-	var essence_display := EssenceDisplay.new()
-	essence_display.name = "EssenceDisplay"
-	essence_display.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	essence_display.position = Vector2(8, -8)
-	$UIOverlay.add_child(essence_display)
+	# 仅在无存档时重置源质（有存档时 SaveManager 已加载存档值）
+	if not FileAccess.file_exists(GameConfig.save_file_path):
+		EssencePool.set_value(GameConfig.INITIAL_ESSENCE)
+	# 检查 EssenceDisplay 是否已存在，避免重复创建
+	if $UIOverlay.get_node_or_null("EssenceDisplay") == null:
+		var essence_display := EssenceDisplay.new()
+		essence_display.name = "EssenceDisplay"
+		essence_display.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		essence_display.position = GameConfig.ESSENCE_DISPLAY_OFFSET
+		$UIOverlay.add_child(essence_display)
 
 func _on_start_game_requested() -> void:
 	hide_start_menu()

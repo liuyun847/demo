@@ -2,7 +2,7 @@ class_name BuildingTypeManager
 extends RefCounted
 
 # 建筑类型注册表：key = type_id, value = BuildingTypeData
-# BuildingTypeData 自描述行为元数据（has_capacity / is_pipe / ...）
+# BuildingTypeData 自描述行为元数据（has_capacity / category）
 # 注册由 inventory_bar._init_default_types() 在游戏启动时完成；
 # 测试环境需在 before_all 中显式注册（详见 test_building_type_manager.gd）。
 static var _type_table: Dictionary = {}
@@ -33,21 +33,17 @@ static func reset_for_test() -> void:
 static func register_defaults() -> void:
 	if not _type_table.is_empty():
 		return
-	var types: Array[BuildingTypeData] = []
 	var entries: Array[Dictionary] = [
-		{"id": "type_02", "is_pipe": true},
-		{"id": "type_03", "is_emitter": true},
-		{"id": "type_04", "is_pipe": false},
-		{"id": "type_07", "is_collector": true},
+		{"id": "type_02", "category": BuildingTypeData.Category.PIPE},
+		{"id": "type_03", "category": BuildingTypeData.Category.EMITTER},
+		{"id": "type_04", "category": BuildingTypeData.Category.BRICK},
+		{"id": "type_07", "category": BuildingTypeData.Category.COLLECTOR},
 	]
 	for entry: Dictionary in entries:
 		var td := BuildingTypeData.new()
 		td.type_id = entry["id"]
-		for k: String in entry.keys():
-			if k != "id":
-				td.set(k, entry[k])
-		types.append(td)
-	register_all(types)
+		td.category = entry["category"]
+		register(td)
 
 
 static func has_capacity(type_id: String) -> bool:
@@ -57,14 +53,33 @@ static func has_capacity(type_id: String) -> bool:
 
 static func is_pipe(type_id: String) -> bool:
 	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
-	return td != null and td.is_pipe
+	return td != null and td.category == BuildingTypeData.Category.PIPE
 
 
 static func is_emitter(type_id: String) -> bool:
 	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
-	return td != null and td.is_emitter
+	return td != null and td.category == BuildingTypeData.Category.EMITTER
 
 
 static func is_collector(type_id: String) -> bool:
 	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
-	return td != null and td.is_collector
+	return td != null and td.category == BuildingTypeData.Category.COLLECTOR
+
+
+## 获取建筑类别（未注册时返回 GENERIC）
+static func get_category(type_id: String) -> BuildingTypeData.Category:
+	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
+	if td == null:
+		return BuildingTypeData.Category.GENERIC
+	return td.category
+
+
+## 获取建筑颜色：default/type_00 返回默认色，type_01..type_10 按 HSV 色环均匀分布
+static func get_building_color(building_type: String) -> Color:
+	if building_type == "default" or building_type.is_empty():
+		return GameConfig.BUILDING_DEFAULT_COLOR
+	if building_type.begins_with("type_"):
+		var idx := building_type.substr(5).to_int()
+		if idx >= 1 and idx <= 10:
+			return Color.from_hsv(float(idx - 1) / 10.0, 0.7, 0.9)
+	return GameConfig.BUILDING_DEFAULT_COLOR

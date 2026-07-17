@@ -1,7 +1,7 @@
 class_name CollectorNode
 extends BuildingBase
 
-var collection_radius: int = GameConfig.collector_default_radius
+var collection_radius: int = GameConfig.COLLECTOR_DEFAULT_RADIUS
 
 func try_collect(element_grid: ElementGrid) -> float:
 	var total_essence: float = 0.0
@@ -25,8 +25,8 @@ func try_collect(element_grid: ElementGrid) -> float:
 	return total_essence
 
 func _draw() -> void:
-	var half := GameConfig.building_size / 2.0
-	var size := float(GameConfig.building_size)
+	var half := GameConfig.BUILDING_SIZE / 2.0
+	var size := float(GameConfig.BUILDING_SIZE)
 
 	var color_bg := Color(0.4, 0.2, 0.7)
 	var color_inner := Color(0.55, 0.3, 0.85)

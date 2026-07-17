@@ -26,10 +26,12 @@ func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
 	# 调整位置保持鼠标指向的位置不变
 	var new_world_pos: Vector2 = (screen_pos - center) / zoom + global_position
 	position += (world_pos - new_world_pos)
-	EventBus.camera_changed.emit()
+	# 标记脏，由 _process 统一 emit，避免同帧多次 emit
+	_zoom_dirty = true
 
 var _last_process_pos: Vector2
 var _last_zoom: Vector2
+var _zoom_dirty: bool = false
 
 func _process(delta: float) -> void:
 	var input_dir: Vector2 = Vector2.ZERO
@@ -49,7 +51,9 @@ func _process(delta: float) -> void:
 			current_speed *= GameConfig.shift_speed_multiplier
 		position += input_dir * current_speed * delta / zoom.x
 
-	if position != _last_process_pos or zoom != _last_zoom:
+	# 统一在 _process 中 emit，避免 zoom_at_position 与 _process 同帧各 emit 一次
+	if _zoom_dirty or position != _last_process_pos or zoom != _last_zoom:
+		_zoom_dirty = false
 		_last_process_pos = position
 		_last_zoom = zoom
 		EventBus.camera_changed.emit()

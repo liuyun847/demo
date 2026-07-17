@@ -23,37 +23,37 @@ func _init_thresholds() -> void:
 		{
 			"threshold": 100.0,
 			"unlocks": {
-				"description": "\u89e3\u9501\u8f7b\u8d28\u5143\u7d20\u6295\u653e",
+				"description": "解锁轻质元素投放",
 			}
 		},
 		{
 			"threshold": 500.0,
 			"unlocks": {
-				"description": "A \u578b\u5efa\u7b51\u5347\u7ea7\uff08\u591a\u65b9\u5411\u8f93\u51fa\uff09",
+				"description": "A 型建筑升级（多方向输出）",
 			}
 		},
 		{
 			"threshold": 2000.0,
 			"unlocks": {
-				"description": "\u89e3\u9501\u4e2d\u6027\u5143\u7d20\u6295\u653e",
+				"description": "解锁中性元素投放",
 			}
 		},
 		{
 			"threshold": 5000.0,
 			"unlocks": {
-				"description": "A \u578b\u5efa\u7b51\u5347\u7ea7\uff08\u66f4\u9ad8\u8f93\u51fa\u901f\u7387\uff09",
+				"description": "A 型建筑升级（更高输出速率）",
 			}
 		},
 		{
 			"threshold": 10000.0,
 			"unlocks": {
-				"description": "B \u578b\u5efa\u7b51\u5347\u7ea7\uff08\u66f4\u5927\u6536\u96c6\u534a\u5f84\uff09",
+				"description": "B 型建筑升级（更大收集半径）",
 			}
 		},
 		{
 			"threshold": 50000.0,
 			"unlocks": {
-				"description": "\u89e3\u9501\u7c98\u6027\u5143\u7d20",
+				"description": "解锁粘性元素",
 			}
 		},
 	]
@@ -65,7 +65,8 @@ func _on_essence_changed(value: float) -> void:
 			continue
 		if value >= threshold:
 			_unlocked_thresholds[threshold] = true
-			EventBus.essence_threshold_reached.emit(threshold, entry.unlocks)
+			# 深拷贝 unlocks，防止接收方修改影响原始数据
+			EventBus.essence_threshold_reached.emit(threshold, (entry.unlocks as Dictionary).duplicate(true))
 
 func get_unlocked_building_types() -> Array:
 	var unlocked: Array = []

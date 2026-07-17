@@ -42,7 +42,9 @@ func _is_transition_valid(from_state: State, to_state: State) -> bool:
 	return to_state in allowed
 
 func reset() -> void:
-	transition_to(State.IDLE)
+	# 已在 IDLE 时不再触发转换，避免噪音 warning
+	if current_state != State.IDLE:
+		transition_to(State.IDLE)
 
 func _exit_state(_state: State) -> void:
 	# 退出任何状态时都切换到 IDLE 的 UI 状态（隐藏所有预览层），

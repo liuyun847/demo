@@ -15,25 +15,24 @@ func after_all() -> void:
 	# 与 inventory_bar._init_default_types 行为对齐，避免后续测试依赖执行顺序。
 	BuildingTypeManager.reset_for_test()
 	var entries: Array = [
-		[GameConfig.pipe_type_id,      {"is_pipe": true}],
-		[GameConfig.emitter_type_id,   {"is_emitter": true}],
-		[GameConfig.brick_type_id,     {}],
-		["type_05", {}],
-		["type_06", {}],
-		[GameConfig.collector_type_id, {"is_collector": true}],
-		["type_08", {}],
-		["type_09", {}],
-		["type_10", {}],
+		[GameConfig.PIPE_TYPE_ID,      BuildingTypeData.Category.PIPE],
+		[GameConfig.EMITTER_TYPE_ID,   BuildingTypeData.Category.EMITTER],
+		[GameConfig.BRICK_TYPE_ID,     BuildingTypeData.Category.BRICK],
+		["type_05",                    BuildingTypeData.Category.GENERIC],
+		["type_06",                    BuildingTypeData.Category.GENERIC],
+		[GameConfig.COLLECTOR_TYPE_ID, BuildingTypeData.Category.COLLECTOR],
+		["type_08",                    BuildingTypeData.Category.GENERIC],
+		["type_09",                    BuildingTypeData.Category.GENERIC],
+		["type_10",                    BuildingTypeData.Category.GENERIC],
 	]
 	for entry: Array in entries:
 		var td := BuildingTypeData.new()
 		td.type_id = entry[0]
-		var props: Dictionary = entry[1]
-		for k: String in props.keys():
-			td.set(k, props[k])
+		td.category = entry[1]
 		BuildingTypeManager.register(td)
 
 
+## 构造 BuildingTypeData：props 中可包含 has_capacity / category
 func _make_type(type_id: String, props: Dictionary) -> BuildingTypeData:
 	var td := BuildingTypeData.new()
 	td.type_id = type_id
@@ -55,18 +54,18 @@ func test_unknown_type_id_returns_false_for_all() -> void:
 
 
 func test_is_pipe_specific() -> void:
-	BuildingTypeManager.register(_make_type("pipe_x", {"is_pipe": true}))
+	BuildingTypeManager.register(_make_type("pipe_x", {"category": BuildingTypeData.Category.PIPE}))
 	assert_true(BuildingTypeManager.is_pipe("pipe_x"))
 
 
 func test_is_emitter_specific() -> void:
-	BuildingTypeManager.register(_make_type("emit_x", {"is_emitter": true}))
+	BuildingTypeManager.register(_make_type("emit_x", {"category": BuildingTypeData.Category.EMITTER}))
 	assert_true(BuildingTypeManager.is_emitter("emit_x"))
 	assert_false(BuildingTypeManager.is_collector("emit_x"))
 
 
 func test_is_collector_specific() -> void:
-	BuildingTypeManager.register(_make_type("col_x", {"is_collector": true}))
+	BuildingTypeManager.register(_make_type("col_x", {"category": BuildingTypeData.Category.COLLECTOR}))
 	assert_true(BuildingTypeManager.is_collector("col_x"))
 	assert_false(BuildingTypeManager.is_emitter("col_x"))
 
@@ -93,8 +92,8 @@ func test_register_with_null_ignored() -> void:
 func test_register_all_batch() -> void:
 	var arr: Array = [
 		_make_type("a", {"has_capacity": true}),
-		_make_type("b", {"is_pipe": true}),
-		_make_type("c", {"is_emitter": true}),
+		_make_type("b", {"category": BuildingTypeData.Category.PIPE}),
+		_make_type("c", {"category": BuildingTypeData.Category.EMITTER}),
 	]
 	BuildingTypeManager.register_all(arr)
 	assert_true(BuildingTypeManager.has_capacity("a"))
@@ -104,7 +103,7 @@ func test_register_all_batch() -> void:
 
 func test_register_all_skips_non_typedata() -> void:
 	# 非 BuildingTypeData 元素应被忽略，不抛错
-	BuildingTypeManager.register_all([null, "string", 42, _make_type("ok", {"is_pipe": true})])
+	BuildingTypeManager.register_all([null, "string", 42, _make_type("ok", {"category": BuildingTypeData.Category.PIPE})])
 	assert_true(BuildingTypeManager.is_pipe("ok"))
 
 
@@ -116,17 +115,53 @@ func test_reset_for_test_clears_table() -> void:
 
 
 func test_register_overwrite() -> void:
-	BuildingTypeManager.register(_make_type("dup", {"has_capacity": true}))
-	BuildingTypeManager.register(_make_type("dup", {"has_capacity": false, "is_pipe": true}))
+	BuildingTypeManager.register(_make_type("dup", {"has_capacity": true, "category": BuildingTypeData.Category.GENERIC}))
+	BuildingTypeManager.register(_make_type("dup", {"has_capacity": false, "category": BuildingTypeData.Category.PIPE}))
 	assert_false(BuildingTypeManager.has_capacity("dup"), "同 type_id 重复 register 应覆盖")
 	assert_true(BuildingTypeManager.is_pipe("dup"))
 
 
 func test_full_property_matrix_for_pipe() -> void:
 	BuildingTypeManager.register(_make_type("full", {
-		"is_pipe": true,
+		"category": BuildingTypeData.Category.PIPE,
 	}))
 	assert_true(BuildingTypeManager.is_pipe("full"))
 	assert_false(BuildingTypeManager.has_capacity("full"))
 	assert_false(BuildingTypeManager.is_emitter("full"))
 	assert_false(BuildingTypeManager.is_collector("full"))
+
+
+## category 枚举化后新增测试：BRICK 类别查询
+func test_is_brick_via_category() -> void:
+	BuildingTypeManager.register(_make_type("brick_x", {"category": BuildingTypeData.Category.BRICK}))
+	# BRICK 类别对其他 is_* 查询都应返回 false
+	assert_false(BuildingTypeManager.is_pipe("brick_x"))
+	assert_false(BuildingTypeManager.is_emitter("brick_x"))
+	assert_false(BuildingTypeManager.is_collector("brick_x"))
+
+
+## category 枚举化后新增测试：get_category 未注册返回 GENERIC
+func test_get_category_unknown_returns_generic() -> void:
+	assert_eq(BuildingTypeManager.get_category("unknown"), BuildingTypeData.Category.GENERIC, "未注册类型应返回 GENERIC")
+
+
+## category 枚举化后新增测试：get_building_color default 行为
+func test_get_building_color_default() -> void:
+	# default/空字符串应返回 GameConfig.BUILDING_DEFAULT_COLOR
+	var color_default: Color = BuildingTypeManager.get_building_color("default")
+	assert_eq(color_default, GameConfig.BUILDING_DEFAULT_COLOR, "default 应返回 building_default_color")
+	var color_empty: Color = BuildingTypeManager.get_building_color("")
+	assert_eq(color_empty, GameConfig.BUILDING_DEFAULT_COLOR, "空字符串应返回 building_default_color")
+
+
+## category 枚举化后新增测试：get_building_color type_01..type_10 HSV 色环
+func test_get_building_color_type_indices() -> void:
+	# type_01..type_10 按 HSV 色环均匀分布
+	for idx in range(1, 11):
+		var type_id := "type_%02d" % idx
+		var color: Color = BuildingTypeManager.get_building_color(type_id)
+		var expected := Color.from_hsv(float(idx - 1) / 10.0, 0.7, 0.9)
+		assert_eq(color, expected, "%s 应返回预期 HSV 色环颜色" % type_id)
+	# type_11 超出范围应回退到默认色
+	var color_oob: Color = BuildingTypeManager.get_building_color("type_11")
+	assert_eq(color_oob, GameConfig.BUILDING_DEFAULT_COLOR, "type_11 超出范围应回退到默认色")

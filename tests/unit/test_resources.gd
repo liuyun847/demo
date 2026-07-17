@@ -10,14 +10,14 @@ func before_all() -> void:
 
 
 func _ensure_building_types_registered() -> void:
-	if BuildingTypeManager.has_capacity(GameConfig.pipe_type_id):
+	if BuildingTypeManager.has_capacity(GameConfig.PIPE_TYPE_ID):
 		return
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
-		[GameConfig.pipe_type_id,      {"is_pipe": true}],
-		[GameConfig.emitter_type_id,   {"is_emitter": true}],
-		[GameConfig.collector_type_id, {"is_collector": true}],
-		[GameConfig.brick_type_id,     {}],
+		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
+		[GameConfig.EMITTER_TYPE_ID,   {"category": BuildingTypeData.Category.EMITTER}],
+		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
+		[GameConfig.BRICK_TYPE_ID,     {}],
 	]
 	for entry: Array in entries:
 		var td := BuildingTypeData.new()
@@ -56,7 +56,7 @@ func test_building_data_defaults() -> void:
 	assert_eq(data.max_capacity, 100, "默认 max_capacity 应为 100")
 
 func test_has_capacity_for_pipe() -> void:
-	assert_false(BuildingTypeManager.has_capacity(GameConfig.pipe_type_id), "管道类型不应有容量属性")
+	assert_false(BuildingTypeManager.has_capacity(GameConfig.PIPE_TYPE_ID), "管道类型不应有容量属性")
 
 func test_has_capacity_for_default() -> void:
 	assert_false(BuildingTypeManager.has_capacity("default"), "默认类型不应有容量属性")
@@ -98,21 +98,21 @@ func test_undo_command_reverse_adds_building() -> void:
 
 func test_undo_command_reverse_place_removes_building() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(5, 5), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.pipe_type_id}}
+	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.PIPE_TYPE_ID}}
 	cmd.reverse(bm)
 	assert_false(bm.has_building(Vector2i(5, 5)), "reverse PLACE 应删除建筑")
 
 func test_undo_command_reverse_cut_restores_building() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(3, 3), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(3, 3), GameConfig.PIPE_TYPE_ID)
 	assert_true(bm.has_building(Vector2i(3, 3)), "放置后应有建筑")
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {Vector2i(3, 3): {"type": GameConfig.pipe_type_id}}
+	cmd.buildings = {Vector2i(3, 3): {"type": GameConfig.PIPE_TYPE_ID}}
 	bm.remove_building(Vector2i(3, 3))
 	assert_false(bm.has_building(Vector2i(3, 3)), "删除后不应有建筑")
 	cmd.reverse(bm)
@@ -120,11 +120,11 @@ func test_undo_command_reverse_cut_restores_building() -> void:
 
 func test_undo_command_reverse_cut_does_not_restore_capacity() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(8, 8), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(8, 8), GameConfig.PIPE_TYPE_ID)
 	assert_true(bm.has_building(Vector2i(8, 8)), "放置后应有建筑")
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {Vector2i(8, 8): {"type": GameConfig.pipe_type_id}}
+	cmd.buildings = {Vector2i(8, 8): {"type": GameConfig.PIPE_TYPE_ID}}
 	bm.remove_building(Vector2i(8, 8))
 	cmd.reverse(bm)
 	assert_true(bm.has_building(Vector2i(8, 8)), "reverse CUT 应恢复建筑")
@@ -135,24 +135,24 @@ func test_undo_command_reverse_cut_does_not_restore_capacity() -> void:
 
 func test_undo_command_forward_remove() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(5, 5), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.REMOVE
-	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.pipe_type_id}}
+	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.PIPE_TYPE_ID}}
 	cmd.forward(bm)
 
 	assert_false(bm.has_building(Vector2i(5, 5)), "forward REMOVE 应删除建筑")
 
 func test_undo_command_forward_cut() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(5, 5), GameConfig.pipe_type_id)
+	bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.pipe_type_id}}
+	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.PIPE_TYPE_ID}}
 	cmd.forward(bm)
 
 	assert_false(bm.has_building(Vector2i(5, 5)), "forward CUT 应删除建筑")

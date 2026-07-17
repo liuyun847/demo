@@ -16,6 +16,12 @@ static func sync_from_node(data: BuildingData, node: Node, restore_data: Diction
 
 
 static func sync_emitter(data: BuildingData, node: Node, restore_data: Dictionary = {}) -> void:
+	if data == null:
+		push_warning("BuildingDataSyncService.sync_emitter: data 为 null，跳过同步")
+		return
+	if node == null:
+		push_warning("BuildingDataSyncService.sync_emitter: node 为 null，跳过同步")
+		return
 	_sync_emitter(data, node, restore_data)
 
 

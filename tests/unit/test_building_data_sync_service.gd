@@ -8,14 +8,14 @@ func before_all() -> void:
 
 
 func _ensure_building_types_registered() -> void:
-	if BuildingTypeManager.has_capacity(GameConfig.pipe_type_id):
+	if BuildingTypeManager.has_capacity(GameConfig.PIPE_TYPE_ID):
 		return
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
-		[GameConfig.pipe_type_id,      {"is_pipe": true}],
-		[GameConfig.emitter_type_id,   {"is_emitter": true}],
-		[GameConfig.collector_type_id, {"is_collector": true}],
-		[GameConfig.brick_type_id,     {}],
+		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
+		[GameConfig.EMITTER_TYPE_ID,   {"category": BuildingTypeData.Category.EMITTER}],
+		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
+		[GameConfig.BRICK_TYPE_ID,     {}],
 	]
 	for entry: Array in entries:
 		var td := BuildingTypeData.new()
@@ -29,7 +29,7 @@ func _ensure_building_types_registered() -> void:
 
 func _make_emitter_data() -> BuildingData:
 	var data := BuildingData.new()
-	data.building_type = GameConfig.emitter_type_id
+	data.building_type = GameConfig.EMITTER_TYPE_ID
 	return data
 
 

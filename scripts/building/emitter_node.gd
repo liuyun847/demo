@@ -3,7 +3,6 @@ extends BuildingBase
 
 var element_type_id: String = "water"
 var output_direction: Vector2i = Vector2i(0, 1)
-var essence_cost_per_tick: float = GameConfig.emitter_essence_cost_per_tick
 
 ## 元素类型是否已确认。放置后等待用户选择，确认后才开始发射。
 var _type_confirmed: bool = false
@@ -22,8 +21,8 @@ func has_type_selected() -> bool:
 
 
 func _draw() -> void:
-	var half := GameConfig.building_size / 2.0
-	var size := float(GameConfig.building_size)
+	var half := GameConfig.BUILDING_SIZE / 2.0
+	var size := float(GameConfig.BUILDING_SIZE)
 
 	var element_type := ElementRegistry.get_element_type(element_type_id)
 	var elem_color: Color = element_type.color if element_type else Color.WHITE
@@ -42,7 +41,7 @@ func _draw() -> void:
 	var arrow_right := arrow_center - perp * arrow_size * 0.35
 
 	draw_colored_polygon(PackedVector2Array([arrow_tip, arrow_left, arrow_right]), Color.WHITE)
-	draw_colored_polygon(PackedVector2Array([arrow_tip, arrow_left, arrow_right]), Color(elem_color, 0.85))
+	draw_colored_polygon(PackedVector2Array([arrow_tip, arrow_left, arrow_right]), Color(elem_color, GameConfig.ELEMENT_ALPHA))
 
 	draw_rect(Rect2(-half, -half, size, size), Color(0.25, 0.25, 0.25), false, 1.5)
 
@@ -59,7 +58,7 @@ func get_tooltip_summary() -> Dictionary:
 	return {
 		"name": get_building_name(),
 		"type": "A 型 - 发射器",
-		"cost": "%.1f 源质/tick" % essence_cost_per_tick,
+		"cost": "%.1f 源质/tick" % GameConfig.EMITTER_ESSENCE_COST_PER_TICK,
 	}
 
 func get_tooltip_details() -> Dictionary:
@@ -67,6 +66,6 @@ func get_tooltip_details() -> Dictionary:
 	var type_name: String = type_data.display_name if type_data else "未知"
 	return {
 		"元素类型": type_name,
-		"消耗": "%.1f 源质/tick" % essence_cost_per_tick,
-		"方向": "上" if output_direction == Vector2i(0, -1) else "下" if output_direction == Vector2i(0, 1) else "左" if output_direction == Vector2i(-1, 0) else "右",
+		"消耗": "%.1f 源质/tick" % GameConfig.EMITTER_ESSENCE_COST_PER_TICK,
+		"方向": "上" if output_direction == Vector2i(0, -1) else "下" if output_direction == Vector2i(0, 1) else "左" if output_direction == Vector2i(-1, 0) else "右" if output_direction == Vector2i(1, 0) else "未知",
 	}

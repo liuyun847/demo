@@ -230,7 +230,7 @@ func remap_action(action: String, new_event: InputEvent) -> void:
 func reset_to_defaults() -> void:
 	_apply_default_keybindings()
 	save_keybindings()
-	EventBus.keybind_changed.emit("")
+	EventBus.keybinds_reset.emit()
 
 func save_keybindings() -> void:
 	var keybind_data := {

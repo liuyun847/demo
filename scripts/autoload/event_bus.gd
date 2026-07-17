@@ -8,6 +8,8 @@ signal building_removed(grid_pos: Vector2i)
 signal buildings_loaded
 @warning_ignore("unused_signal")
 signal keybind_changed(action: String)
+@warning_ignore("unused_signal")
+signal keybinds_reset
 
 # UI 叠加层状态信号
 @warning_ignore("unused_signal")

@@ -19,12 +19,15 @@ func _ready() -> void:
 	btn_reset.pressed.connect(_on_reset_pressed)
 	btn_back.pressed.connect(_on_back_pressed)
 	EventBus.keybind_changed.connect(_on_keybind_changed)
+	EventBus.keybinds_reset.connect(_on_keybinds_reset)
 	_refresh_keybind_list()
 	_refresh_game_options()
 
 func _exit_tree() -> void:
 	if EventBus.keybind_changed.is_connected(_on_keybind_changed):
 		EventBus.keybind_changed.disconnect(_on_keybind_changed)
+	if EventBus.keybinds_reset.is_connected(_on_keybinds_reset):
+		EventBus.keybinds_reset.disconnect(_on_keybinds_reset)
 
 func _input(event: InputEvent) -> void:
 	if not visible:
@@ -217,6 +220,9 @@ func _update_button_text(action: String, button: Button) -> void:
 func _on_keybind_changed(_action: String) -> void:
 	_cancel_listening()
 	_refresh_keybind_list()
+
+func _on_keybinds_reset() -> void:
+	_on_keybind_changed("")
 
 func _on_reset_pressed() -> void:
 	KeybindManager.reset_to_defaults()
