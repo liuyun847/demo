@@ -3,7 +3,6 @@ extends Node2D
 
 var _ghost_layers: Dictionary = {}
 var paste_ghost_types: Dictionary[Vector2i, String] = {}
-var emitter_ghost_direction: Vector2i = Vector2i.ZERO
 var _collector_ghost_active: bool = false
 
 
@@ -92,16 +91,6 @@ func clear_paste_preview() -> void:
 	queue_redraw()
 
 
-func set_emitter_ghost_direction(dir: Vector2i) -> void:
-	emitter_ghost_direction = dir
-	queue_redraw()
-
-
-func hide_emitter_ghost_direction() -> void:
-	emitter_ghost_direction = Vector2i.ZERO
-	queue_redraw()
-
-
 func show_collector_ghost_range() -> void:
 	_collector_ghost_active = true
 	queue_redraw()
@@ -154,10 +143,6 @@ func _draw() -> void:
 			border_color.a = mini(color.a + 0.35, 1.0)
 			_draw_cell_highlight([grid_pos], color, border_color, true, 2.0)
 
-	if emitter_ghost_direction != Vector2i.ZERO and not ghost_cells.is_empty():
-		for grid_pos: Vector2i in ghost_cells:
-			_draw_emitter_arrow_at(grid_pos, emitter_ghost_direction)
-
 	if _collector_ghost_active and not ghost_cells.is_empty():
 		# 仅对代表格画一个范围框，而非每个 ghost cell 都画 (2r+1)² 个箭头
 		var center: Vector2i = ghost_cells[0]
@@ -172,28 +157,6 @@ func _draw_cell_highlight(cells: Array, fill_color: Color, border_color: Color, 
 		var rect := Rect2(world_pos - Vector2(half_size, half_size), Vector2(cell_size, cell_size))
 		draw_rect(rect, fill_color, true)
 		draw_rect(rect, border_color, false, border_width)
-
-
-func _draw_arrow_at(cell_pos: Vector2i, direction: Vector2i) -> void:
-	# 在指定格子中心画一个箭头，指向 direction 方向
-	var half: float = GameConfig.BUILDING_SIZE / 2.0
-	var world_pos := GridCoordinate.grid_to_world(cell_pos)
-	var dir_vec := Vector2(direction)
-	var arrow_size: float = half * 0.65
-	var center_offset := dir_vec * arrow_size * 0.2
-	var tip_offset := dir_vec * arrow_size * 0.55
-	var perp := Vector2(-dir_vec.y, dir_vec.x)
-	var tip := world_pos + center_offset + tip_offset
-	var left := world_pos + center_offset + perp * arrow_size * 0.3
-	var right := world_pos + center_offset - perp * arrow_size * 0.3
-	var vertices := PackedVector2Array([tip, left, right])
-	draw_colored_polygon(vertices, Color(1, 1, 1, GameConfig.GHOST_ALPHA))
-	draw_polyline(vertices, Color.WHITE, 1.5)
-	draw_line(vertices[2], vertices[0], Color.WHITE, 1.5)
-
-
-func _draw_emitter_arrow_at(grid_pos: Vector2i, direction: Vector2i) -> void:
-	_draw_arrow_at(grid_pos + direction, direction)
 
 
 ## 画收集器范围指示框：在中心格周围画半径为 radius 的矩形填充+边框

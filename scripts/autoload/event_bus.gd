@@ -52,8 +52,12 @@ signal essence_threshold_reached(threshold: float, unlocks: Dictionary)
 @warning_ignore("unused_signal")
 signal pause_state_changed(paused: bool)
 
-# 喷口类型选择面板信号
+# 元素类型选择面板信号（源头/收集器共享）
 @warning_ignore("unused_signal")
-signal emitter_type_panel_opened
+signal element_type_panel_opened
 @warning_ignore("unused_signal")
-signal emitter_type_panel_closed
+signal element_type_panel_closed
+
+# 源头产出类型/收集器筛选类型变更信号（触发延迟保存）
+@warning_ignore("unused_signal")
+signal element_type_changed(grid_pos: Vector2i)

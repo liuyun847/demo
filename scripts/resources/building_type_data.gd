@@ -1,7 +1,7 @@
 class_name BuildingTypeData
 extends Resource
 
-enum Category { GENERIC, PIPE, EMITTER, COLLECTOR, BRICK }
+enum Category { GENERIC, PIPE, SOURCE, COLLECTOR, BRICK }
 
 @export var type_id: String
 @export var display_name: String

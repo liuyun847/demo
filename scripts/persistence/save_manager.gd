@@ -13,6 +13,7 @@ var _save_pending: bool = false
 func _ready() -> void:
 	EventBus.building_placed.connect(_on_building_changed)
 	EventBus.building_removed.connect(_on_building_changed)
+	EventBus.element_type_changed.connect(_on_building_changed)
 	# 延迟到所有子节点 _ready 完成后加载，避免 building_manager 未就绪
 	call_deferred("load_buildings")
 
@@ -21,6 +22,8 @@ func _exit_tree() -> void:
 		EventBus.building_placed.disconnect(_on_building_changed)
 	if EventBus.building_removed.is_connected(_on_building_changed):
 		EventBus.building_removed.disconnect(_on_building_changed)
+	if EventBus.element_type_changed.is_connected(_on_building_changed):
+		EventBus.element_type_changed.disconnect(_on_building_changed)
 
 func _on_building_changed(_grid_pos: Vector2i) -> void:
 	if _is_loading:
@@ -39,7 +42,12 @@ func save_buildings() -> void:
 		return
 
 	var save_dict := _build_save_dict()
-	var success := FileIOHelper.write_json_file(GameConfig.save_file_path, save_dict, "SaveManager")
+	var success := FileIOHelper.write_cfg_section(
+		GameConfig.unified_save_path,
+		GameConfig.SECTION_BUILDINGS,
+		save_dict,
+		"SaveManager"
+	)
 	if not success:
 		push_error("SaveManager: 存档写入失败，进度可能未保存")
 
@@ -58,30 +66,35 @@ func _build_save_dict() -> Dictionary:
 		if data.building_type == GameConfig.CORE_TYPE_ID:
 			continue
 
-		if BuildingTypeManager.is_emitter(data.building_type):
+		# 同步源头/收集器节点状态到 data
+		if BuildingTypeManager.is_source(data.building_type) or \
+			BuildingTypeManager.is_collector(data.building_type):
 			var node := building_manager.get_building_node(grid_pos)
 			if node:
-				BuildingDataSyncService.sync_emitter(data, node)
+				BuildingDataSyncService.sync_from_node(data, node)
 
 		var key := "%d,%d" % [grid_pos.x, grid_pos.y]
 		var entry := {
 			"type": data.building_type
 		}
-		if BuildingTypeManager.is_emitter(data.building_type):
+		if BuildingTypeManager.is_source(data.building_type):
 			if not data.element_type_id.is_empty():
 				entry["element_type_id"] = data.element_type_id
-			entry["output_direction"] = [data.output_direction.x, data.output_direction.y]
+		elif BuildingTypeManager.is_collector(data.building_type):
+			if not data.collector_filter.is_empty():
+				entry["collector_filter"] = data.collector_filter
 		save_dict.buildings[key] = entry
 
 	return save_dict
 
 func load_buildings() -> void:
-	if not FileAccess.file_exists(GameConfig.save_file_path):
+	if not FileIOHelper.cfg_has_section(GameConfig.unified_save_path, GameConfig.SECTION_BUILDINGS):
 		EventBus.buildings_loaded.emit()
 		return
 
-	var result := FileIOHelper.read_json_file(
-		GameConfig.save_file_path,
+	var result := FileIOHelper.read_cfg_section(
+		GameConfig.unified_save_path,
+		GameConfig.SECTION_BUILDINGS,
 		"SaveManager",
 		GameConfig.SAVE_VERSION,
 		_on_save_version_mismatch
@@ -124,17 +137,20 @@ func load_buildings() -> void:
 				if b_type == "type_01" or b_type == GameConfig.CORE_TYPE_ID:
 					continue
 				var restore_data: Dictionary = {}
-				if BuildingTypeManager.is_emitter(b_type):
+				if BuildingTypeManager.is_source(b_type):
 					if b_data.has("element_type_id"):
 						restore_data["element_type_id"] = b_data["element_type_id"]
-					if b_data.has("output_direction"):
-						restore_data["output_direction"] = b_data["output_direction"]
+				elif BuildingTypeManager.is_collector(b_type):
+					if b_data.has("collector_filter"):
+						restore_data["collector_filter"] = b_data["collector_filter"]
+				# 旧存档的 output_direction 字段被静默忽略（源头已移除方向概念）
 				building_manager.place_building(grid_pos, b_type, restore_data)
 
 	call_deferred("_finalize_loading")
 
 func _on_save_version_mismatch(data: Dictionary, file_path: String) -> void:
-	var backup_path := "%s_v%s.json.bak" % [file_path.get_basename(), data.version]
+	# .cfg 是统一存档文件，备份整个文件以保留所有 section 的原始状态
+	var backup_path := "%s.v%s.bak" % [file_path.get_basename(), str(data.get("version", "unknown"))]
 	var backup_err := DirAccess.copy_absolute(file_path, backup_path)
 	if backup_err == OK:
 		push_warning("SaveManager: 已备份旧存档到: %s" % backup_path)

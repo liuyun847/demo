@@ -15,7 +15,7 @@ func _ensure_building_types_registered() -> void:
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
 		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
-		[GameConfig.EMITTER_TYPE_ID,   {"category": BuildingTypeData.Category.EMITTER}],
+		[GameConfig.SOURCE_TYPE_ID,    {"category": BuildingTypeData.Category.SOURCE}],
 		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
 		[GameConfig.BRICK_TYPE_ID,     {}],
 	]

@@ -5,10 +5,10 @@ extends Node
 
 @onready var ghost_preview: GhostPreviewManager = %BuildingManager/GhostPreviewManager
 
-const EMITTER_PANEL_SCENE := preload("res://scenes/emitter_type_panel.tscn")
+const ELEMENT_TYPE_PANEL_SCENE := preload("res://scenes/element_type_panel.tscn")
 
 var _state_machine: InputStateMachine = InputStateMachine.new()
-var _current_emitter_panel: Control = null
+var _current_type_panel: Control = null
 
 var _last_hovered_grid: Vector2i = GameConfig.INVALID_GRID_POS
 var _has_camera: bool = false
@@ -17,16 +17,6 @@ var _last_drag_grid: Vector2i = Vector2i.ZERO
 
 ## 缓存 UIOverlay 引用，避免每次输入都 get_node_or_null 查找
 var _ui_overlay: CanvasLayer = null
-
-## 发射器旋转方向序列：逆时针 [DOWN, LEFT, UP, RIGHT]
-# index 0 = DOWN(0,1)，与 EmitterNode.output_direction 默认值一致；旋转按 DOWN→LEFT→UP→RIGHT 逆时针推进
-const _EMITTER_DIRS: Array[Vector2i] = [
-	Vector2i(0, 1),   # DOWN
-	Vector2i(-1, 0),  # LEFT
-	Vector2i(0, -1),  # UP
-	Vector2i(1, 0),   # RIGHT
-]
-var _emitter_dir_idx: int = 0
 
 func _ready() -> void:
 	if not building_manager:
@@ -51,29 +41,24 @@ func _exit_tree() -> void:
 		inventory_bar.slot_selected.disconnect(_on_slot_selected)
 
 func _on_slot_selected(index: int, type_id: String) -> void:
-	if index < 0 or not BuildingTypeManager.is_emitter(type_id):
+	if index < 0 or not BuildingTypeManager.is_source(type_id):
 		if ghost_preview:
-			ghost_preview.hide_emitter_ghost_direction()
 			ghost_preview.hide_ghost()
 		_cancel_all_dragging()
 		return
-	_emitter_dir_idx = 0
-	_update_emitter_ghost_direction()
 	ghost_preview.hide_collector_ghost_range()
 
 func _on_paste_mode_changed(_active: bool) -> void:
 	if ghost_preview:
-		ghost_preview.hide_emitter_ghost_direction()
 		ghost_preview.hide_collector_ghost_range()
 	_cancel_all_dragging()
 
 func _cancel_all_dragging() -> void:
-	if is_instance_valid(_current_emitter_panel):
-		_current_emitter_panel.queue_free()
-		_current_emitter_panel = null
+	if is_instance_valid(_current_type_panel):
+		_current_type_panel.queue_free()
+		_current_type_panel = null
 	if ghost_preview:
 		ghost_preview.clear_paste_preview()
-		ghost_preview.hide_emitter_ghost_direction()
 		ghost_preview.hide_collector_ghost_range()
 	_state_machine.reset()
 
@@ -100,20 +85,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if (menu and menu.visible) or (settings and settings.visible):
 			return
 	if event.is_action_pressed("rotate_clipboard") and not event.is_echo():
-		var is_emitter_placement: bool = _is_building_placement_mode() and inventory_bar and \
-			BuildingTypeManager.is_emitter(inventory_bar.get_current_building_type())
-
-		if is_emitter_placement:
-			_emitter_dir_idx = (_emitter_dir_idx + 1) % 4
-			_update_emitter_ghost_direction()
-			if _state_machine.current_state == InputStateMachine.State.DRAGGING:
-				var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
-				if start_grid != _last_drag_grid:
-					var cells: Array[Vector2i] = GridUtils.get_l_cells(start_grid, _last_drag_grid, _drag_corner_first_horizontal)
-					ghost_preview.show_ghost(cells)
-			get_viewport().set_input_as_handled()
-			return
-
+		# 源头已移除方向概念，R 仅用于粘贴模式下旋转剪贴板
 		if _state_machine.current_state == InputStateMachine.State.DRAGGING:
 			_drag_corner_first_horizontal = not _drag_corner_first_horizontal
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
@@ -191,10 +163,7 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 				viewport.set_input_as_handled()
 				return
 			if _is_building_placement_mode() and inventory_bar:
-				var type_id: String = inventory_bar.get_current_building_type()
 				ghost_preview.show_ghost([grid_pos])
-				if BuildingTypeManager.is_emitter(type_id):
-					_update_emitter_ghost_direction()
 				_update_collector_ghost_range()
 		InputStateMachine.State.DRAGGING:
 			var start_grid: Vector2i = _state_machine.context.get("start_grid", Vector2i.ZERO)
@@ -202,7 +171,6 @@ func _handle_mouse_motion(event: InputEventMouseMotion, viewport: Viewport) -> v
 				_last_drag_grid = grid_pos
 				var cells: Array[Vector2i] = GridUtils.get_l_cells(start_grid, grid_pos, _drag_corner_first_horizontal)
 				ghost_preview.show_ghost(cells)
-			_update_emitter_ghost_direction()
 			_update_collector_ghost_range()
 			viewport.set_input_as_handled()
 		InputStateMachine.State.REMOVING:
@@ -257,17 +225,6 @@ func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewpo
 		viewport.set_input_as_handled()
 		return
 
-func _update_emitter_ghost_direction() -> void:
-	if not ghost_preview:
-		return
-	var is_emitter_mode: bool = _is_building_placement_mode() and inventory_bar and \
-		BuildingTypeManager.is_emitter(inventory_bar.get_current_building_type())
-	if is_emitter_mode:
-		var dir := _EMITTER_DIRS[_emitter_dir_idx]
-		ghost_preview.set_emitter_ghost_direction(dir)
-	else:
-		ghost_preview.hide_emitter_ghost_direction()
-
 
 func _update_collector_ghost_range() -> void:
 	if not ghost_preview:
@@ -280,24 +237,42 @@ func _update_collector_ghost_range() -> void:
 		ghost_preview.hide_collector_ghost_range()
 
 
-func _open_emitter_type_panel(emitter_node: EmitterNode) -> void:
-	if is_instance_valid(_current_emitter_panel):
-		_current_emitter_panel.queue_free()
-		_current_emitter_panel = null
+## 打开源头类型选择面板
+func _open_source_type_panel(source_node: SourceNode) -> void:
+	if is_instance_valid(_current_type_panel):
+		_current_type_panel.queue_free()
+		_current_type_panel = null
 
-	var panel: Control = EMITTER_PANEL_SCENE.instantiate()
-	panel.target_emitter = emitter_node
+	var panel: Control = ELEMENT_TYPE_PANEL_SCENE.instantiate()
+	panel.target = source_node
+	panel.mode = ElementTypePanel.Mode.SOURCE
 	if _ui_overlay == null:
 		panel.queue_free()
 		return
 	_ui_overlay.add_child(panel)
-	_current_emitter_panel = panel
+	_current_type_panel = panel
+
+
+## 打开收集器筛选类型选择面板
+func _open_collector_type_panel(collector: CollectorNode) -> void:
+	if is_instance_valid(_current_type_panel):
+		_current_type_panel.queue_free()
+		_current_type_panel = null
+
+	var panel: Control = ELEMENT_TYPE_PANEL_SCENE.instantiate()
+	panel.target = collector
+	panel.mode = ElementTypePanel.Mode.COLLECTOR
+	if _ui_overlay == null:
+		panel.queue_free()
+		return
+	_ui_overlay.add_child(panel)
+	_current_type_panel = panel
 
 func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.is_action("place_building") and event.pressed:
 		if building_manager.has_building(grid_pos):
 			var node := building_manager.get_building_node(grid_pos)
-			if node is EmitterNode:
+			if node is SourceNode:
 				viewport.set_input_as_handled()
 				return
 		var building_type: String = inventory_bar.get_current_building_type() if inventory_bar else "default"
@@ -321,25 +296,28 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 			if building_manager.place_building(cell, building_type):
 				placed[cell] = {"type": building_type}
 		if not placed.is_empty():
-			if BuildingTypeManager.is_emitter(building_type):
-				var emitter_dir := _EMITTER_DIRS[_emitter_dir_idx]
-				for cell: Vector2i in placed.keys():
-					var placed_node := building_manager.get_building_node(cell)
-					if placed_node is EmitterNode:
-						placed_node.set_output_direction(emitter_dir)
-					placed[cell]["output_direction"] = [emitter_dir.x, emitter_dir.y]
 			var cmd: UndoCommand = UndoCommand.new()
 			cmd.type = UndoCommand.Type.PLACE
 			cmd.buildings = placed
 			SelectionManager.push_undo_command(cmd)
-			if BuildingTypeManager.is_emitter(building_type):
-				var last_emitter: EmitterNode = null
+			# 源头放置后弹出类型选择面板（最后放置的源头）
+			if BuildingTypeManager.is_source(building_type):
+				var last_source: SourceNode = null
 				for cell: Vector2i in placed.keys():
 					var placed_node := building_manager.get_building_node(cell)
-					if placed_node is EmitterNode:
-						last_emitter = placed_node
-				if last_emitter:
-					_open_emitter_type_panel(last_emitter)
+					if placed_node is SourceNode:
+						last_source = placed_node
+				if last_source:
+					_open_source_type_panel(last_source)
+			# 收集器放置后弹出筛选面板（最后放置的收集器，与源头行为一致）
+			elif BuildingTypeManager.is_collector(building_type):
+				var last_collector: CollectorNode = null
+				for cell: Vector2i in placed.keys():
+					var placed_node := building_manager.get_building_node(cell)
+					if placed_node is CollectorNode:
+						last_collector = placed_node
+				if last_collector:
+					_open_collector_type_panel(last_collector)
 		_state_machine.transition_to(InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
@@ -365,10 +343,18 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 				var entry: Dictionary = {"type": building_manager.get_building_type(cell)}
 				var bdata := building_manager.get_building_data(cell)
 				if bdata != null:
-					if BuildingTypeManager.is_emitter(bdata.building_type):
+					# 先同步节点状态到 data，避免读到 stale 数据
+					# （set_element_type/set_filter 只更新节点，不触发同步）
+					var node := building_manager.get_building_node(cell)
+					if node != null:
+						BuildingDataSyncService.sync_from_node(bdata, node)
+					# 源头：保存 element_type_id 用于撤销时恢复
+					if BuildingTypeManager.is_source(bdata.building_type):
 						if not bdata.element_type_id.is_empty():
 							entry["element_type_id"] = bdata.element_type_id
-						entry["output_direction"] = [bdata.output_direction.x, bdata.output_direction.y]
+					# 收集器：保存 collector_filter 用于撤销时恢复
+					elif BuildingTypeManager.is_collector(bdata.building_type):
+						entry["collector_filter"] = bdata.collector_filter
 				removed[cell] = entry
 		building_manager.remove_buildings_in_rect(cells)
 		if not removed.is_empty():
@@ -388,8 +374,13 @@ func _handle_selection_mode(event: InputEventMouseButton, grid_pos: Vector2i, vi
 	if event.is_action("place_building") and event.pressed:
 		if building_manager.has_building(grid_pos):
 			var node := building_manager.get_building_node(grid_pos)
-			if node is EmitterNode:
-				_open_emitter_type_panel(node)
+			# 点击源头/收集器弹出对应类型选择面板
+			if node is SourceNode:
+				_open_source_type_panel(node)
+				viewport.set_input_as_handled()
+				return
+			if node is CollectorNode:
+				_open_collector_type_panel(node)
 				viewport.set_input_as_handled()
 				return
 		_state_machine.transition_to(InputStateMachine.State.SELECTING, {

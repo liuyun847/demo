@@ -1,6 +1,7 @@
 extends GutTest
 
-const _EmitterScript = preload("res://scripts/building/emitter_node.gd")
+const _SourceScript = preload("res://scripts/building/source_node.gd")
+const _CollectorScript = preload("res://scripts/building/collector_node.gd")
 
 
 func before_all() -> void:
@@ -13,7 +14,7 @@ func _ensure_building_types_registered() -> void:
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
 		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
-		[GameConfig.EMITTER_TYPE_ID,   {"category": BuildingTypeData.Category.EMITTER}],
+		[GameConfig.SOURCE_TYPE_ID,    {"category": BuildingTypeData.Category.SOURCE}],
 		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
 		[GameConfig.BRICK_TYPE_ID,     {}],
 	]
@@ -27,65 +28,89 @@ func _ensure_building_types_registered() -> void:
 	BuildingTypeManager.register_all(types)
 
 
-func _make_emitter_data() -> BuildingData:
+func _make_source_data() -> BuildingData:
 	var data := BuildingData.new()
-	data.building_type = GameConfig.EMITTER_TYPE_ID
+	data.building_type = GameConfig.SOURCE_TYPE_ID
 	return data
 
 
-# ========== 发射器路径 ==========
+func _make_collector_data() -> BuildingData:
+	var data := BuildingData.new()
+	data.building_type = GameConfig.COLLECTOR_TYPE_ID
+	return data
 
-func test_sync_emitter_pull_from_node() -> void:
-	var data := _make_emitter_data()
-	var node: EmitterNode = autoqfree(_EmitterScript.new())
-	node.element_type_id = "water"
-	node.output_direction = Vector2i(1, 0)
+
+# ========== 源头路径 ==========
+
+func test_sync_source_pull_from_node() -> void:
+	var data := _make_source_data()
+	var node: SourceNode = autoqfree(_SourceScript.new())
+	node.set_element_type("water")
 	BuildingDataSyncService.sync_from_node(data, node, {})
 	assert_eq(data.element_type_id, "water")
-	assert_eq(data.output_direction, Vector2i(1, 0))
+	assert_true(node.has_type_selected(), "set_element_type 后节点应标记为已确认")
 
 
-func test_sync_emitter_restore_array_format() -> void:
-	var data := _make_emitter_data()
-	var node: EmitterNode = autoqfree(_EmitterScript.new())
-	BuildingDataSyncService.sync_from_node(data, node, {"output_direction": [1, 0]})
-	assert_eq(data.output_direction, Vector2i(1, 0), "Array 格式应被解析")
-	assert_eq(node.output_direction, Vector2i(1, 0))
-
-
-func test_sync_emitter_restore_vector2i_format() -> void:
-	var data := _make_emitter_data()
-	var node: EmitterNode = autoqfree(_EmitterScript.new())
-	BuildingDataSyncService.sync_from_node(data, node, {"output_direction": Vector2i(0, -1)})
-	assert_eq(data.output_direction, Vector2i(0, -1))
-
-
-func test_sync_emitter_restore_string_format() -> void:
-	var data := _make_emitter_data()
-	var node: EmitterNode = autoqfree(_EmitterScript.new())
-	BuildingDataSyncService.sync_from_node(data, node, {"output_direction": "-1,0"})
-	assert_eq(data.output_direction, Vector2i(-1, 0), "String 格式应被解析")
-
-
-func test_sync_emitter_unknown_direction_format_falls_back() -> void:
-	var data := _make_emitter_data()
-	var node: EmitterNode = autoqfree(_EmitterScript.new())
-	BuildingDataSyncService.sync_from_node(data, node, {"output_direction": 12345})
-	assert_eq(data.output_direction, Vector2i(0, 1), "无法解析时应回退默认 (0,1)")
-
-
-func test_sync_emitter_restore_element_type() -> void:
-	var data := _make_emitter_data()
-	var node: EmitterNode = autoqfree(_EmitterScript.new())
+func test_sync_source_restore_element_type() -> void:
+	var data := _make_source_data()
+	var node: SourceNode = autoqfree(_SourceScript.new())
 	BuildingDataSyncService.sync_from_node(data, node, {"element_type_id": "water"})
 	assert_eq(data.element_type_id, "water")
 	assert_eq(node.element_type_id, "water")
+	assert_true(node.has_type_selected(), "通过 restore_data 设置后节点应标记为已确认")
+
+
+# ========== 收集器路径 ==========
+
+func test_sync_collector_pull_from_node() -> void:
+	var data := _make_collector_data()
+	var node: CollectorNode = autoqfree(_CollectorScript.new())
+	node.set_filter("water")
+	BuildingDataSyncService.sync_from_node(data, node, {})
+	assert_eq(data.collector_filter, "water")
+
+
+func test_sync_collector_restore_filter() -> void:
+	var data := _make_collector_data()
+	var node: CollectorNode = autoqfree(_CollectorScript.new())
+	BuildingDataSyncService.sync_from_node(data, node, {"collector_filter": "fire"})
+	assert_eq(data.collector_filter, "fire")
+	assert_eq(node.filter_element_type, "fire")
+
+
+func test_sync_collector_empty_filter_default() -> void:
+	var data := _make_collector_data()
+	var node: CollectorNode = autoqfree(_CollectorScript.new())
+	BuildingDataSyncService.sync_from_node(data, node, {})
+	assert_eq(data.collector_filter, "", "空筛选为默认值（收全部）")
+	assert_eq(node.filter_element_type, "")
 
 
 # ========== 异常路径 ==========
 
-func test_sync_emitter_with_non_emitter_node_skipped() -> void:
-	var data := _make_emitter_data()
+func test_sync_source_with_non_source_node_skipped() -> void:
+	var data := _make_source_data()
 	var node: Node2D = autoqfree(Node2D.new())
-	BuildingDataSyncService.sync_emitter(data, node, {"output_direction": [1, 0]})
-	assert_eq(data.output_direction, Vector2i(0, 1), "非 EmitterNode 应跳过同步")
+	BuildingDataSyncService.sync_source(data, node, {"element_type_id": "water"})
+	assert_eq(data.element_type_id, "", "非 SourceNode 应跳过同步，data 保持默认空字符串")
+
+
+func test_sync_collector_with_non_collector_node_skipped() -> void:
+	var data := _make_collector_data()
+	var node: Node2D = autoqfree(Node2D.new())
+	BuildingDataSyncService.sync_collector(data, node, {"collector_filter": "water"})
+	assert_eq(data.collector_filter, "", "非 CollectorNode 应跳过同步，data 保持默认空字符串")
+
+
+# ========== 回归保护：output_direction 字段应被忽略 ==========
+
+func test_sync_source_ignores_legacy_output_direction() -> void:
+	# 旧存档可能携带 output_direction 字段，应被静默忽略（不报错、不影响同步）
+	var data := _make_source_data()
+	var node: SourceNode = autoqfree(_SourceScript.new())
+	BuildingDataSyncService.sync_from_node(data, node, {
+		"output_direction": [1, 0],
+		"element_type_id": "water",
+	})
+	assert_eq(data.element_type_id, "water", "应正常同步 element_type_id")
+	assert_false("output_direction" in data, "BuildingData 不应再持有 output_direction 属性")

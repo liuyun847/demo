@@ -84,9 +84,15 @@ func _build_clipboard(cut: bool) -> Dictionary:
 			"type": buildings_data[grid_pos]
 		}
 		if building_data != null:
+			# 先同步节点状态到 data，避免读到 stale 数据
+			# （set_element_type/set_filter 只更新节点，不触发同步）
+			var node := building_manager.get_building_node(grid_pos)
+			if node != null:
+				BuildingDataSyncService.sync_from_node(building_data, node)
 			if not building_data.element_type_id.is_empty():
 				entry["element_type_id"] = building_data.element_type_id
-			entry["output_direction"] = [building_data.output_direction.x, building_data.output_direction.y]
+			if not building_data.collector_filter.is_empty():
+				entry["collector_filter"] = building_data.collector_filter
 		clipboard_buildings.append(entry)
 
 	var result := {
@@ -102,9 +108,15 @@ func _build_clipboard(cut: bool) -> Dictionary:
 			var cut_entry: Dictionary = {"type": buildings_data[grid_pos]}
 			var bdata := building_manager.get_building_data(grid_pos)
 			if bdata != null:
+				# 先同步节点状态到 data，避免读到 stale 数据
+				# （set_element_type/set_filter 只更新节点，不触发同步）
+				var node := building_manager.get_building_node(grid_pos)
+				if node != null:
+					BuildingDataSyncService.sync_from_node(bdata, node)
 				if not bdata.element_type_id.is_empty():
 					cut_entry["element_type_id"] = bdata.element_type_id
-				cut_entry["output_direction"] = [bdata.output_direction.x, bdata.output_direction.y]
+				if not bdata.collector_filter.is_empty():
+					cut_entry["collector_filter"] = bdata.collector_filter
 			cut_buildings[grid_pos] = cut_entry
 		cmd.buildings = cut_buildings
 		push_undo_command(cmd)
@@ -166,11 +178,8 @@ func get_effective_clipboard() -> Dictionary:
 		var rotated_item: Dictionary = {"offset": rotated_offset, "type": item["type"]}
 		if item.has("element_type_id"):
 			rotated_item["element_type_id"] = item["element_type_id"]
-		if item.has("output_direction"):
-			var darr: Array = item["output_direction"]
-			var dir := Vector2i(int(darr[0]), int(darr[1]))
-			var rotated_dir := _rotate_offset(dir, _paste_rotation)
-			rotated_item["output_direction"] = [rotated_dir.x, rotated_dir.y]
+		if item.has("collector_filter"):
+			rotated_item["collector_filter"] = item["collector_filter"]
 		rotated.append(rotated_item)
 	var min_x := 0
 	var min_y := 0
@@ -234,14 +243,14 @@ func perform_paste(anchor: Vector2i) -> void:
 		var restore_data: Dictionary = {}
 		if item.has("element_type_id"):
 			restore_data["element_type_id"] = item["element_type_id"]
-		if item.has("output_direction"):
-			restore_data["output_direction"] = item["output_direction"]
+		if item.has("collector_filter"):
+			restore_data["collector_filter"] = item["collector_filter"]
 		if building_manager.place_building(grid_pos, building_type, restore_data):
 			var placed_entry: Dictionary = {"type": building_type}
 			if item.has("element_type_id"):
 				placed_entry["element_type_id"] = item["element_type_id"]
-			if item.has("output_direction"):
-				placed_entry["output_direction"] = item["output_direction"]
+			if item.has("collector_filter"):
+				placed_entry["collector_filter"] = item["collector_filter"]
 			placed_cells[grid_pos] = placed_entry
 
 	if not placed_cells.is_empty():
@@ -272,14 +281,14 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 				var restore_data: Dictionary = {}
 				if item.has("element_type_id"):
 					restore_data["element_type_id"] = item["element_type_id"]
-				if item.has("output_direction"):
-					restore_data["output_direction"] = item["output_direction"]
+				if item.has("collector_filter"):
+					restore_data["collector_filter"] = item["collector_filter"]
 				if building_manager.place_building(grid_pos, building_type, restore_data):
 					var placed_entry: Dictionary = {"type": building_type}
 					if item.has("element_type_id"):
 						placed_entry["element_type_id"] = item["element_type_id"]
-					if item.has("output_direction"):
-						placed_entry["output_direction"] = item["output_direction"]
+					if item.has("collector_filter"):
+						placed_entry["collector_filter"] = item["collector_filter"]
 					placed_cells[grid_pos] = placed_entry
 
 	if not placed_cells.is_empty():

@@ -33,7 +33,7 @@ func _ensure_building_types_registered() -> void:
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
 		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
-		[GameConfig.EMITTER_TYPE_ID,   {"category": BuildingTypeData.Category.EMITTER}],
+		[GameConfig.SOURCE_TYPE_ID,    {"category": BuildingTypeData.Category.SOURCE}],
 		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
 		[GameConfig.BRICK_TYPE_ID,     {}],
 	]
@@ -205,3 +205,195 @@ func test_expand_stops_when_essence_insufficient() -> void:
 	assert_false(_grid.has_element(Vector2i(7, 6)), "源质不足时第 3 格不应扩张")
 	assert_eq(_grid.get_all_element_positions().size(), 5, "3 原始 + 2 扩张 = 5 格")
 	assert_eq(mock.essence, 0.0, "源质应恰好耗尽为 0.0")
+
+
+# ========== 源头建筑种子产出集成测试 ==========
+# 验证 _process_source_buildings：源头放置后由扩散系统创建种子元素（替代旧的 emitter 方向产出）
+
+
+## 源头未确认类型时不产出种子
+func test_source_without_type_confirmed_does_not_produce() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 100.0
+	_diffusion.set_essence_service(mock)
+
+	# 放置源头建筑（未调用 set_element_type，has_type_selected 返回 false）
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	_grid.register_source_building(source_pos)
+
+	_diffusion.diffuse_all(_grid)
+
+	assert_eq(_grid.get_all_element_positions().size(), 0, "未确认类型的源头不应产出种子")
+	assert_eq(mock.essence, 100.0, "未产出不应消耗源质")
+
+
+## 源头确认类型后液体向下产出种子
+## 注：mock.essence = 1.0 恰好够创建 1 个种子（消耗 1.0），源质耗尽后 _expand_body 无法扩张，
+## 从而精确隔离"种子创建"行为，避免与扩张行为相互干扰。
+func test_source_confirmed_liquid_produces_seed_downward() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 1.0
+	_diffusion.set_essence_service(mock)
+
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(source_pos) as SourceNode
+	source_node.set_element_type("water")  # water = LIQUID
+	_grid.register_source_building(source_pos)
+
+	_diffusion.diffuse_all(_grid)
+
+	# 液体优先 DOWN：种子应出现在 (5, 6)
+	assert_true(_grid.has_element(_O + Vector2i(0, 1)), "液体源头应在下方创建种子")
+	assert_eq(_grid.get_element_id(_O + Vector2i(0, 1)), "water", "种子应为 water")
+	assert_true(_grid.is_source_pos(_O + Vector2i(0, 1)), "种子应被标记为水源")
+	assert_eq(mock.essence, 0.0, "种子创建应消耗 1.0 源质（SOURCE_ESSENCE_COST_PER_TICK），源质耗尽")
+
+
+## 源头确认类型后气体向上产出种子
+func test_source_confirmed_gas_produces_seed_upward() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 100.0
+	_diffusion.set_essence_service(mock)
+
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(source_pos) as SourceNode
+	source_node.set_element_type("fire")  # fire = GAS
+	_grid.register_source_building(source_pos)
+
+	_diffusion.diffuse_all(_grid)
+
+	# 气体优先 UP：种子应出现在 (5, 4)
+	assert_true(_grid.has_element(_O + Vector2i(0, -1)), "气体源头应在上方创建种子")
+	assert_eq(_grid.get_element_id(_O + Vector2i(0, -1)), "fire", "种子应为 fire")
+
+
+## 源头相邻已有同类型元素时免费维持（不再创建新种子）
+## 注：mock.essence = 0.0 阻止 _expand_body 扩张，从而精确验证"免费维持不创建新种子"。
+## 免费维持分支不检查源质，直接 mark_as_source 并 continue；扩张因源质不足被阻止。
+func test_source_adjacent_same_type_free_maintenance() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 0.0
+	_diffusion.set_essence_service(mock)
+
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(source_pos) as SourceNode
+	source_node.set_element_type("water")
+	_grid.register_source_building(source_pos)
+
+	# 相邻位置已有 water 元素
+	var adjacent: Vector2i = _O + Vector2i(0, 1)
+	_grid.set_element(adjacent, "water", adjacent.y)
+
+	_diffusion.diffuse_all(_grid)
+
+	# 相邻 water 被标记为 source（免费维持），不创建新种子，不消耗源质
+	assert_true(_grid.is_source_pos(adjacent), "相邻同类型元素应被标记为 source")
+	assert_eq(_grid.get_all_element_positions().size(), 1, "不应创建新种子，仅有原相邻元素")
+	assert_eq(mock.essence, 0.0, "免费维持不应消耗源质（扩张因源质不足被阻止）")
+
+
+## 源质不足时源头不创建种子
+func test_source_no_seed_when_essence_insufficient() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 0.5  # 不足 1.0
+	_diffusion.set_essence_service(mock)
+
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(source_pos) as SourceNode
+	source_node.set_element_type("water")
+	_grid.register_source_building(source_pos)
+
+	_diffusion.diffuse_all(_grid)
+
+	assert_eq(_grid.get_all_element_positions().size(), 0, "源质不足时不应创建种子")
+	assert_eq(mock.essence, 0.5, "源质不足时不应消耗源质")
+
+
+## 源头被四面包围时找不到空格创建种子
+func test_source_no_seed_when_no_space_available() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 100.0
+	_diffusion.set_essence_service(mock)
+
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(source_pos) as SourceNode
+	source_node.set_element_type("water")
+	_grid.register_source_building(source_pos)
+
+	# 用砖块包围源头，DIR_4 四邻格都被占用
+	_bm.place_building(_O + Vector2i(0, 1), GameConfig.BRICK_TYPE_ID)
+	_bm.place_building(_O + Vector2i(0, -1), GameConfig.BRICK_TYPE_ID)
+	_bm.place_building(_O + Vector2i(1, 0), GameConfig.BRICK_TYPE_ID)
+	_bm.place_building(_O + Vector2i(-1, 0), GameConfig.BRICK_TYPE_ID)
+
+	_diffusion.diffuse_all(_grid)
+
+	assert_eq(_grid.get_all_element_positions().size(), 0, "无空格时不应创建种子")
+	assert_eq(mock.essence, 100.0, "无空格时不应消耗源质")
+
+
+## 验证 active_source_positions 过滤：未在激活集合中的源头不产出种子
+## 模拟"源头未连通核心"场景：源头已注册到 grid 但不在激活集合中
+func test_source_not_in_active_positions_does_not_produce() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 100.0
+	_diffusion.set_essence_service(mock)
+
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(source_pos) as SourceNode
+	source_node.set_element_type("water")
+	_grid.register_source_building(source_pos)
+
+	# 传入空的激活集合（非 null），表示无源头连通核心
+	var empty_active: Dictionary = {}
+	_diffusion.diffuse_all(_grid, empty_active)
+
+	assert_eq(_grid.get_all_element_positions().size(), 0, "未在激活集合中的源头不应产出种子")
+	assert_eq(mock.essence, 100.0, "未激活源头不应消耗源质")
+
+
+## 验证 active_source_positions 过滤：在激活集合中的源头正常产出
+func test_source_in_active_positions_produces_normally() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 1.0
+	_diffusion.set_essence_service(mock)
+
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(source_pos) as SourceNode
+	source_node.set_element_type("water")
+	_grid.register_source_building(source_pos)
+
+	# 传入包含该源头的激活集合
+	var active: Dictionary = {source_pos: true}
+	_diffusion.diffuse_all(_grid, active)
+
+	# 液体优先 DOWN：种子应出现在 (5, 6)
+	assert_true(_grid.has_element(_O + Vector2i(0, 1)), "激活集合中的源头应在下方创建种子")
+	assert_eq(mock.essence, 0.0, "种子创建应消耗 1.0 源质")
+
+
+## 验证 active_source_positions 默认 null 时所有源头都产出（向后兼容）
+func test_source_default_null_active_processes_all() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 1.0
+	_diffusion.set_essence_service(mock)
+
+	var source_pos: Vector2i = _O + Vector2i(0, 0)
+	_bm.place_building(source_pos, GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(source_pos) as SourceNode
+	source_node.set_element_type("water")
+	_grid.register_source_building(source_pos)
+
+	# 不传第二个参数（默认 null），所有已注册源头都应产出
+	_diffusion.diffuse_all(_grid)
+
+	assert_true(_grid.has_element(_O + Vector2i(0, 1)), "默认 null 时源头应正常产出种子")
+	assert_eq(mock.essence, 0.0, "种子创建应消耗 1.0 源质")

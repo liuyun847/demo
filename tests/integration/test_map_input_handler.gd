@@ -323,3 +323,59 @@ func test_cut_selection_records_undo_and_removes_building() -> void:
 	for value: Variant in cmd.buildings.values():
 		assert_true(value is Dictionary, "撤销命令的 buildings 值应为字典类型")
 		assert_true(value.has("type"), "字典应包含 type 键")
+
+
+## 测试：放置收集器后自动打开筛选面板（与源头行为一致）
+## 回归测试：修复"收集器没有显示筛选面板"的 bug
+func test_place_collector_opens_filter_panel() -> void:
+	# 设置 UIOverlay（_open_collector_type_panel 依赖它）
+	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
+	ui_overlay.name = "UIOverlay"
+	add_child_autoqfree(ui_overlay)
+	_handler._ui_overlay = ui_overlay
+
+	# 选中收集器槽位（索引 3 = 收集器）
+	_bar.select_slot(3)
+	assert_eq(_bar.get_current_building_type(), GameConfig.COLLECTOR_TYPE_ID, "应选中收集器类型")
+
+	# 放置收集器
+	var grid_pos := Vector2i(10, 10)
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
+	_handler._handle_building_mode(event_release, grid_pos, get_viewport())
+
+	# 验证收集器已放置
+	assert_true(_bm.has_building(grid_pos), "收集器应放置成功")
+
+	# 验证筛选面板已创建（_current_type_panel 不为 null）
+	assert_true(is_instance_valid(_handler._current_type_panel), "放置收集器后应自动打开筛选面板")
+	# 验证面板模式为 COLLECTOR
+	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.COLLECTOR, "面板模式应为 COLLECTOR")
+
+
+## 测试：放置源头后自动打开类型选择面板（已有行为，作为对照）
+func test_place_source_opens_type_panel() -> void:
+	# 设置 UIOverlay
+	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
+	ui_overlay.name = "UIOverlay"
+	add_child_autoqfree(ui_overlay)
+	_handler._ui_overlay = ui_overlay
+
+	# 选中源头槽位（索引 1 = 源头）
+	_bar.select_slot(1)
+	assert_eq(_bar.get_current_building_type(), GameConfig.SOURCE_TYPE_ID, "应选中源头类型")
+
+	# 放置源头
+	var grid_pos := Vector2i(10, 10)
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
+	_handler._handle_building_mode(event_release, grid_pos, get_viewport())
+
+	# 验证源头已放置
+	assert_true(_bm.has_building(grid_pos), "源头应放置成功")
+
+	# 验证类型选择面板已创建
+	assert_true(is_instance_valid(_handler._current_type_panel), "放置源头后应自动打开类型选择面板")
+	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.SOURCE, "面板模式应为 SOURCE")

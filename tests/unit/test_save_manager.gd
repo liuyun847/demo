@@ -1,5 +1,7 @@
 extends GutTest
 
+const FileIOHelper := preload("res://scripts/utils/file_io_helper.gd")
+
 var _bm: BuildingManager = null
 var _sm: Node = null
 var _original_save_path: String = ""
@@ -16,7 +18,7 @@ func _ensure_building_types_registered() -> void:
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
 		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
-		[GameConfig.EMITTER_TYPE_ID,   {"category": BuildingTypeData.Category.EMITTER}],
+		[GameConfig.SOURCE_TYPE_ID,    {"category": BuildingTypeData.Category.SOURCE}],
 		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
 		[GameConfig.BRICK_TYPE_ID,     {}],
 	]
@@ -31,8 +33,8 @@ func _ensure_building_types_registered() -> void:
 
 
 func before_each() -> void:
-	_original_save_path = GameConfig.save_file_path
-	GameConfig.save_file_path = "res://save/test_buildings.json"
+	_original_save_path = GameConfig.unified_save_path
+	GameConfig.unified_save_path = "res://save/test_game.cfg"
 	_cleanup_test_file()
 
 	_bm = autoqfree(BuildingManager.new())
@@ -47,38 +49,40 @@ func before_each() -> void:
 	_sm.building_manager = _bm
 
 func after_each() -> void:
-	GameConfig.save_file_path = _original_save_path
+	# 先清理测试文件（此时 unified_save_path 仍是测试路径），再恢复原路径
+	# 顺序很重要：若先恢复原路径，_cleanup_test_file 会误删开发存档 game.cfg
 	_cleanup_test_file()
+	GameConfig.unified_save_path = _original_save_path
 
 func _cleanup_test_file() -> void:
-	if FileAccess.file_exists(GameConfig.save_file_path):
-		DirAccess.remove_absolute(GameConfig.save_file_path)
-	var tmp_path: String = GameConfig.save_file_path + ".tmp"
+	if FileAccess.file_exists(GameConfig.unified_save_path):
+		DirAccess.remove_absolute(GameConfig.unified_save_path)
+	var tmp_path: String = GameConfig.unified_save_path + ".tmp"
 	if FileAccess.file_exists(tmp_path):
 		DirAccess.remove_absolute(tmp_path)
 
 
 func test_save_no_buildings() -> void:
 	_sm.save_buildings()
-	assert_true(FileAccess.file_exists(GameConfig.save_file_path), "即使无建筑也应创建存档文件")
+	assert_true(FileAccess.file_exists(GameConfig.unified_save_path), "即使无建筑也应创建存档文件")
 
 func test_save_with_buildings() -> void:
 	_bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
 	_bm.place_building(Vector2i(5, 6), GameConfig.PIPE_TYPE_ID)
 	_sm.save_buildings()
 	var content: Dictionary = _read_save_file()
-	assert_not_null(content, "存档文件应为有效 JSON")
+	assert_not_null(content, "存档文件应为有效 .cfg [buildings] section")
 	assert_true(content.has("version"), "应包含 version 字段")
 	assert_true(content.has("buildings"), "应包含 buildings 字段")
 
 func test_save_atomic_write() -> void:
 	_sm.save_buildings()
-	var tmp_path: String = GameConfig.save_file_path + ".tmp"
+	var tmp_path: String = GameConfig.unified_save_path + ".tmp"
 	assert_false(FileAccess.file_exists(tmp_path), "临时文件应已被删除或重命名")
 
 func test_load_file_not_exists_does_not_crash() -> void:
 	_bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
-	DirAccess.remove_absolute(GameConfig.save_file_path)
+	DirAccess.remove_absolute(GameConfig.unified_save_path)
 	var build_count_before: int = _bm.buildings.size()
 	_sm.load_buildings()
 	assert_eq(_bm.buildings.size(), build_count_before, "文件不存在时加载后建筑数量应不变")
@@ -116,63 +120,68 @@ func test_loading_does_not_trigger_save() -> void:
 
 func test_debounce_prevents_double_save() -> void:
 	_bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
-	DirAccess.remove_absolute(GameConfig.save_file_path)
-	assert_false(FileAccess.file_exists(GameConfig.save_file_path), "开始前存档文件不应存在")
+	DirAccess.remove_absolute(GameConfig.unified_save_path)
+	assert_false(FileAccess.file_exists(GameConfig.unified_save_path), "开始前存档文件不应存在")
 	_sm._on_building_changed(Vector2i(5, 5))
 	assert_true(_sm._save_pending, "第一次调用后 _save_pending 应为 true")
 	_sm._on_building_changed(Vector2i(1, 1))
 	assert_true(_sm._save_pending, "第二次调用时 _save_pending 仍应为 true（未执行保存）")
 	await get_tree().process_frame
 	assert_false(_sm._save_pending, "call_deferred 执行后 _save_pending 应为 false")
-	assert_true(FileAccess.file_exists(GameConfig.save_file_path), "debounce 后应保存了一次")
+	assert_true(FileAccess.file_exists(GameConfig.unified_save_path), "debounce 后应保存了一次")
 
 
 func test_roundtrip_all_building_types() -> void:
 	# 放置所有类型的建筑
 	_bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
 	_bm.place_building(Vector2i(6, 5), GameConfig.BRICK_TYPE_ID)
-	_bm.place_building(Vector2i(7, 5), GameConfig.EMITTER_TYPE_ID)
+	_bm.place_building(Vector2i(7, 5), GameConfig.SOURCE_TYPE_ID)
 	_bm.place_building(Vector2i(8, 5), GameConfig.COLLECTOR_TYPE_ID)
 
-	# 为发射器设置方向和元素类型
-	var emitter_node: EmitterNode = _bm.get_building_node(Vector2i(7, 5)) as EmitterNode
-	assert_not_null(emitter_node, "发射器节点应存在")
-	emitter_node.set_output_direction(Vector2i(-1, 0))
-	emitter_node.set_element_type("water")
+	# 为源头设置元素类型，为收集器设置筛选
+	var source_node: SourceNode = _bm.get_building_node(Vector2i(7, 5)) as SourceNode
+	assert_not_null(source_node, "源头节点应存在")
+	source_node.set_element_type("water")
+	var collector_node: CollectorNode = _bm.get_building_node(Vector2i(8, 5)) as CollectorNode
+	assert_not_null(collector_node, "收集器节点应存在")
+	collector_node.set_filter("fire")
 
 	_sm.save_buildings()
 	var save_content := _read_save_file()
-	assert_not_null(save_content, "存档文件应为有效 JSON")
+	assert_not_null(save_content, "存档文件应为有效 .cfg [buildings] section")
 	assert_true(save_content.has("buildings"), "应包含 buildings 字段")
 
 	# 验证存档内容正确
 	var saved_buildings: Dictionary = save_content.buildings
 	assert_true(saved_buildings.has("5,5"), "应保存管道 (5,5)")
 	assert_true(saved_buildings.has("6,5"), "应保存砖块 (6,5)")
-	assert_true(saved_buildings.has("7,5"), "应保存发射器 (7,5)")
+	assert_true(saved_buildings.has("7,5"), "应保存源头 (7,5)")
 	assert_true(saved_buildings.has("8,5"), "应保存收集器 (8,5)")
 	assert_eq(saved_buildings["5,5"]["type"], GameConfig.PIPE_TYPE_ID, "管道类型应正确")
 	assert_eq(saved_buildings["6,5"]["type"], GameConfig.BRICK_TYPE_ID, "砖块类型应正确")
-	assert_eq(saved_buildings["7,5"]["type"], GameConfig.EMITTER_TYPE_ID, "发射器类型应正确")
+	assert_eq(saved_buildings["7,5"]["type"], GameConfig.SOURCE_TYPE_ID, "源头类型应正确")
 	assert_eq(saved_buildings["8,5"]["type"], GameConfig.COLLECTOR_TYPE_ID, "收集器类型应正确")
 
-	# 验证发射器方向
-	assert_eq(saved_buildings["7,5"]["output_direction"], [-1.0, 0.0], "发射器方向应正确")
-	assert_eq(saved_buildings["7,5"]["element_type_id"], "water", "发射器元素类型应正确")
+	# 验证源头的元素类型
+	assert_eq(saved_buildings["7,5"]["element_type_id"], "water", "源头元素类型应正确")
+	# 验证收集器的筛选
+	assert_eq(saved_buildings["8,5"]["collector_filter"], "fire", "收集器筛选应正确")
 
-	# 非发射器不应有 output_direction / element_type_id
-	assert_false(saved_buildings["5,5"].has("output_direction"), "管道不应有 output_direction")
-	assert_false(saved_buildings["6,5"].has("output_direction"), "砖块不应有 output_direction")
-	assert_false(saved_buildings["8,5"].has("output_direction"), "收集器不应有 output_direction")
+	# 非源头不应有 element_type_id；非收集器不应有 collector_filter
+	assert_false(saved_buildings["5,5"].has("element_type_id"), "管道不应有 element_type_id")
+	assert_false(saved_buildings["6,5"].has("element_type_id"), "砖块不应有 element_type_id")
+	assert_false(saved_buildings["8,5"].has("element_type_id"), "收集器不应有 element_type_id")
+	assert_false(saved_buildings["5,5"].has("collector_filter"), "管道不应有 collector_filter")
+	assert_false(saved_buildings["6,5"].has("collector_filter"), "砖块不应有 collector_filter")
+	assert_false(saved_buildings["7,5"].has("collector_filter"), "源头不应有 collector_filter")
 
 
-func test_roundtrip_emitter_preserves_direction_and_type() -> void:
-	# 放置发射器并设置自定义方向/类型
-	_bm.place_building(Vector2i(3, 3), GameConfig.EMITTER_TYPE_ID)
-	var emitter_node: EmitterNode = _bm.get_building_node(Vector2i(3, 3)) as EmitterNode
-	assert_not_null(emitter_node, "发射器节点应存在")
-	emitter_node.set_output_direction(Vector2i(0, -1))
-	emitter_node.set_element_type("water")
+func test_roundtrip_source_preserves_type() -> void:
+	# 放置源头并设置自定义元素类型
+	_bm.place_building(Vector2i(3, 3), GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(Vector2i(3, 3)) as SourceNode
+	assert_not_null(source_node, "源头节点应存在")
+	source_node.set_element_type("water")
 
 	# 保存 → 重载 → 验证
 	_sm.save_buildings()
@@ -180,28 +189,51 @@ func test_roundtrip_emitter_preserves_direction_and_type() -> void:
 	_sm.load_buildings()
 	var data_after: Dictionary = _bm.get_all_buildings_data()
 
-	assert_true(data_after.has(Vector2i(3, 3)), "重载后发射器应存在")
+	assert_true(data_after.has(Vector2i(3, 3)), "重载后源头应存在")
 	var after_type: String = data_after[Vector2i(3, 3)].building_type
-	assert_eq(after_type, GameConfig.EMITTER_TYPE_ID, "发射器类型应保留")
+	assert_eq(after_type, GameConfig.SOURCE_TYPE_ID, "源头类型应保留")
 
 	# 从节点验证属性
-	var loaded_emitter: EmitterNode = _bm.get_building_node(Vector2i(3, 3)) as EmitterNode
-	assert_not_null(loaded_emitter, "重载后发射器节点应存在")
-	assert_eq(loaded_emitter.output_direction, Vector2i(0, -1), "发射器方向应保留")
-	assert_eq(loaded_emitter.element_type_id, "water", "发射器元素类型应保留")
+	var loaded_source: SourceNode = _bm.get_building_node(Vector2i(3, 3)) as SourceNode
+	assert_not_null(loaded_source, "重载后源头节点应存在")
+	assert_eq(loaded_source.element_type_id, "water", "源头元素类型应保留")
+	assert_true(loaded_source.has_type_selected(), "重载后源头应标记为已确认类型")
+
+
+func test_roundtrip_collector_preserves_filter() -> void:
+	# 放置收集器并设置筛选
+	_bm.place_building(Vector2i(4, 4), GameConfig.COLLECTOR_TYPE_ID)
+	var collector_node: CollectorNode = _bm.get_building_node(Vector2i(4, 4)) as CollectorNode
+	assert_not_null(collector_node, "收集器节点应存在")
+	collector_node.set_filter("water")
+
+	# 保存 → 重载 → 验证
+	_sm.save_buildings()
+	_bm.clear_all_buildings()
+	_sm.load_buildings()
+	var data_after: Dictionary = _bm.get_all_buildings_data()
+
+	assert_true(data_after.has(Vector2i(4, 4)), "重载后收集器应存在")
+	var after_type: String = data_after[Vector2i(4, 4)].building_type
+	assert_eq(after_type, GameConfig.COLLECTOR_TYPE_ID, "收集器类型应保留")
+
+	# 从节点验证筛选保留
+	var loaded_collector: CollectorNode = _bm.get_building_node(Vector2i(4, 4)) as CollectorNode
+	assert_not_null(loaded_collector, "重载后收集器节点应存在")
+	assert_eq(loaded_collector.filter_element_type, "water", "收集器筛选应保留")
 
 
 func test_no_building_type_replaced_after_save() -> void:
 	# 模拟连续多次自动保存，验证没有建筑类型被替换
 	_bm.place_building(Vector2i(1, 1), GameConfig.PIPE_TYPE_ID)
 	_bm.place_building(Vector2i(2, 2), GameConfig.BRICK_TYPE_ID)
-	_bm.place_building(Vector2i(3, 3), GameConfig.EMITTER_TYPE_ID)
+	_bm.place_building(Vector2i(3, 3), GameConfig.SOURCE_TYPE_ID)
 	_bm.place_building(Vector2i(4, 4), GameConfig.COLLECTOR_TYPE_ID)
 
 	var expected_types := {
 		Vector2i(1, 1): GameConfig.PIPE_TYPE_ID,
 		Vector2i(2, 2): GameConfig.BRICK_TYPE_ID,
-		Vector2i(3, 3): GameConfig.EMITTER_TYPE_ID,
+		Vector2i(3, 3): GameConfig.SOURCE_TYPE_ID,
 		Vector2i(4, 4): GameConfig.COLLECTOR_TYPE_ID,
 	}
 
@@ -221,7 +253,7 @@ func test_load_does_not_alter_building_types() -> void:
 	# 保存包含多种建筑的类型
 	_bm.place_building(Vector2i(2, 3), GameConfig.PIPE_TYPE_ID)
 	_bm.place_building(Vector2i(4, 5), GameConfig.BRICK_TYPE_ID)
-	_bm.place_building(Vector2i(6, 7), GameConfig.EMITTER_TYPE_ID)
+	_bm.place_building(Vector2i(6, 7), GameConfig.SOURCE_TYPE_ID)
 
 	_sm.save_buildings()
 
@@ -233,14 +265,71 @@ func test_load_does_not_alter_building_types() -> void:
 	# 验证所有非核心建筑类型正确
 	assert_true(_bm.has_building(Vector2i(2, 3)), "加载后管道应存在")
 	assert_true(_bm.has_building(Vector2i(4, 5)), "加载后砖块应存在")
-	assert_true(_bm.has_building(Vector2i(6, 7)), "加载后发射器应存在")
+	assert_true(_bm.has_building(Vector2i(6, 7)), "加载后源头应存在")
 	assert_eq(_bm.get_building_type(Vector2i(2, 3)), GameConfig.PIPE_TYPE_ID, "管道类型应正确")
 	assert_eq(_bm.get_building_type(Vector2i(4, 5)), GameConfig.BRICK_TYPE_ID, "砖块类型应正确")
-	assert_eq(_bm.get_building_type(Vector2i(6, 7)), GameConfig.EMITTER_TYPE_ID, "发射器类型应正确")
+	assert_eq(_bm.get_building_type(Vector2i(6, 7)), GameConfig.SOURCE_TYPE_ID, "源头类型应正确")
 
 	# 不应对核心产生影响
 	assert_true(_bm.has_building(Vector2i(-1, -1)), "核心 (-1,-1) 应存在")
 	assert_true(_bm.has_building(Vector2i(0, 0)), "核心 (0,0) 应存在")
+
+
+## 旧存档兼容性测试：包含 output_direction 字段的存档应被静默忽略
+## 历史问题：旧版本源头（emitter）有方向概念，新版本源头已移除方向，需兼容旧存档
+func test_load_legacy_save_with_output_direction_ignored() -> void:
+	# 构造旧存档：源头携带 output_direction 字段
+	var save_data := {
+		"version": GameConfig.SAVE_VERSION,
+		"saved_at": "2026-01-01T00:00:00",
+		"essence": 50.0,
+		"buildings": {
+			"3,3": {
+				"type": GameConfig.SOURCE_TYPE_ID,
+				"output_direction": [0, -1],
+				"element_type_id": "water",
+			},
+			"5,5": {
+				"type": GameConfig.PIPE_TYPE_ID,
+			},
+		},
+	}
+	_write_save_file(save_data)
+
+	# 加载应成功，output_direction 被忽略
+	_sm.load_buildings()
+
+	assert_true(_bm.has_building(Vector2i(3, 3)), "源头应被加载")
+	assert_true(_bm.has_building(Vector2i(5, 5)), "管道应被加载")
+	var source_node: SourceNode = _bm.get_building_node(Vector2i(3, 3)) as SourceNode
+	assert_not_null(source_node, "源头节点应存在")
+	assert_eq(source_node.element_type_id, "water", "element_type_id 应被加载")
+	assert_false("output_direction" in source_node, "SourceNode 不应持有 output_direction 属性")
+	# 验证 SourceNode 没有 set_output_direction 方法（旧 API 已移除）
+	assert_false(source_node.has_method("set_output_direction"), "SourceNode 不应有 set_output_direction 方法")
+
+
+## 旧存档兼容性测试：未设置 collector_filter 的收集器应默认空筛选（收全部）
+func test_load_legacy_collector_without_filter_defaults_empty() -> void:
+	var save_data := {
+		"version": GameConfig.SAVE_VERSION,
+		"saved_at": "2026-01-01T00:00:00",
+		"essence": 50.0,
+		"buildings": {
+			"4,4": {
+				"type": GameConfig.COLLECTOR_TYPE_ID,
+				# 旧存档没有 collector_filter 字段
+			},
+		},
+	}
+	_write_save_file(save_data)
+
+	_sm.load_buildings()
+
+	assert_true(_bm.has_building(Vector2i(4, 4)), "收集器应被加载")
+	var collector_node: CollectorNode = _bm.get_building_node(Vector2i(4, 4)) as CollectorNode
+	assert_not_null(collector_node, "收集器节点应存在")
+	assert_eq(collector_node.filter_element_type, "", "无 collector_filter 字段时应默认空筛选（收全部）")
 
 
 func test_save_does_not_mutate_node_state() -> void:
@@ -281,7 +370,7 @@ func test_load_essence_int_type() -> void:
 
 func test_save_write_failure_does_not_crash() -> void:
 	# 使用包含非法字符的路径触发写入失败（Windows 不允许 ? 在文件名中）
-	GameConfig.save_file_path = "res://save/invalid?name.json"
+	GameConfig.unified_save_path = "res://save/invalid?name.cfg"
 	_sm.save_buildings()
 	# 应触发 push_error 但不崩溃
 	assert_push_error("无法写入文件", "FileIOHelper 应 push_error 无法写入文件")
@@ -289,21 +378,24 @@ func test_save_write_failure_does_not_crash() -> void:
 
 
 func _read_save_file() -> Dictionary:
-	if not FileAccess.file_exists(GameConfig.save_file_path):
+	# 读取 .cfg 的 [buildings] section 并返回为 Dictionary
+	if not FileIOHelper.cfg_has_section(GameConfig.unified_save_path, GameConfig.SECTION_BUILDINGS):
 		return {}
-	var file := FileAccess.open(GameConfig.save_file_path, FileAccess.READ)
-	if not file:
-		return {}
-	var content := file.get_as_text()
-	file.close()
-	var parsed: Variant = JSON.parse_string(content)
-	if parsed is Dictionary:
-		return parsed
+	var result := FileIOHelper.read_cfg_section(
+		GameConfig.unified_save_path,
+		GameConfig.SECTION_BUILDINGS,
+		"TestSaveManager"
+	)
+	if result.success:
+		return result.data
 	return {}
 
 
 func _write_save_file(data: Dictionary) -> void:
-	var file := FileAccess.open(GameConfig.save_file_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(data, "\t"))
-		file.close()
+	# 直接写入 .cfg 的 [buildings] section（用于构造测试用的存档数据）
+	FileIOHelper.write_cfg_section(
+		GameConfig.unified_save_path,
+		GameConfig.SECTION_BUILDINGS,
+		data,
+		"TestSaveManager"
+	)

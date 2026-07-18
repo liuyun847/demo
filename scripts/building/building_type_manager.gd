@@ -35,7 +35,7 @@ static func register_defaults() -> void:
 		return
 	var entries: Array[Dictionary] = [
 		{"id": "type_02", "category": BuildingTypeData.Category.PIPE},
-		{"id": "type_03", "category": BuildingTypeData.Category.EMITTER},
+		{"id": "type_03", "category": BuildingTypeData.Category.SOURCE},
 		{"id": "type_04", "category": BuildingTypeData.Category.BRICK},
 		{"id": "type_07", "category": BuildingTypeData.Category.COLLECTOR},
 	]
@@ -56,9 +56,9 @@ static func is_pipe(type_id: String) -> bool:
 	return td != null and td.category == BuildingTypeData.Category.PIPE
 
 
-static func is_emitter(type_id: String) -> bool:
+static func is_source(type_id: String) -> bool:
 	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
-	return td != null and td.category == BuildingTypeData.Category.EMITTER
+	return td != null and td.category == BuildingTypeData.Category.SOURCE
 
 
 static func is_collector(type_id: String) -> bool:

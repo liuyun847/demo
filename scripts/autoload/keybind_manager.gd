@@ -249,14 +249,21 @@ func save_keybindings() -> void:
 		if events.size() > 0:
 			keybind_data.keybindings[action] = [_serialize_event(events[0])]
 
-	FileIOHelper.write_json_file(GameConfig.keybind_file_path, keybind_data, "KeybindManager")
+	if not FileIOHelper.write_cfg_section(
+		GameConfig.unified_save_path,
+		GameConfig.SECTION_KEYBINDINGS,
+		keybind_data,
+		"KeybindManager"
+	):
+		push_error("KeybindManager: 按键配置保存失败")
 
 func load_keybindings() -> void:
-	if not FileAccess.file_exists(GameConfig.keybind_file_path):
+	if not FileIOHelper.cfg_has_section(GameConfig.unified_save_path, GameConfig.SECTION_KEYBINDINGS):
 		return
 
-	var result := FileIOHelper.read_json_file(
-		GameConfig.keybind_file_path,
+	var result := FileIOHelper.read_cfg_section(
+		GameConfig.unified_save_path,
+		GameConfig.SECTION_KEYBINDINGS,
 		"KeybindManager",
 		KEYBIND_VERSION
 	)

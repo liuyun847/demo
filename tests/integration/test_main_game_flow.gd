@@ -9,7 +9,8 @@ func before_each() -> void:
 	add_child_autoqfree(_main)
 
 func _find_node(node_name: String) -> Node:
-	return _main.find_child(node_name, true, true)
+	# owned=false 以便找到运行时动态添加（无 owner）的节点，如 PauseOverlay/EssenceDisplay
+	return _main.find_child(node_name, true, false)
 
 func test_initial_state_all_hidden() -> void:
 	assert_false(_find_node("StartMenu").visible, "初始 start_menu 应隐藏")
@@ -50,6 +51,38 @@ func test_esc_toggles_start_menu() -> void:
 	_main._unhandled_input(event)
 	await get_tree().process_frame
 	assert_true(_find_node("StartMenu").visible, "ESC 后 start_menu 应显示")
+
+
+## 测试：ESC 关闭开始菜单进入主场景后，EssenceDisplay 应已存在
+## 回归测试：修复 ESC 进入主场景时左上角源质数量不显示的 bug
+func test_essence_display_exists_on_esc_enter_game() -> void:
+	# 先显示开始菜单（模拟 _on_buildings_loaded 流程）
+	EventBus.show_start_menu_requested.emit()
+	await get_tree().process_frame
+	assert_true(_find_node("StartMenu").visible, "前置：start_menu 应显示")
+
+	# 按 ESC 关闭开始菜单（不通过点击"开始游戏"按钮）
+	var event := InputEventKey.new()
+	event.keycode = KEY_ESCAPE
+	event.pressed = true
+	_main._unhandled_input(event)
+	await get_tree().process_frame
+	assert_false(_find_node("StartMenu").visible, "ESC 后 start_menu 应关闭")
+
+	# 验证 EssenceDisplay 已存在（_ready 中创建，与是否点击"开始游戏"无关）
+	var essence_display: Node = _find_node("EssenceDisplay")
+	assert_not_null(essence_display, "ESC 进入主场景后 EssenceDisplay 应存在")
+
+
+## 测试：EssenceDisplay 在 _ready 阶段就已创建（无需等 start_game_requested）
+func test_essence_display_created_on_ready() -> void:
+	# main 在 before_each 中已 add_child，_ready 已执行
+	# 先检查 PauseOverlay（也在 _ready 中创建）作为对照
+	var pause_overlay: Node = _find_node("PauseOverlay")
+	assert_not_null(pause_overlay, "_ready 后 PauseOverlay 应存在（对照）")
+	var essence_display: Node = _find_node("EssenceDisplay")
+	assert_not_null(essence_display, "_ready 后 EssenceDisplay 应立即存在")
+
 
 func test_slot_keys_select_inventory() -> void:
 	var bar: InventoryBar = _find_node("InventoryBar")

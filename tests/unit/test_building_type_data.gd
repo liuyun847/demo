@@ -26,7 +26,7 @@ func test_category_enum_assignable() -> void:
 	var cats: Array[BuildingTypeData.Category] = [
 		BuildingTypeData.Category.GENERIC,
 		BuildingTypeData.Category.PIPE,
-		BuildingTypeData.Category.EMITTER,
+		BuildingTypeData.Category.SOURCE,
 		BuildingTypeData.Category.COLLECTOR,
 		BuildingTypeData.Category.BRICK,
 	]

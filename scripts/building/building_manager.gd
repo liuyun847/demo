@@ -121,9 +121,12 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	var node := get_building_node(grid_pos)
 	if node == null:
 		return false
-	if node is EmitterNode:
+	if node is SourceNode:
 		var data: BuildingData = buildings[grid_pos]
-		BuildingDataSyncService.sync_emitter(data, node)
+		BuildingDataSyncService.sync_source(data, node)
+	elif node is CollectorNode:
+		var data: BuildingData = buildings[grid_pos]
+		BuildingDataSyncService.sync_collector(data, node)
 	node.queue_free()
 
 	var node_to_remove: Node2D = _building_nodes.get(grid_pos) as Node2D
@@ -151,7 +154,7 @@ func get_all_buildings_data() -> Dictionary:
 		new_data.capacity = data.capacity
 		new_data.max_capacity = data.max_capacity
 		new_data.element_type_id = data.element_type_id
-		new_data.output_direction = data.output_direction
+		new_data.collector_filter = data.collector_filter
 		copy[grid_pos] = new_data
 	return copy
 
@@ -234,7 +237,7 @@ func is_pipe_or_buffer_at(grid_pos: Vector2i) -> bool:
 	if data == null:
 		return false
 	return BuildingTypeManager.is_pipe(data.building_type) or \
-		BuildingTypeManager.is_emitter(data.building_type) or \
+		BuildingTypeManager.is_source(data.building_type) or \
 		BuildingTypeManager.is_collector(data.building_type) or \
 		_is_core_cell(grid_pos)
 

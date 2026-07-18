@@ -14,7 +14,7 @@ func _ensure_building_types_registered() -> void:
 	var types: Array[BuildingTypeData] = []
 	var entries: Array = [
 		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
-		[GameConfig.EMITTER_TYPE_ID,   {"category": BuildingTypeData.Category.EMITTER}],
+		[GameConfig.SOURCE_TYPE_ID,    {"category": BuildingTypeData.Category.SOURCE}],
 		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
 		[GameConfig.BRICK_TYPE_ID,     {}],
 	]
@@ -28,11 +28,11 @@ func _ensure_building_types_registered() -> void:
 	BuildingTypeManager.register_all(types)
 
 
-## 测试1: emitter 同时直连 core 和 pipe 网络时只被激活一次（BFS 去重）
+## 测试1: source 同时直连 core 和 pipe 网络时只被激活一次（BFS 去重）
 ## 布局：核心占据 (-1,-1)..(0,0)；管道 (1,0) 邻接核心格 (0,0)；
-## 发射器 (1,-1) 同时邻接核心格 (0,-1) 和管道 (1,0)。
-## 直连分支与 BFS 分支都试图收集该发射器，全局 visited 字典应保证其只出现一次。
-func test_emitter_direct_and_pipe_no_duplicate() -> void:
+## 源头 (1,-1) 同时邻接核心格 (0,-1) 和管道 (1,0)。
+## 直连分支与 BFS 分支都试图收集该源头，全局 visited 字典应保证其只出现一次。
+func test_source_direct_and_pipe_no_duplicate() -> void:
 	var bm: BuildingManager = autoqfree(_BM.new())
 	var pr: PipeRenderSystem = autoqfree(_PRS.new())
 	pr.name = "PipeRenderSystem"
@@ -41,8 +41,8 @@ func test_emitter_direct_and_pipe_no_duplicate() -> void:
 
 	# 管道 (1,0) 邻接核心格 (0,0)
 	bm.place_building(Vector2i(1, 0), GameConfig.PIPE_TYPE_ID)
-	# 发射器 (1,-1) 同时邻接核心格 (0,-1) 与管道 (1,0)
-	bm.place_building(Vector2i(1, -1), GameConfig.EMITTER_TYPE_ID)
+	# 源头 (1,-1) 同时邻接核心格 (0,-1) 与管道 (1,0)
+	bm.place_building(Vector2i(1, -1), GameConfig.SOURCE_TYPE_ID)
 
 	# 创建独立的 ReactionCoordinator，不加入场景树（避免 _ready 的 Timer/EventBus 副作用），
 	# 直接调用 _rebuild_networks 验证 BFS 去重逻辑
@@ -50,14 +50,59 @@ func test_emitter_direct_and_pipe_no_duplicate() -> void:
 	coord.init(bm)
 	coord._rebuild_networks()
 
-	# 统计所有网络中的 emitter 总数（应只被收集一次）
-	var total_emitters: int = 0
-	var networks_with_emitter: int = 0
+	# 统计所有网络中的 source 总数（应只被收集一次）
+	var total_sources: int = 0
+	var networks_with_source: int = 0
 	for network: Dictionary in coord._cached_networks:
-		var emitters: Array = network["emitters"]
-		total_emitters += emitters.size()
-		if not emitters.is_empty():
-			networks_with_emitter += 1
+		var sources: Array = network["sources"]
+		total_sources += sources.size()
+		if not sources.is_empty():
+			networks_with_source += 1
 
-	assert_eq(total_emitters, 1, "emitter 应只被收集一次（BFS 去重）")
-	assert_eq(networks_with_emitter, 1, "emitter 应只属于一个网络，不被直连与 BFS 重复加入")
+	assert_eq(total_sources, 1, "source 应只被收集一次（BFS 去重）")
+	assert_eq(networks_with_source, 1, "source 应只属于一个网络，不被直连与 BFS 重复加入")
+
+
+## 测试2: 未连通核心的源头不在激活集合中（不应产出元素）
+## 布局：核心占据 (-1,-1)..(0,0)；源头 (5,5) 远离核心，无管道连接
+## _collect_active_source_positions 应返回空字典，限制 ElementDiffusion 仅处理连通源头
+func test_unconnected_source_not_in_active_positions() -> void:
+	var bm: BuildingManager = autoqfree(_BM.new())
+	var pr: PipeRenderSystem = autoqfree(_PRS.new())
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
+	add_child_autoqfree(bm)
+
+	# 源头 (5,5) 远离核心，未通过管道连通
+	bm.place_building(Vector2i(5, 5), GameConfig.SOURCE_TYPE_ID)
+
+	# 创建独立的 ReactionCoordinator，不加入场景树（避免 _ready 的 Timer/EventBus 副作用）
+	var coord: ReactionCoordinator = autoqfree(ReactionCoordinator.new())
+	coord.init(bm)
+	coord._rebuild_networks()
+
+	var active: Dictionary = coord._collect_active_source_positions()
+	assert_eq(active.size(), 0, "未连通核心的源头不应出现在激活集合中")
+	assert_false(active.has(Vector2i(5, 5)), "远离核心的源头位置不应在激活集合中")
+
+
+## 测试3: 连通核心的源头在激活集合中
+## 布局：核心 (-1,-1)..(0,0)；管道 (1,0) 连通核心；源头 (2,0) 连通管道
+func test_connected_source_in_active_positions() -> void:
+	var bm: BuildingManager = autoqfree(_BM.new())
+	var pr: PipeRenderSystem = autoqfree(_PRS.new())
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
+	add_child_autoqfree(bm)
+
+	# 管道 (1,0) 邻接核心格 (0,0)，源头 (2,0) 邻接管道 (1,0)
+	bm.place_building(Vector2i(1, 0), GameConfig.PIPE_TYPE_ID)
+	bm.place_building(Vector2i(2, 0), GameConfig.SOURCE_TYPE_ID)
+
+	var coord: ReactionCoordinator = autoqfree(ReactionCoordinator.new())
+	coord.init(bm)
+	coord._rebuild_networks()
+
+	var active: Dictionary = coord._collect_active_source_positions()
+	assert_eq(active.size(), 1, "连通核心的源头应在激活集合中")
+	assert_true(active.has(Vector2i(2, 0)), "连通核心的源头位置应在激活集合中")
