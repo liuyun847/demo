@@ -100,7 +100,7 @@ func _init_default_types() -> void:
 	# category 用 BuildingTypeData.Category 枚举值，替代旧的 is_pipe/is_emitter/is_collector 三个 bool
 	var type_entries: Array[Dictionary] = [
 		{"id": GameConfig.PIPE_TYPE_ID,      "name": "管道",   "icon": "res://resources/pipe_icon.svg",           "category": BuildingTypeData.Category.PIPE},
-		{"id": GameConfig.EMITTER_TYPE_ID,   "name": "喷口",   "icon": "res://resources/emitter_water_icon.svg",  "category": BuildingTypeData.Category.EMITTER},
+		{"id": GameConfig.SOURCE_TYPE_ID,    "name": "源头",   "icon": "res://resources/source_water_icon.svg",   "category": BuildingTypeData.Category.SOURCE},
 		{"id": GameConfig.BRICK_TYPE_ID,     "name": "砖块",   "icon": "res://resources/brick_icon.svg",          "category": BuildingTypeData.Category.BRICK},
 		{"id": GameConfig.COLLECTOR_TYPE_ID, "name": "收集器", "icon": "res://resources/collector_icon.svg",      "category": BuildingTypeData.Category.COLLECTOR},
 	]

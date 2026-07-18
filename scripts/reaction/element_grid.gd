@@ -9,9 +9,27 @@ var _source_y: Dictionary = {}
 var _source_positions: Dictionary = {}
 ## 反应产物存续计时器: {Vector2i: int(剩余 tick 数)}
 var _product_timers: Dictionary = {}
+## 源建筑位置注册表: {Vector2i: true}
+## 仅记录源头建筑的位置，元素类型从 SourceNode 节点实时读取（用户可能通过面板修改）
+var _source_buildings: Dictionary = {}
 var building_manager_ref: BuildingManager = null
 ## is_building_at 在 ref 未初始化时只 warning 一次的标记
 var _warned_null_building_ref: bool = false
+
+
+## 注册源头建筑位置（由 ReactionCoordinator 在建筑放置时调用）
+func register_source_building(pos: Vector2i) -> void:
+	_source_buildings[pos] = true
+
+
+## 取消注册源头建筑位置（由 ReactionCoordinator 在建筑移除时调用，erase 安全）
+func unregister_source_building(pos: Vector2i) -> void:
+	_source_buildings.erase(pos)
+
+
+## 获取所有源头建筑位置字典（key=Vector2i, value=true）
+func get_source_buildings() -> Dictionary:
+	return _source_buildings
 
 ## 在指定位置放置元素
 func set_element(pos: Vector2i, element_id: String, source_y_val: int) -> bool:
@@ -145,3 +163,4 @@ func clear_all() -> void:
 	_source_y.clear()
 	_source_positions.clear()
 	_product_timers.clear()
+	_source_buildings.clear()

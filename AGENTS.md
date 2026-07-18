@@ -39,8 +39,8 @@ demo/
 │   │   ├── building_data_sync_service.gd # 建筑数据/节点同步服务
 │   │   ├── brick_node.gd         #   砖块（含碰撞体）
 │   │   ├── core_node.gd          #   核心节点（地图中心，网络激活器）
-│   │   ├── emitter_node.gd       #   发射器（元素方向）
-│   │   ├── collector_node.gd     #   收集器（半径收集）
+│   │   ├── source_node.gd        #   源头（元素产出，由扩散系统接管种子创建）
+│   │   ├── collector_node.gd     #   收集器（半径收集，支持元素类型筛选）
 │   │   ├── pipe_node.gd          #   管道（连接掩码）
 │   │   ├── pipe_render_system.gd #   管道 ECS 批量渲染
 │   │   └── ghost_preview_manager.gd  # 幽灵预览管理
@@ -62,7 +62,7 @@ demo/
 │   │   └── element_renderer.gd   #   流体批量渲染
 │   ├── ui/                       # UI 组件（6 个 .gd）
 │   │   ├── building_tooltip.gd   #   建筑提示框
-│   │   ├── emitter_type_panel.gd #   发射器类型面板
+│   │   ├── element_type_panel.gd #   元素类型面板（源头/收集器共享，Mode.SOURCE/Mode.COLLECTOR）
 │   │   ├── essence_display.gd    #   源质数值显示
 │   │   ├── inventory_bar.gd      #   物品栏
 │   │   ├── inventory_slot.gd     #   物品槽
@@ -82,9 +82,9 @@ demo/
 ├── scenes/                       # 场景文件（7 个 .tscn）
 │   ├── main.tscn / settings.tscn / start_menu.tscn
 │   ├── inventory_bar.tscn / inventory_slot.tscn
-│   ├── building_tooltip.tscn / emitter_type_panel.tscn
-├── resources/                    # 图标资源（8 个 .svg）
-├── save/                         # 运行时存档（gitignore）
+│   ├── building_tooltip.tscn / element_type_panel.tscn
+├── resources/                    # 图标资源（5 个 .svg）
+├── save/                         # 运行时存档（gitignore，单文件 game.cfg）
 ├── tests/                        # GUT 测试（33 unit + 3 integration）
 │   ├── unit/                     #   单元测试
 │   └── integration/              #   集成测试
@@ -119,21 +119,24 @@ Root (Node2D) → main.gd
 ├── SaveManager / MapInputHandler
 └── UIOverlay (CanvasLayer)
     ├── StartMenu / SettingsPanel / InventoryBar / BuildingTooltip
-    ├── EssenceDisplay / PauseOverlay / EmitterTypePanel（运行时动态创建）
+    ├── EssenceDisplay / PauseOverlay / ElementTypePanel（运行时动态创建，源头/收集器共享）
     └── FPSDisplay / KeyHints
 ```
 
 # 核心系统摘要
 
-- **输入状态机**: 6 个状态（IDLE/DRAGGING/REMOVING/SELECTING/DESELECTING/PASTE_DRAGGING），根据模式切换幽灵预览。发射器旋转方向序列 `MapInputHandler._EMITTER_DIRS` 为逆时针 `[DOWN, LEFT, UP, RIGHT]`，索引 0 = DOWN 必须与 `EmitterNode.output_direction` 默认值 `Vector2i(0, 1)` 一致（修改需同步检查 EmitterNode 默认值，已有回归测试 `test_emitter_dirs_index_0_matches_node_default` 保护）
+- **输入状态机**: 6 个状态（IDLE/DRAGGING/REMOVING/SELECTING/DESELECTING/PASTE_DRAGGING），根据模式切换幽灵预览。R 键仅切换拖拽角点（不再旋转源头方向，源头已无方向概念）
 - **幽灵预览**: GhostPreviewManager 维护多组预览数组（ghost/selected/paste/remove），`_draw()` 统一渲染
-- **建筑系统**: 4 种建筑（管道/发射器/收集器/砖块）+ 地图中心核心，通过 BuildingFactory 创建（基于 `BuildingTypeData.Category` 枚举的创建函数注册表，新增类型只需注册新 category），ECS-Lite 管道批量渲染。`clear_all_buildings()` 对每个非核心建筑逐个 emit `building_removed`（N 次），`clear_all_buildings_silent()` 静默清空不 emit 信号
-- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心开始搜索），每 tick 执行发射→扩散→收集流程。只有连通到核心的管道网络才能激活发射器/收集器
+- **建筑系统**: 4 种建筑（管道/源头/收集器/砖块）+ 地图中心核心，通过 BuildingFactory 创建（基于 `BuildingTypeData.Category` 枚举的创建函数注册表，新增类型只需注册新 category），ECS-Lite 管道批量渲染。`clear_all_buildings()` 对每个非核心建筑逐个 emit `building_removed`（N 次），`clear_all_buildings_silent()` 静默清空不 emit 信号
+- **源头系统**: SourceNode 替代旧版 EmitterNode，移除方向概念。源头不再自行产出元素，而是由 ElementDiffusion._process_source_buildings 在每 tick 开头按需创建种子元素：1) 相邻已有同类型元素 → mark_as_source（免费维持）；2) 否则按元素状态选择种子位置（LIQUID→DOWN、GAS→UP）创建种子并消耗 `SOURCE_ESSENCE_COST_PER_TICK` 源质。SourceNode 未调用 set_element_type 前（has_type_selected=false）不产出。元素类型存于 SourceNode 节点，注册表 ElementGrid._source_buildings 仅记录位置
+- **收集器筛选**: CollectorNode 新增 filter_element_type 字段，空字符串 = 收全部（默认，兼容旧存档），非空时仅收集匹配类型的元素。通过共享 ElementTypePanel（Mode.COLLECTOR）选择筛选类型
+- **共享 UI 面板**: ElementTypePanel 通过 Mode 枚举（SOURCE/COLLECTOR）服务两类建筑，源头模式无"全部"选项，收集器模式额外提供"全部"按钮（空筛选）。EventBus 信号为 `element_type_panel_opened`/`element_type_panel_closed`
+- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心开始搜索），每 tick 执行产物计时器递减→扩散(含源头种子产出)→反应→收集流程。只有连通到核心的管道网络才能激活源头/收集器
 - **元素系统**: 水/火/蒸汽三种元素（注册表 + Resource 类型定义），按 `ElementTypeData.State` 枚举（LIQUID/GAS/SOLID）差异化扩散（液体向下、气体向上、固体不动），反应产物存续标记防止瞬间消失
 - **反应系统**: ReactionRegistry 注册反应规则（无序匹配，重复注册跳过并告警），ReactionProcessor 每 tick 检测相邻格子反应，密度决定产物位置
 - **源质经济**: EssencePool 管理货币（`MAX_ESSENCE` 上限约束，setter/`add()` 均通过 `clampf` 限制），ProgressSystem 按阈值解锁建筑类型。BuildingManager/ReactionCoordinator/ElementDiffusion/ReactionProcessor 通过依赖注入（`_essence_service` + `set_essence_service()`）解耦全局单例，未注入时回退到 EssencePool，支持测试隔离
 - **框选与剪贴板**: 选中 → Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z/Y 撤销/重做（栈上限 100），粘贴支持旋转和拖拽
-- **持久化**: 建筑/按键/设置自动保存到 save/ 目录，启动时加载
+- **持久化**: 单文件存档（`save/game.cfg`，ConfigFile 格式），含三个 section：`[buildings]`（建筑+源质）/`[settings]`（游戏设置）/`[keybindings]`（按键绑定）。各模块通过 `FileIOHelper.write_cfg_section` 读写自己的 section（写入时 load 现有文件保留其他 section，原子保存 .tmp->rename）。启动时自动加载；首次启动若检测到旧版多 JSON 存档（buildings.json/game_settings.json/keybindings.json）会迁移到 game.cfg 并将旧文件重命名为 .json.bak
 - **可视化**: 管道 ECS 批量渲染（PackedVector2Array）、流体批量渲染、无限网格分块渲染
 
 # 通信方式

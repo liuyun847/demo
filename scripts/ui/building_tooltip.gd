@@ -38,8 +38,8 @@ func _ready() -> void:
 	EventBus.building_hover_exited.connect(_on_building_hover_exited)
 	EventBus.building_removed.connect(_on_building_removed)
 	EventBus.camera_changed.connect(_update_position)
-	EventBus.emitter_type_panel_opened.connect(_on_emitter_panel_opened)
-	EventBus.emitter_type_panel_closed.connect(_on_emitter_panel_closed)
+	EventBus.element_type_panel_opened.connect(_on_element_panel_opened)
+	EventBus.element_type_panel_closed.connect(_on_element_panel_closed)
 
 func _exit_tree() -> void:
 	if EventBus.building_hovered.is_connected(_on_building_hovered):
@@ -50,10 +50,10 @@ func _exit_tree() -> void:
 		EventBus.building_removed.disconnect(_on_building_removed)
 	if EventBus.camera_changed.is_connected(_update_position):
 		EventBus.camera_changed.disconnect(_update_position)
-	if EventBus.emitter_type_panel_opened.is_connected(_on_emitter_panel_opened):
-		EventBus.emitter_type_panel_opened.disconnect(_on_emitter_panel_opened)
-	if EventBus.emitter_type_panel_closed.is_connected(_on_emitter_panel_closed):
-		EventBus.emitter_type_panel_closed.disconnect(_on_emitter_panel_closed)
+	if EventBus.element_type_panel_opened.is_connected(_on_element_panel_opened):
+		EventBus.element_type_panel_opened.disconnect(_on_element_panel_opened)
+	if EventBus.element_type_panel_closed.is_connected(_on_element_panel_closed):
+		EventBus.element_type_panel_closed.disconnect(_on_element_panel_closed)
 
 func _create_styles() -> void:
 	_panel_style = StyleBoxFlat.new()
@@ -74,11 +74,11 @@ func _apply_styles() -> void:
 	_panel.set(&"theme_override_styles/panel", _panel_style)
 	_panel.queue_redraw()
 
-func _on_emitter_panel_opened() -> void:
+func _on_element_panel_opened() -> void:
 	_panel_open = true
 	hide()
 
-func _on_emitter_panel_closed() -> void:
+func _on_element_panel_closed() -> void:
 	_panel_open = false
 
 func _on_building_hovered(grid_pos: Vector2i, node: Node2D) -> void:

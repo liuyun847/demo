@@ -1,7 +1,14 @@
-class_name EmitterTypePanel
+class_name ElementTypePanel
 extends Control
 
-var target_emitter: EmitterNode = null
+## 元素类型选择面板（源头/收集器共享）
+## - Mode.SOURCE: 选择源头的产出元素类型
+## - Mode.COLLECTOR: 选择收集器的筛选元素类型（额外提供"全部"按钮清空筛选）
+
+enum Mode { SOURCE, COLLECTOR }
+
+var target: Node = null
+var mode: int = Mode.SOURCE
 
 const OFFSET_Y: float = -20.0
 
@@ -11,18 +18,19 @@ var _buttons: Dictionary = {}
 @onready var _vbox: VBoxContainer = $Panel/VBoxContainer
 
 func _ready() -> void:
-	if not is_instance_valid(target_emitter):
+	if not is_instance_valid(target):
 		queue_free()
 		return
 
-	EventBus.emitter_type_panel_opened.emit()
+	EventBus.element_type_panel_opened.emit()
 	_create_buttons()
 	_update_selection_highlight()
 
 func _exit_tree() -> void:
-	EventBus.emitter_type_panel_closed.emit()
+	EventBus.element_type_panel_closed.emit()
 
 ## 根据 ElementRegistry 动态创建按钮
+## COLLECTOR 模式额外提供"全部"按钮（element_id="" 表示清空筛选）
 func _create_buttons() -> void:
 	# 仅清除已有的 Button 子节点（保留 TitleLabel、HSeparator 等非按钮节点）
 	for child: Node in _vbox.get_children():
@@ -30,34 +38,53 @@ func _create_buttons() -> void:
 			child.queue_free()
 	_buttons.clear()
 
+	# COLLECTOR 模式额外提供"全部"按钮
+	if mode == Mode.COLLECTOR:
+		_add_button("全部", "")
+
 	var all_types: Dictionary = ElementRegistry.get_all_element_types()
 	for element_id: String in all_types:
 		var type_data: ElementTypeData = all_types[element_id]
-		var btn := Button.new()
-		btn.text = type_data.display_name
-		btn.custom_minimum_size = Vector2(120, 32)
+		_add_button(type_data.display_name, element_id)
 
-		# 使用元素颜色作为按钮背景提示
-		var style := StyleBoxFlat.new()
+func _add_button(label_text: String, element_id: String) -> void:
+	var btn := Button.new()
+	btn.text = label_text
+	btn.custom_minimum_size = Vector2(120, 32)
+
+	# 使用元素颜色作为按钮背景提示；"全部"按钮用白色
+	var type_data: ElementTypeData = ElementRegistry.get_element_type(element_id)
+	var style := StyleBoxFlat.new()
+	if type_data:
 		style.bg_color = type_data.color
-		style.bg_color.a = 0.3
-		style.set_corner_radius_all(4)
-		btn.add_theme_stylebox_override("normal", style)
+	else:
+		style.bg_color = Color.WHITE
+	style.bg_color.a = 0.3
+	style.set_corner_radius_all(4)
+	btn.add_theme_stylebox_override("normal", style)
 
-		btn.pressed.connect(_on_type_selected.bind(element_id))
-		_vbox.add_child(btn)
-		_buttons[element_id] = btn
+	btn.pressed.connect(_on_type_selected.bind(element_id))
+	_vbox.add_child(btn)
+	_buttons[element_id] = btn
 
 func _on_type_selected(type_id: String) -> void:
-	if not is_instance_valid(target_emitter):
+	if not is_instance_valid(target):
 		queue_free()
 		return
 
-	target_emitter.set_element_type(type_id)
+	# 读取节点 grid_position（BuildingBase 成员），用于通知 SaveManager 触发保存
+	var grid_pos: Vector2i = (target as BuildingBase).grid_position
+	match mode:
+		Mode.SOURCE:
+			(target as SourceNode).set_element_type(type_id)
+		Mode.COLLECTOR:
+			(target as CollectorNode).set_filter(type_id)
+	# 通知 SaveManager 触发延迟保存（复用现有 debounce 机制）
+	EventBus.element_type_changed.emit(grid_pos)
 	queue_free()
 
 func _process(_delta: float) -> void:
-	if not is_instance_valid(target_emitter):
+	if not is_instance_valid(target):
 		queue_free()
 		return
 	_update_position()
@@ -68,7 +95,7 @@ func _update_position() -> void:
 	if not camera:
 		return
 
-	var world_pos: Vector2 = target_emitter.global_position
+	var world_pos: Vector2 = (target as Node2D).global_position
 	var screen_pos: Vector2 = camera.get_canvas_transform() * world_pos
 
 	var panel_size: Vector2 = size
@@ -89,7 +116,12 @@ func _gui_input(event: InputEvent) -> void:
 
 ## 高亮当前选中的元素按钮
 func _update_selection_highlight() -> void:
-	var selected: String = target_emitter.element_type_id
+	var selected: String = ""
+	match mode:
+		Mode.SOURCE:
+			selected = (target as SourceNode).element_type_id
+		Mode.COLLECTOR:
+			selected = (target as CollectorNode).filter_element_type
 	for type_id: String in _buttons.keys():
 		var btn: Button = _buttons[type_id]
 		var is_selected: bool = type_id == selected

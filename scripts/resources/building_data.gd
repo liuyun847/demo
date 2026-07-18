@@ -9,7 +9,8 @@ var building_type: String = "default"
 var capacity: int = 0
 var max_capacity: int = 100
 var element_type_id: String = ""
-var output_direction: Vector2i = Vector2i(0, 1)
+## 收集器筛选元素类型：空字符串 = 收全部（默认，兼容旧存档）
+var collector_filter: String = ""
 
 
 func clone() -> BuildingData:
@@ -19,5 +20,5 @@ func clone() -> BuildingData:
 	cloned.capacity = capacity
 	cloned.max_capacity = max_capacity
 	cloned.element_type_id = element_type_id
-	cloned.output_direction = output_direction
+	cloned.collector_filter = collector_filter
 	return cloned

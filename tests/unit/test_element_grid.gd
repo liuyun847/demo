@@ -94,3 +94,32 @@ func test_move_element_transfers_source_and_product_marks() -> void:
 	assert_true(_grid.is_product(to), "迁移后 to 位置应保持产物标记")
 	assert_false(_grid.is_source_pos(from), "迁移后 from 位置不应保留水源标记")
 	assert_false(_grid.is_product(from), "迁移后 from 位置不应保留产物标记")
+
+
+# ========== 源头建筑位置注册表测试 ==========
+
+func test_register_source_building() -> void:
+	_grid.register_source_building(Vector2i(3, 3))
+	var sources: Dictionary = _grid.get_source_buildings()
+	assert_true(sources.has(Vector2i(3, 3)), "注册后应包含该位置")
+
+
+func test_unregister_source_building() -> void:
+	_grid.register_source_building(Vector2i(3, 3))
+	_grid.unregister_source_building(Vector2i(3, 3))
+	var sources: Dictionary = _grid.get_source_buildings()
+	assert_false(sources.has(Vector2i(3, 3)), "取消注册后不应包含该位置")
+
+
+func test_unregister_nonexistent_source_building_safe() -> void:
+	# erase 安全：取消注册从未注册的位置不应崩溃
+	_grid.unregister_source_building(Vector2i(99, 99))
+	assert_true(true, "取消注册未注册位置应安全无副作用")
+
+
+func test_clear_all_clears_source_buildings() -> void:
+	_grid.register_source_building(Vector2i(1, 1))
+	_grid.register_source_building(Vector2i(2, 2))
+	_grid.clear_all()
+	var sources: Dictionary = _grid.get_source_buildings()
+	assert_eq(sources.size(), 0, "clear_all 应清空源头建筑注册表")

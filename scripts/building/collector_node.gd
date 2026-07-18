@@ -2,6 +2,12 @@ class_name CollectorNode
 extends BuildingBase
 
 var collection_radius: int = GameConfig.COLLECTOR_DEFAULT_RADIUS
+## 筛选元素类型：空 = 收全部（默认，兼容旧存档）
+var filter_element_type: String = ""
+
+func set_filter(type_id: String) -> void:
+	filter_element_type = type_id
+	queue_redraw()
 
 func try_collect(element_grid: ElementGrid) -> float:
 	var total_essence: float = 0.0
@@ -15,6 +21,10 @@ func try_collect(element_grid: ElementGrid) -> float:
 			if not element_grid.has_element(check_pos):
 				continue
 			if element_grid.is_building_at(check_pos):
+				continue
+			# 按筛选元素类型过滤：空筛选收全部
+			if not filter_element_type.is_empty() and \
+				element_grid.get_element_id(check_pos) != filter_element_type:
 				continue
 			total_essence += 1.0
 			cells_to_collect.append(check_pos)
@@ -49,9 +59,13 @@ func _draw() -> void:
 	])
 	draw_colored_polygon(inner_diamond, color_inner)
 
-	var center := Vector2.ZERO
-	var circle_radius := half * 0.2
-	draw_circle(center, circle_radius, Color.WHITE)
+	# 中心圆点颜色：有筛选时用筛选元素色，无筛选保持白色
+	var center_color: Color = Color.WHITE
+	if not filter_element_type.is_empty():
+		var ft := ElementRegistry.get_element_type(filter_element_type)
+		if ft:
+			center_color = ft.color
+	draw_circle(Vector2.ZERO, half * 0.2, center_color)
 
 	draw_rect(Rect2(-half, -half, size, size), Color(0.25, 0.25, 0.25), false, 1.5)
 
@@ -66,6 +80,11 @@ func get_tooltip_summary() -> Dictionary:
 	}
 
 func get_tooltip_details() -> Dictionary:
+	var filter_name: String = "全部"
+	if not filter_element_type.is_empty():
+		var ft := ElementRegistry.get_element_type(filter_element_type)
+		filter_name = ft.display_name if ft else filter_element_type
 	return {
 		"收集半径": collection_radius,
+		"筛选": filter_name,
 	}

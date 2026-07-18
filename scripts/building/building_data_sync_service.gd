@@ -11,22 +11,25 @@ static func sync_from_node(data: BuildingData, node: Node, restore_data: Diction
 	if node == null:
 		push_warning("BuildingDataSyncService.sync_from_node: node 为 null，跳过同步")
 		return
-	if BuildingTypeManager.is_emitter(data.building_type):
-		_sync_emitter(data, node, restore_data)
+	if BuildingTypeManager.is_source(data.building_type):
+		_sync_source(data, node, restore_data)
+	elif BuildingTypeManager.is_collector(data.building_type):
+		_sync_collector(data, node, restore_data)
 
 
-static func sync_emitter(data: BuildingData, node: Node, restore_data: Dictionary = {}) -> void:
+## 同步源头节点数据。element_type_id 为节点当前类型，restore_data 非空时反写节点。
+static func sync_source(data: BuildingData, node: Node, restore_data: Dictionary = {}) -> void:
 	if data == null:
-		push_warning("BuildingDataSyncService.sync_emitter: data 为 null，跳过同步")
+		push_warning("BuildingDataSyncService.sync_source: data 为 null，跳过同步")
 		return
 	if node == null:
-		push_warning("BuildingDataSyncService.sync_emitter: node 为 null，跳过同步")
+		push_warning("BuildingDataSyncService.sync_source: node 为 null，跳过同步")
 		return
-	_sync_emitter(data, node, restore_data)
+	_sync_source(data, node, restore_data)
 
 
-static func _sync_emitter(data: BuildingData, node: Node, restore_data: Dictionary) -> void:
-	if not (node is EmitterNode):
+static func _sync_source(data: BuildingData, node: Node, restore_data: Dictionary) -> void:
+	if not (node is SourceNode):
 		return
 
 	if not restore_data.is_empty():
@@ -36,25 +39,31 @@ static func _sync_emitter(data: BuildingData, node: Node, restore_data: Dictiona
 			node.element_type_id = type_id
 			if node.has_method("set_element_type"):
 				node.set_element_type(type_id)
-		if restore_data.has("output_direction"):
-			var resolved_dir: Vector2i = _parse_direction(restore_data["output_direction"])
-			data.output_direction = resolved_dir
-			node.output_direction = resolved_dir
-			if node.has_method("set_output_direction"):
-				node.set_output_direction(resolved_dir)
 	else:
 		data.element_type_id = node.element_type_id
-		data.output_direction = node.output_direction
 
 
-static func _parse_direction(value: Variant) -> Vector2i:
-	if value is Vector2i:
-		return value
-	if value is Array and value.size() == 2:
-		return Vector2i(int(value[0]), int(value[1]))
-	if value is String:
-		var parts := (value as String).split(",")
-		if parts.size() == 2:
-			return Vector2i(int(parts[0]), int(parts[1]))
-	push_warning("BuildingDataSyncService._parse_direction: 无法解析方向值 %s，使用默认 (0,1)" % str(value))
-	return Vector2i(0, 1)
+## 同步收集器节点数据。collector_filter 为筛选元素类型，restore_data 非空时反写节点。
+static func sync_collector(data: BuildingData, node: Node, restore_data: Dictionary = {}) -> void:
+	if data == null:
+		push_warning("BuildingDataSyncService.sync_collector: data 为 null，跳过同步")
+		return
+	if node == null:
+		push_warning("BuildingDataSyncService.sync_collector: node 为 null，跳过同步")
+		return
+	_sync_collector(data, node, restore_data)
+
+
+static func _sync_collector(data: BuildingData, node: Node, restore_data: Dictionary) -> void:
+	if not (node is CollectorNode):
+		return
+
+	if not restore_data.is_empty():
+		if restore_data.has("collector_filter"):
+			var filter_id: String = restore_data["collector_filter"]
+			data.collector_filter = filter_id
+			node.filter_element_type = filter_id
+			if node.has_method("set_filter"):
+				node.set_filter(filter_id)
+	else:
+		data.collector_filter = node.filter_element_type

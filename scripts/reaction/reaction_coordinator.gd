@@ -67,13 +67,19 @@ func _on_building_placed(grid_pos: Vector2i) -> void:
 	# 清除放置位置的元素，防止建筑建在元素上
 	if _element_grid.has_element(grid_pos):
 		_element_grid.remove_element(grid_pos)
+	# 若放置的是源头建筑，注册到 element_grid 供扩散系统使用
+	var placed_node: Node = _building_manager.get_building_node(grid_pos)
+	if placed_node is SourceNode:
+		_element_grid.register_source_building(grid_pos)
 
-func _on_building_removed(_grid_pos: Vector2i) -> void:
+func _on_building_removed(grid_pos: Vector2i) -> void:
 	_dirty = true
 	_cached_networks.clear()
 	# 清除所有水源标记，被移除的建筑不再能维持水源
-	# 下个 tick 的 _process_emitters() 会为仍然存在的发射器重新标记
+	# 下个 tick 的 _process_source_buildings() 会为仍然存在的源头重新标记
 	_element_grid.clear_all_sources()
+	# 取消注册源头建筑（erase 安全，非源头位置无副作用）
+	_element_grid.unregister_source_building(grid_pos)
 
 func mark_dirty() -> void:
 	_dirty = true
@@ -95,38 +101,24 @@ func _on_tick() -> void:
 	# 递减反应产物存续计时器
 	_element_grid.tick_products()
 
-	_process_emitters()
-
-	_element_diffusion.diffuse_all(_element_grid)
+	# 源头产出由扩散系统接管：diffuse_all 内部的 _process_source_buildings 负责种子创建
+	# 仅允许连通到核心的源头产出种子，未连通的源头不工作
+	var active_source_positions: Dictionary = _collect_active_source_positions()
+	_element_diffusion.diffuse_all(_element_grid, active_source_positions)
 
 	_reaction_processor.process_all()
 
 	_process_collectors()
 
-func _process_emitters() -> void:
-	var es: Variant = _get_essence()
+## 收集所有连通到核心的网络中的源头位置（Dictionary{Vector2i: bool}）
+## 用于限制只有连通核心的源头才产出元素
+func _collect_active_source_positions() -> Dictionary:
+	var result: Dictionary = {}
 	for network: Dictionary in _cached_networks:
-		for emitter: EmitterNode in network.emitters:
-			if not emitter.has_type_selected():
-				continue
-
-			var target_pos: Vector2i = emitter.grid_position + emitter.output_direction
-			if _element_grid.is_building_at(target_pos):
-				continue
-
-			# 目标格子已有元素时无需重复创建,仅重新标记为水源以维持水体
-			if _element_grid.has_element(target_pos):
-				# 仅当元素类型匹配时才标记为水源（防止异类元素被错误标记）
-				if _element_grid.get_element_id(target_pos) == emitter.element_type_id:
-					_element_grid.mark_as_source(target_pos)
-			else:
-				# 创建新元素需要消耗源质，源质不足时跳过
-				if not es.has(GameConfig.EMITTER_ESSENCE_COST_PER_TICK):
-					continue
-				var success: bool = _element_grid.set_element(target_pos, emitter.element_type_id, target_pos.y)
-				if success:
-					_element_grid.mark_as_source(target_pos)
-					es.subtract(GameConfig.EMITTER_ESSENCE_COST_PER_TICK)
+		for source: SourceNode in network.sources:
+			if is_instance_valid(source):
+				result[source.grid_position] = true
+	return result
 
 func _process_collectors() -> void:
 	var es: Variant = _get_essence()
@@ -159,29 +151,29 @@ func _rebuild_networks() -> void:
 				visited[neighbor.get_instance_id()] = true
 				var network := _bfs_network(neighbor, visited)
 				if network.pipes.size() > 0 or \
-				   network.emitters.size() > 0 or network.collectors.size() > 0:
+				   network.sources.size() > 0 or network.collectors.size() > 0:
 					_cached_networks.append(network)
-			elif neighbor is EmitterNode or neighbor is CollectorNode:
-				# 直接连接到核心的发射器/收集器也加入激活网络
+			elif neighbor is SourceNode or neighbor is CollectorNode:
+				# 直接连接到核心的源头/收集器也加入激活网络
 				# 必须检查并写入 visited，防止后续 BFS 重复加入同一节点
 				var nid: int = neighbor.get_instance_id()
 				if visited.has(nid):
 					continue
 				visited[nid] = true
-				var network := {"pipes": [], "emitters": [], "collectors": []}
-				if neighbor is EmitterNode:
-					network.emitters.append(neighbor as EmitterNode)
+				var network := {"pipes": [], "sources": [], "collectors": []}
+				if neighbor is SourceNode:
+					network.sources.append(neighbor as SourceNode)
 				else:
 					network.collectors.append(neighbor as CollectorNode)
 				_cached_networks.append(network)
 
 func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionary:
 	if _building_manager == null:
-		return {"pipes": [], "emitters": [], "collectors": []}
+		return {"pipes": [], "sources": [], "collectors": []}
 
 	var pipes: Array[Node] = []
-	var emitters: Array[EmitterNode] = []
-	var emitter_dict: Dictionary[int, bool] = {}
+	var sources: Array[SourceNode] = []
+	var source_dict: Dictionary[int, bool] = {}
 	var collectors: Array[CollectorNode] = []
 	var collector_dict: Dictionary[int, bool] = {}
 
@@ -194,10 +186,10 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 
 		if node is PipeNode:
 			pipes.append(node)
-		elif node is EmitterNode:
-			if not emitter_dict.has(node.get_instance_id()):
-				emitter_dict[node.get_instance_id()] = true
-				emitters.append(node)
+		elif node is SourceNode:
+			if not source_dict.has(node.get_instance_id()):
+				source_dict[node.get_instance_id()] = true
+				sources.append(node)
 		elif node is CollectorNode:
 			if not collector_dict.has(node.get_instance_id()):
 				collector_dict[node.get_instance_id()] = true
@@ -226,14 +218,14 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 				if not visited.has(neighbor.get_instance_id()):
 					visited[neighbor.get_instance_id()] = true
 					queue.append(neighbor)
-			elif neighbor is EmitterNode:
+			elif neighbor is SourceNode:
 				var nid: int = neighbor.get_instance_id()
-				# 同时检查局部 emitter_dict 和全局 visited，
+				# 同时检查局部 source_dict 和全局 visited，
 				# 防止直连 core 分支已加入的节点被 BFS 再次加入
-				if not visited.has(nid) and not emitter_dict.has(nid):
-					emitter_dict[nid] = true
+				if not visited.has(nid) and not source_dict.has(nid):
+					source_dict[nid] = true
 					visited[nid] = true
-					emitters.append(neighbor)
+					sources.append(neighbor)
 			elif neighbor is CollectorNode:
 				var nid: int = neighbor.get_instance_id()
 				# 同时检查局部 collector_dict 和全局 visited
@@ -244,7 +236,7 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 
 	return {
 		"pipes": pipes,
-		"emitters": emitters,
+		"sources": sources,
 		"collectors": collectors,
 	}
 

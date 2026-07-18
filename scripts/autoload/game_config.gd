@@ -60,8 +60,8 @@ const PIPE_TYPE_ID: String = "type_02"
 # 砖块建筑类型标识
 const BRICK_TYPE_ID: String = "type_04"
 
-# 发射器建筑类型标识
-const EMITTER_TYPE_ID: String = "type_03"
+# 源头建筑类型标识
+const SOURCE_TYPE_ID: String = "type_03"
 
 # 收集器建筑类型标识
 const COLLECTOR_TYPE_ID: String = "type_07"
@@ -69,13 +69,13 @@ const COLLECTOR_TYPE_ID: String = "type_07"
 # 建筑放置源质消耗（key: building_type_id, value: cost）
 const BUILDING_ESSENCE_COSTS: Dictionary = {
 	"type_02": 0.0,  # 管道
-	"type_03": 0.0,  # 发射器
+	"type_03": 0.0,  # 源头
 	"type_04": 0.0,  # 砖块
 	"type_07": 0.0,  # 收集器
 }
 
-# 发射器每 tick 消耗源质
-const EMITTER_ESSENCE_COST_PER_TICK: float = 1.0
+# 源头每 tick 消耗源质
+const SOURCE_ESSENCE_COST_PER_TICK: float = 1.0
 
 # 收集器默认收集半径
 const COLLECTOR_DEFAULT_RADIUS: int = 1
@@ -104,17 +104,28 @@ const ESSENCE_DISPLAY_OFFSET: Vector2 = Vector2(8, -8)
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"
 
-var save_file_path: String = ""
-var keybind_file_path: String = ""
-var game_settings_file_path: String = ""
+# 统一存档文件名（单文件存档：buildings + settings + keybindings 合并到此 .cfg）
+const UNIFIED_SAVE_FILE_NAME: String = "game.cfg"
+
+# ConfigFile 的 section 名称
+const SECTION_BUILDINGS: String = "buildings"
+const SECTION_SETTINGS: String = "settings"
+const SECTION_KEYBINDINGS: String = "keybindings"
+
+# 统一存档路径（单文件 .cfg）
+var unified_save_path: String = ""
+# 旧版 JSON 存档路径，仅用于启动时迁移到 .cfg 后重命名备份
+var legacy_save_file_path: String = ""
+var legacy_keybind_file_path: String = ""
+var legacy_game_settings_file_path: String = ""
 
 func _init() -> void:
-	_update_save_path()
-	_update_keybind_path()
-	_update_game_settings_path()
+	_update_unified_save_path()
+	_update_legacy_paths()
 
 func _ready() -> void:
 	BuildingTypeManager.register_defaults()
+	_migrate_legacy_saves()
 	load_game_settings()
 
 func _get_config_file_path(file_name: String) -> String:
@@ -125,22 +136,64 @@ func _get_config_file_path(file_name: String) -> String:
 		var install_dir := exe_path.get_base_dir()
 		return install_dir.path_join("save/%s" % file_name)
 
-func _update_save_path() -> void:
-	save_file_path = _get_config_file_path("buildings.json")
+func _update_unified_save_path() -> void:
+	unified_save_path = _get_config_file_path(UNIFIED_SAVE_FILE_NAME)
 
-func _update_keybind_path() -> void:
-	keybind_file_path = _get_config_file_path("keybindings.json")
+func _update_legacy_paths() -> void:
+	legacy_save_file_path = _get_config_file_path("buildings.json")
+	legacy_keybind_file_path = _get_config_file_path("keybindings.json")
+	legacy_game_settings_file_path = _get_config_file_path("game_settings.json")
 
-func _update_game_settings_path() -> void:
-	game_settings_file_path = _get_config_file_path("game_settings.json")
-
-func load_game_settings() -> void:
-	if not FileAccess.file_exists(game_settings_file_path):
+## 迁移旧版多 JSON 存档到统一 .cfg 文件
+## 仅在 .cfg 不存在且存在任意旧 .json 时执行，迁移后将旧文件重命名为 .json.bak
+func _migrate_legacy_saves() -> void:
+	# .cfg 已存在则跳过迁移
+	if FileAccess.file_exists(unified_save_path):
 		return
 
-	# 游戏设置文件不验证版本号，兼容旧版无 version 字段的文件
-	var result := FileIOHelper.read_json_file(
-		game_settings_file_path,
+	var has_any_legacy: bool = (
+		FileAccess.file_exists(legacy_save_file_path)
+		or FileAccess.file_exists(legacy_keybind_file_path)
+		or FileAccess.file_exists(legacy_game_settings_file_path)
+	)
+	if not has_any_legacy:
+		return
+
+	# 依次迁移三个旧 JSON 到 .cfg 的对应 section（缺失的跳过）
+	_migrate_one_legacy_file(legacy_save_file_path, SECTION_BUILDINGS, "SaveManager")
+	_migrate_one_legacy_file(legacy_game_settings_file_path, SECTION_SETTINGS, "GameConfig")
+	_migrate_one_legacy_file(legacy_keybind_file_path, SECTION_KEYBINDINGS, "KeybindManager")
+
+## 迁移单个旧 JSON 文件到 .cfg 指定 section，成功后重命名为 .json.bak
+func _migrate_one_legacy_file(legacy_path: String, section: String, module_name: String) -> void:
+	if not FileAccess.file_exists(legacy_path):
+		return
+	# 旧 JSON 不强制版本校验，尽力迁移
+	var result := FileIOHelper.read_json_file(legacy_path, module_name)
+	if not result.success:
+		push_warning("GameConfig: 旧存档迁移失败，跳过 %s: %s" % [legacy_path, result.error_message])
+		return
+	if not FileIOHelper.migrate_json_to_cfg_section(
+		unified_save_path, section, result.data, "GameConfig"
+	):
+		push_warning("GameConfig: 写入 .cfg section [%s] 失败，跳过 %s" % [section, legacy_path])
+		return
+	# 迁移成功，重命名旧文件为 .bak 防止再次迁移
+	var bak_path := legacy_path + ".bak"
+	var rename_err := DirAccess.rename_absolute(legacy_path, bak_path)
+	if rename_err != OK:
+		push_warning("GameConfig: 无法重命名旧存档 %s (错误码: %d)" % [legacy_path, rename_err])
+	else:
+		print("GameConfig: 已迁移旧存档 %s -> .cfg [%s]" % [legacy_path, section])
+
+func load_game_settings() -> void:
+	if not FileIOHelper.cfg_has_section(unified_save_path, SECTION_SETTINGS):
+		return
+
+	# 游戏设置不强制版本校验，兼容旧版无 version 字段
+	var result := FileIOHelper.read_cfg_section(
+		unified_save_path,
+		SECTION_SETTINGS,
 		"GameConfig"
 	)
 
@@ -164,5 +217,8 @@ func save_game_settings() -> void:
 		"shift_speed_multiplier": shift_speed_multiplier,
 	}
 
-	FileIOHelper.write_json_file(game_settings_file_path, settings_data, "GameConfig")
+	if not FileIOHelper.write_cfg_section(
+		unified_save_path, SECTION_SETTINGS, settings_data, "GameConfig"
+	):
+		push_error("GameConfig: 游戏设置保存失败")
 

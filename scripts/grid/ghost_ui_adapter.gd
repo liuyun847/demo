@@ -29,7 +29,6 @@ func _handle_idle_state(_context: Dictionary) -> void:
 	_ghost_preview.hide_select_ghost()
 	_ghost_preview.hide_deselect_ghost()
 	_ghost_preview.clear_paste_preview()
-	_ghost_preview.hide_emitter_ghost_direction()
 	_ghost_preview.hide_collector_ghost_range()
 
 func _handle_dragging_state(context: Dictionary) -> void:

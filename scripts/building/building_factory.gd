@@ -16,7 +16,7 @@ static func _static_init() -> void:
 	# 注册已知 category 的创建函数，保持外部接口不变
 	_creators_by_category[BuildingTypeData.Category.PIPE] = Callable(BuildingFactory, "_create_pipe")
 	_creators_by_category[BuildingTypeData.Category.BRICK] = Callable(BuildingFactory, "_create_brick")
-	_creators_by_category[BuildingTypeData.Category.EMITTER] = Callable(BuildingFactory, "_create_emitter")
+	_creators_by_category[BuildingTypeData.Category.SOURCE] = Callable(BuildingFactory, "_create_source")
 	_creators_by_category[BuildingTypeData.Category.COLLECTOR] = Callable(BuildingFactory, "_create_collector")
 
 
@@ -46,12 +46,12 @@ static func _create_brick(_type_id: String, grid_pos: Vector2i, world_pos: Vecto
 	return brick
 
 
-static func _create_emitter(_type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
-	var emitter := EmitterNode.new()
-	emitter.name = node_name
-	emitter.global_position = world_pos
-	emitter.grid_position = grid_pos
-	return emitter
+static func _create_source(_type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
+	var source := SourceNode.new()
+	source.name = node_name
+	source.global_position = world_pos
+	source.grid_position = grid_pos
+	return source
 
 
 static func _create_collector(_type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:

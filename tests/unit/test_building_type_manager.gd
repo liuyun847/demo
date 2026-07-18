@@ -16,7 +16,7 @@ func after_all() -> void:
 	BuildingTypeManager.reset_for_test()
 	var entries: Array = [
 		[GameConfig.PIPE_TYPE_ID,      BuildingTypeData.Category.PIPE],
-		[GameConfig.EMITTER_TYPE_ID,   BuildingTypeData.Category.EMITTER],
+		[GameConfig.SOURCE_TYPE_ID,    BuildingTypeData.Category.SOURCE],
 		[GameConfig.BRICK_TYPE_ID,     BuildingTypeData.Category.BRICK],
 		["type_05",                    BuildingTypeData.Category.GENERIC],
 		["type_06",                    BuildingTypeData.Category.GENERIC],
@@ -49,7 +49,7 @@ func test_register_basic_type_and_query() -> void:
 func test_unknown_type_id_returns_false_for_all() -> void:
 	assert_false(BuildingTypeManager.has_capacity("unknown"), "未知类型 has_capacity 应为 false")
 	assert_false(BuildingTypeManager.is_pipe("unknown"), "未知类型 is_pipe 应为 false")
-	assert_false(BuildingTypeManager.is_emitter("unknown"), "未知类型 is_emitter 应为 false")
+	assert_false(BuildingTypeManager.is_source("unknown"), "未知类型 is_source 应为 false")
 	assert_false(BuildingTypeManager.is_collector("unknown"), "未知类型 is_collector 应为 false")
 
 
@@ -58,16 +58,16 @@ func test_is_pipe_specific() -> void:
 	assert_true(BuildingTypeManager.is_pipe("pipe_x"))
 
 
-func test_is_emitter_specific() -> void:
-	BuildingTypeManager.register(_make_type("emit_x", {"category": BuildingTypeData.Category.EMITTER}))
-	assert_true(BuildingTypeManager.is_emitter("emit_x"))
-	assert_false(BuildingTypeManager.is_collector("emit_x"))
+func test_is_source_specific() -> void:
+	BuildingTypeManager.register(_make_type("src_x", {"category": BuildingTypeData.Category.SOURCE}))
+	assert_true(BuildingTypeManager.is_source("src_x"))
+	assert_false(BuildingTypeManager.is_collector("src_x"))
 
 
 func test_is_collector_specific() -> void:
 	BuildingTypeManager.register(_make_type("col_x", {"category": BuildingTypeData.Category.COLLECTOR}))
 	assert_true(BuildingTypeManager.is_collector("col_x"))
-	assert_false(BuildingTypeManager.is_emitter("col_x"))
+	assert_false(BuildingTypeManager.is_source("col_x"))
 
 
 func test_has_capacity_default_false() -> void:
@@ -93,12 +93,12 @@ func test_register_all_batch() -> void:
 	var arr: Array = [
 		_make_type("a", {"has_capacity": true}),
 		_make_type("b", {"category": BuildingTypeData.Category.PIPE}),
-		_make_type("c", {"category": BuildingTypeData.Category.EMITTER}),
+		_make_type("c", {"category": BuildingTypeData.Category.SOURCE}),
 	]
 	BuildingTypeManager.register_all(arr)
 	assert_true(BuildingTypeManager.has_capacity("a"))
 	assert_true(BuildingTypeManager.is_pipe("b"))
-	assert_true(BuildingTypeManager.is_emitter("c"))
+	assert_true(BuildingTypeManager.is_source("c"))
 
 
 func test_register_all_skips_non_typedata() -> void:
@@ -127,7 +127,7 @@ func test_full_property_matrix_for_pipe() -> void:
 	}))
 	assert_true(BuildingTypeManager.is_pipe("full"))
 	assert_false(BuildingTypeManager.has_capacity("full"))
-	assert_false(BuildingTypeManager.is_emitter("full"))
+	assert_false(BuildingTypeManager.is_source("full"))
 	assert_false(BuildingTypeManager.is_collector("full"))
 
 
@@ -136,7 +136,7 @@ func test_is_brick_via_category() -> void:
 	BuildingTypeManager.register(_make_type("brick_x", {"category": BuildingTypeData.Category.BRICK}))
 	# BRICK 类别对其他 is_* 查询都应返回 false
 	assert_false(BuildingTypeManager.is_pipe("brick_x"))
-	assert_false(BuildingTypeManager.is_emitter("brick_x"))
+	assert_false(BuildingTypeManager.is_source("brick_x"))
 	assert_false(BuildingTypeManager.is_collector("brick_x"))
 
 
