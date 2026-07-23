@@ -38,7 +38,6 @@ gdscript/warnings/unreachable_code=2
 gdscript/warnings/unreachable_pattern=2
 gdscript/warnings/standalone_expression=2
 gdscript/warnings/standalone_ternary=2
-gdscript/warnings/untyped_declaration=2
 gdscript/warnings/unsafe_void_return=2
 gdscript/warnings/static_called_on_instance=2
 gdscript/warnings/missing_tool=2
