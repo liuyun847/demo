@@ -15,6 +15,23 @@ if (-not (Test-Path $godotPath)) {
     exit 1
 }
 
+# 从 .gitignore 读取需要排除的目录，构建正则
+$excludePatterns = @('\\.[\\/]git[\\/]', 'addons[\\/]')
+$gitignorePath = Join-Path $ProjectPath ".gitignore"
+if (Test-Path $gitignorePath) {
+    foreach ($line in Get-Content $gitignorePath -Encoding UTF8) {
+        $trimmed = $line.Trim()
+        if (-not $trimmed -or $trimmed.StartsWith('#')) { continue }
+        if ($trimmed.EndsWith('/')) {
+            $dir = $trimmed.TrimStart('/').TrimEnd('/')
+            if ($dir) {
+                $excludePatterns += "(?:^|[\\/])$([regex]::Escape($dir))[\\/]"
+            }
+        }
+    }
+}
+$excludeRegex = $excludePatterns -join '|'
+
 # 提取 autoload 列表
 $autoloadNames = @()
 $godotFile = Join-Path $ProjectPath "project.godot"
@@ -215,9 +232,7 @@ $bomFiles = @()
 $textExtensions = @('.gd', '.tscn', '.tres', '.cfg', '.import', '.gdshader')
 $allTextFiles = Get-ChildItem -Path $ProjectPath -Recurse -File | Where-Object {
     $textExtensions -contains $_.Extension -and
-    $_.FullName -notmatch "\\.[\\/]git[\\/]" -and
-    $_.FullName -notmatch "\\.[\\/]godot[\\/]" -and
-    $_.FullName -notmatch "addons[\\/]"
+    $_.FullName -notmatch $excludeRegex
 }
 foreach ($file in $allTextFiles) {
     $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
@@ -252,7 +267,7 @@ Format-Output $staticProjectErrors "Project static"
 # 2/4 逐文件静态语法检查（补充捕获编辑器模式可能遗漏的文件，过滤 autoload 误报，加上 --debug 以获取警告）
 Write-Host "`n2/4 Per-file static syntax checking..."
 $gdFiles = Get-ChildItem -Path $ProjectPath -Filter "*.gd" -Recurse -File | Where-Object {
-    $_.FullName -notmatch "\\.[\\/]git[\\/]" -and $_.FullName -notmatch "addons[\\/]"
+    $_.FullName -notmatch $excludeRegex
 }
 $staticFileErrors = @()
 if ($gdFiles) {

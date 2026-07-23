@@ -7,10 +7,11 @@ func before_all() -> void:
 	_start_essence = EssencePool.essence
 
 func before_each() -> void:
+	# 先重置精华，确保 _ready() 中只解锁阈值 0，避免上一测试的精华值提前解锁后续阈值
+	EssencePool.set_value(0.0)
 	_progress = autoqfree(Node.new())
 	_progress.set_script(load("res://scripts/autoload/progress_system.gd"))
 	add_child_autoqfree(_progress)
-	EssencePool.set_value(_start_essence)
 
 func after_each() -> void:
 	EssencePool.set_value(_start_essence)

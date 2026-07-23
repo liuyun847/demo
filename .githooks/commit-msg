@@ -58,20 +58,16 @@ fi
 # ── 第二行必须为空（分隔标题和正文）──────────────────────
 LINE2=$(sed -n '2p' "$COMMIT_MSG_FILE")
 if [ -n "$LINE2" ]; then
-    # 如果存在正文，第二行才必须为空
-    LINE3=$(sed -n '3p' "$COMMIT_MSG_FILE")
-    if [ -n "$LINE3" ] && [ -n "$LINE2" ]; then
-        echo ""
-        echo "=== [commit-msg] ❌ 标题和正文之间需要一个空行分隔 ==="
-        echo ""
-        echo "正确格式："
-        echo "  feat: 添加某某功能"
-        echo "  (空行)"
-        echo "  正文内容..."
-        echo ""
-        echo "=== 请使用 git commit --amend 修改提交信息 ==="
-        exit 1
-    fi
+    echo ""
+    echo "=== [commit-msg] ❌ 标题和正文之间需要一个空行分隔 ==="
+    echo ""
+    echo "正确格式："
+    echo "  feat: 添加某某功能"
+    echo "  (空行)"
+    echo "  正文内容..."
+    echo ""
+    echo "=== 请使用 git commit --amend 修改提交信息 ==="
+    exit 1
 fi
 
 exit 0

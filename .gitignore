@@ -16,3 +16,4 @@ CODE_REVIEW_REPORT.md
 Thumbs.db
 *~
 *.swp
+.mcp/
