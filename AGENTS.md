@@ -128,10 +128,10 @@ Root (Node2D) → main.gd
 - **输入状态机**: 6 个状态（IDLE/DRAGGING/REMOVING/SELECTING/DESELECTING/PASTE_DRAGGING），根据模式切换幽灵预览。R 键仅切换拖拽角点（不再旋转源头方向，源头已无方向概念）
 - **幽灵预览**: GhostPreviewManager 维护多组预览数组（ghost/selected/paste/remove），`_draw()` 统一渲染
 - **建筑系统**: 4 种建筑（管道/源头/收集器/砖块）+ 地图中心核心，通过 BuildingFactory 创建（基于 `BuildingTypeData.Category` 枚举的创建函数注册表，新增类型只需注册新 category），ECS-Lite 管道批量渲染。`clear_all_buildings()` 对每个非核心建筑逐个 emit `building_removed`（N 次），`clear_all_buildings_silent()` 静默清空不 emit 信号
-- **源头系统**: SourceNode 替代旧版 EmitterNode，移除方向概念。源头不再自行产出元素，而是由 ElementDiffusion._process_source_buildings 在每 tick 开头按需创建种子元素：1) 相邻已有同类型元素 → mark_as_source（免费维持）；2) 否则按元素状态选择种子位置（LIQUID→DOWN、GAS→UP）创建种子并消耗 `SOURCE_ESSENCE_COST_PER_TICK` 源质。SourceNode 未调用 set_element_type 前（has_type_selected=false）不产出。元素类型存于 SourceNode 节点，注册表 ElementGrid._source_buildings 仅记录位置
+- **源头系统**: SourceNode 替代旧版 EmitterNode，移除方向概念。源头不再自行产出元素，而是由 ElementDiffusion._process_source_buildings 在每 tick 开头按需创建种子元素：1) 相邻已有同类型元素 → mark_as_source（免费维持）；2) 否则按元素状态选择种子位置（LIQUID→DOWN、GAS→UP）创建种子（免费）。源质仅在元素扩散扩张时消耗（_expand_body，每格 1.0）。SourceNode 未调用 set_element_type 前（has_type_selected=false）不产出。元素类型存于 SourceNode 节点，注册表 ElementGrid._source_buildings 仅记录位置
 - **收集器筛选**: CollectorNode 新增 filter_element_type 字段，空字符串 = 收全部（默认，兼容旧存档），非空时仅收集匹配类型的元素。通过共享 ElementTypePanel（Mode.COLLECTOR）选择筛选类型
 - **共享 UI 面板**: ElementTypePanel 通过 Mode 枚举（SOURCE/COLLECTOR）服务两类建筑，源头模式无"全部"选项，收集器模式额外提供"全部"按钮（空筛选）。EventBus 信号为 `element_type_panel_opened`/`element_type_panel_closed`
-- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心开始搜索），每 tick 执行产物计时器递减→扩散(含源头种子产出)→反应→收集流程。只有连通到核心的管道网络才能激活源头/收集器
+- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心开始搜索），每 tick 执行产物计时器递减→收集→扩散(含源头种子产出)→反应流程（收集器在扩散前执行，防止产物到期后被 _shrink_body 移除）。只有连通到核心的管道网络才能激活源头/收集器
 - **元素系统**: 水/火/蒸汽三种元素（注册表 + Resource 类型定义），按 `ElementTypeData.State` 枚举（LIQUID/GAS/SOLID）差异化扩散（液体向下、气体向上、固体不动），反应产物存续标记防止瞬间消失
 - **反应系统**: ReactionRegistry 注册反应规则（无序匹配，重复注册跳过并告警），ReactionProcessor 每 tick 检测相邻格子反应，密度决定产物位置
 - **源质经济**: EssencePool 管理货币（`MAX_ESSENCE` 上限约束，setter/`add()` 均通过 `clampf` 限制），ProgressSystem 按阈值解锁建筑类型。BuildingManager/ReactionCoordinator/ElementDiffusion/ReactionProcessor 通过依赖注入（`_essence_service` + `set_essence_service()`）解耦全局单例，未注入时回退到 EssencePool，支持测试隔离
