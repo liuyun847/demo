@@ -106,3 +106,78 @@ func test_connected_source_in_active_positions() -> void:
 	var active: Dictionary = coord._collect_active_source_positions()
 	assert_eq(active.size(), 1, "连通核心的源头应在激活集合中")
 	assert_true(active.has(Vector2i(2, 0)), "连通核心的源头位置应在激活集合中")
+
+
+## 测试4: 源头-源头链（无管道中介）连通核心
+## 布局：核心 (-1,-1)..(0,0)；源头 (1,0) 直连核心格 (0,0)；
+## 源头 (2,0) 通过源头 (1,0) 连通核心，无需管道中介。
+func test_source_chain_no_pipe_connected() -> void:
+	var bm: BuildingManager = autoqfree(_BM.new())
+	var pr: PipeRenderSystem = autoqfree(_PRS.new())
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
+	add_child_autoqfree(bm)
+
+	# 源头 (1,0) 邻接核心格 (0,0)，源头 (2,0) 邻接源头 (1,0)
+	bm.place_building(Vector2i(1, 0), GameConfig.SOURCE_TYPE_ID)
+	bm.place_building(Vector2i(2, 0), GameConfig.SOURCE_TYPE_ID)
+
+	var coord: ReactionCoordinator = autoqfree(ReactionCoordinator.new())
+	coord.init(bm)
+	coord._rebuild_networks()
+
+	var active: Dictionary = coord._collect_active_source_positions()
+	assert_eq(active.size(), 2, "源头链（无管道）中两个源头都应在激活集合中")
+	assert_true(active.has(Vector2i(1, 0)), "直连核心的源头应在激活集合中")
+	assert_true(active.has(Vector2i(2, 0)), "通过源头连通的源头应在激活集合中")
+
+
+## 测试5: 收集器通过源头连通核心
+## 布局：核心 (-1,-1)..(0,0)；源头 (1,0) 直连核心；收集器 (2,0) 邻接源头。
+func test_collector_via_source_connected() -> void:
+	var bm: BuildingManager = autoqfree(_BM.new())
+	var pr: PipeRenderSystem = autoqfree(_PRS.new())
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
+	add_child_autoqfree(bm)
+
+	# 源头 (1,0) 邻接核心格 (0,0)，收集器 (2,0) 邻接源头 (1,0)
+	bm.place_building(Vector2i(1, 0), GameConfig.SOURCE_TYPE_ID)
+	bm.place_building(Vector2i(2, 0), GameConfig.COLLECTOR_TYPE_ID)
+
+	var coord: ReactionCoordinator = autoqfree(ReactionCoordinator.new())
+	coord.init(bm)
+	coord._rebuild_networks()
+
+	# 检查网络中有收集器
+	var has_collector: bool = false
+	for network: Dictionary in coord._cached_networks:
+		if network.collectors.size() > 0:
+			has_collector = true
+			break
+	assert_true(has_collector, "收集器应通过源头链连通到核心")
+
+
+## 测试6: 砖块阻断源头链，不参与连通
+## 布局：核心 (-1,-1)..(0,0)；源头 (1,0) 直连核心；
+## 砖块 (2,0) 阻断；源头 (3,0) 在砖块另一侧。
+func test_brick_blocks_source_chain() -> void:
+	var bm: BuildingManager = autoqfree(_BM.new())
+	var pr: PipeRenderSystem = autoqfree(_PRS.new())
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
+	add_child_autoqfree(bm)
+
+	# 源头 (1,0) 邻接核心；砖块 (2,0)；源头 (3,0) 在砖块另一侧
+	bm.place_building(Vector2i(1, 0), GameConfig.SOURCE_TYPE_ID)
+	bm.place_building(Vector2i(2, 0), GameConfig.BRICK_TYPE_ID)
+	bm.place_building(Vector2i(3, 0), GameConfig.SOURCE_TYPE_ID)
+
+	var coord: ReactionCoordinator = autoqfree(ReactionCoordinator.new())
+	coord.init(bm)
+	coord._rebuild_networks()
+
+	var active: Dictionary = coord._collect_active_source_positions()
+	assert_eq(active.size(), 1, "砖块阻断后，只有直连核心的源头被激活")
+	assert_true(active.has(Vector2i(1, 0)), "直连核心的源头应在激活集合中")
+	assert_false(active.has(Vector2i(3, 0)), "砖块另一侧的源头不应在激活集合中")

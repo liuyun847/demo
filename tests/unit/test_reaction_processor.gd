@@ -35,7 +35,7 @@ func before_each() -> void:
 	# 注入未 add_child 的 BuildingManager 实例，使 is_building_at 返回 false（见 test_element_grid.gd 注释）
 	_grid.building_manager_ref = autoqfree(BuildingManager.new())
 	_registry = ReactionRegistry.new()
-	_registry.register("water", "fire", "steam", 1.0)
+	_registry.register("water", "fire", "steam", 0.0)
 	# 生产环境使用 EssencePool 单例，Mock 隔离测试见 test_byproduct_uses_injected_service
 	_processor = ReactionProcessor.new(_registry, _grid, EssencePool)
 	# 保存并重置 EssencePool 状态
@@ -104,8 +104,8 @@ func test_byproduct_essence_added() -> void:
 
 	_processor.process_all()
 
-	# byproduct_essence = 1.0
-	assert_eq(EssencePool.essence, 1.0, "反应后源质应增加 1.0")
+	# byproduct_essence = 0.0（副产物源质由收集器按 collect_value 产出）
+	assert_eq(EssencePool.essence, 0.0, "反应不产生副产物源质")
 
 func test_non_reactive_element_no_reaction() -> void:
 	# 注册一个非反应元素类型
@@ -154,9 +154,8 @@ func test_byproduct_uses_injected_service() -> void:
 
 	processor.process_all()
 
-	assert_eq(mock.add_calls.size(), 1, "Mock 的 add 应被调用一次")
-	assert_eq(mock.add_calls[0], 1.0, "副产物源质应为 1.0")
-	assert_eq(mock.essence, 1.0, "Mock 服务应记录源质增加")
+	assert_eq(mock.add_calls.size(), 0, "byproduct=0.0 时 Mock 的 add 不应被调用")
+	assert_eq(mock.essence, 0.0, "Mock 服务源质不应变化")
 	assert_eq(EssencePool.essence, 0.0, "全局 EssencePool 不应被修改")
 
 ## 测试2: 产物放置失败时 push_error 且产物不标记存续
