@@ -20,7 +20,7 @@ VALID_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 #       type: description
 PATTERN="^(${VALID_TYPES})(\([a-zA-Z0-9_\x80-\xff.-]+\))?!?:( .+)$"
 
-MSG=$(head -1 "$COMMIT_MSG_FILE")
+MSG=$(head -1 "$COMMIT_MSG_FILE" | sed "s/^$(printf '\357\273\277')//")
 
 if ! echo "$MSG" | grep -qE "$PATTERN"; then
     echo ""
