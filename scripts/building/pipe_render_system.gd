@@ -20,6 +20,7 @@ func register_pipe(pipe: PipeNode) -> void:
 	_pipe_positions.append(pipe.position)
 	_pipe_masks.append(pipe.connection_mask)
 	_pipe_refs.append(pipe)
+	queue_redraw()
 
 
 func unregister_pipe(pipe: PipeNode) -> void:
@@ -79,8 +80,8 @@ func _draw_pipes() -> void:
 		if mask & GridCoordinate.DirFlag.DOWN:
 			draw_rect(Rect2(cx - pw, cy, _PIPE_PASSAGE_W, half), _PIPE_COLOR_PASSAGE)
 
-		if mask != 0:
-			draw_rect(Rect2(cx - pw, cy - pw, _PIPE_PASSAGE_W, _PIPE_PASSAGE_W), _PIPE_COLOR_PASSAGE)
+		# 单格管道也画中心方块，与多格管道等宽同色
+		draw_rect(Rect2(cx - pw, cy - pw, _PIPE_PASSAGE_W, _PIPE_PASSAGE_W), _PIPE_COLOR_PASSAGE)
 
 		draw_rect(Rect2(cx - half, cy - half, building_size, building_size), _PIPE_COLOR_WALL, false, _PIPE_WALL_W)
 
