@@ -44,4 +44,5 @@ func _register_steam() -> void:
 	steam.state = ElementTypeData.State.GAS
 	steam.density = 0.2
 	steam.reactive = true
+	steam.collect_value = 3.0
 	register_element_type(steam)

@@ -22,11 +22,17 @@ func try_collect(element_grid: ElementGrid) -> float:
 				continue
 			if element_grid.is_building_at(check_pos):
 				continue
-			# 按筛选元素类型过滤：空筛选收全部
-			if not filter_element_type.is_empty() and \
-				element_grid.get_element_id(check_pos) != filter_element_type:
+			# 跳过反应产物存续期内的元素（至少存活 1 tick 可见）
+			if element_grid.is_product(check_pos):
 				continue
-			total_essence += 1.0
+			# 按筛选元素类型过滤：空筛选收全部
+			var element_id: String = element_grid.get_element_id(check_pos)
+			if not filter_element_type.is_empty() and element_id != filter_element_type:
+				continue
+			# 按元素类型的 collect_value 计算价值
+			var type_data: ElementTypeData = ElementRegistry.get_element_type(element_id)
+			var value: float = type_data.collect_value if type_data else 1.0
+			total_essence += value
 			cells_to_collect.append(check_pos)
 
 	for pos: Vector2i in cells_to_collect:
