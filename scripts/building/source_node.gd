@@ -40,7 +40,7 @@ func get_tooltip_summary() -> Dictionary:
 	return {
 		"name": get_building_name(),
 		"type": "A 型 - 源头",
-		"cost": "%.1f 源质/tick" % GameConfig.SOURCE_ESSENCE_COST_PER_TICK,
+		"产出": "免费",
 	}
 
 func get_tooltip_details() -> Dictionary:
@@ -48,5 +48,5 @@ func get_tooltip_details() -> Dictionary:
 	var type_name: String = type_data.display_name if type_data else "未知"
 	return {
 		"元素类型": type_name,
-		"消耗": "%.1f 源质/tick" % GameConfig.SOURCE_ESSENCE_COST_PER_TICK,
+		"产出成本": "免费",
 	}

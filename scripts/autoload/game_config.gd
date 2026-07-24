@@ -74,7 +74,7 @@ const BUILDING_ESSENCE_COSTS: Dictionary = {
 	"type_07": 0.0,  # 收集器
 }
 
-# 源头每 tick 消耗源质
+# 元素扩散扩张每格源质消耗（源头种子创建免费，不在源头消耗）
 const SOURCE_ESSENCE_COST_PER_TICK: float = 1.0
 
 # 收集器默认收集半径

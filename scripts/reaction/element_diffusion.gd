@@ -54,9 +54,10 @@ func diffuse_all(element_grid: ElementGrid, active_source_positions: Variant = n
 					_shrink_body(element_grid, body, false)
 
 
-## 源头种子产出：每源头每 tick 最多创建 1 个种子
+## 源头种子产出：每源头每 tick 最多创建 1 个种子（免费）
 ## - 若相邻已有同类型元素 → mark_as_source（免费维持）
-## - 若无 → 按元素扩散自然方向找空格创建种子（付源质）+ mark_as_source
+## - 若无 → 按元素扩散自然方向找空格创建种子 + mark_as_source
+## 源质不在此处消耗，仅在元素扩散扩张时消耗（_expand_body）
 ## 元素类型从 SourceNode 节点实时读取（用户可能通过面板修改）
 ## active_source_positions: 可选，激活源头位置集合。null=处理所有已注册源头；
 ##   非空 Dictionary=仅处理位置在集合中的源头（用于限制只有连通核心的源头产出）
@@ -64,7 +65,6 @@ func _process_source_buildings(element_grid: ElementGrid, active_source_position
 	if element_grid.building_manager_ref == null:
 		return
 	var sources: Dictionary = element_grid.get_source_buildings()
-	var es: Variant = _get_essence()
 	for pos: Vector2i in sources:
 		# 若提供了激活源头集合，仅处理集合中的源头（未连通核心的源头不产出）
 		if active_source_positions != null and not active_source_positions.has(pos):
@@ -91,15 +91,12 @@ func _process_source_buildings(element_grid: ElementGrid, active_source_position
 				break  # 只需标记一个即可维持
 		if found_adjacent:
 			continue
-		# 2. 无相邻同类型 → 按扩散方向找空格创建种子
+		# 2. 无相邻同类型 → 按扩散方向找空格创建种子（免费）
 		var seed_pos: Vector2i = _find_seed_position(element_grid, pos, type_data.state)
 		if seed_pos == GameConfig.INVALID_GRID_POS:
 			continue
-		if not es.has(GameConfig.SOURCE_ESSENCE_COST_PER_TICK):
-			continue
 		if element_grid.set_element(seed_pos, element_id, seed_pos.y):
 			element_grid.mark_as_source(seed_pos)
-			es.subtract(GameConfig.SOURCE_ESSENCE_COST_PER_TICK)
 
 
 ## 按元素状态选择种子位置：液体优先 DOWN，气体优先 UP，回退 DIR_4 顺序
