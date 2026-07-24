@@ -101,14 +101,17 @@ func _on_tick() -> void:
 	# 递减反应产物存续计时器
 	_element_grid.tick_products()
 
+	# 收集器必须在扩散前执行：tick_products 到期后产物变为普通元素，
+	# 扩散系统的 _shrink_body 会移除无源元素，必须在收集器收集之后再收缩
+	# 注意：源头新种子需等到下一 tick 才能被收集器收集（收集器在种子产出前执行）
+	_process_collectors()
+
 	# 源头产出由扩散系统接管：diffuse_all 内部的 _process_source_buildings 负责种子创建
 	# 仅允许连通到核心的源头产出种子，未连通的源头不工作
 	var active_source_positions: Dictionary = _collect_active_source_positions()
 	_element_diffusion.diffuse_all(_element_grid, active_source_positions)
 
 	_reaction_processor.process_all()
-
-	_process_collectors()
 
 ## 收集所有连通到核心的网络中的源头位置（Dictionary{Vector2i: bool}）
 ## 用于限制只有连通核心的源头才产出元素
@@ -138,6 +141,7 @@ func _rebuild_networks() -> void:
 	var visited: Dictionary[int, bool] = {}
 
 	# 从核心的四个邻居开始 BFS
+	# 除了砖块，其他建筑和管道一样视为连通
 	var core_cells: Array[Vector2i] = GameConfig.CORE_CELLS
 	for cell: Vector2i in core_cells:
 		for dir: Vector2i in GridCoordinate.DIR_4:
@@ -147,25 +151,12 @@ func _rebuild_networks() -> void:
 				continue
 			if visited.has(neighbor.get_instance_id()):
 				continue
-			if neighbor is PipeNode:
+			if not neighbor is BrickNode and not neighbor is CoreNode:
 				visited[neighbor.get_instance_id()] = true
 				var network := _bfs_network(neighbor, visited)
 				if network.pipes.size() > 0 or \
 				   network.sources.size() > 0 or network.collectors.size() > 0:
 					_cached_networks.append(network)
-			elif neighbor is SourceNode or neighbor is CollectorNode:
-				# 直接连接到核心的源头/收集器也加入激活网络
-				# 必须检查并写入 visited，防止后续 BFS 重复加入同一节点
-				var nid: int = neighbor.get_instance_id()
-				if visited.has(nid):
-					continue
-				visited[nid] = true
-				var network := {"pipes": [], "sources": [], "collectors": []}
-				if neighbor is SourceNode:
-					network.sources.append(neighbor as SourceNode)
-				else:
-					network.collectors.append(neighbor as CollectorNode)
-				_cached_networks.append(network)
 
 func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionary:
 	if _building_manager == null:
@@ -195,15 +186,18 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 				collector_dict[node.get_instance_id()] = true
 				collectors.append(node)
 
-		if not (node is PipeNode):
+		# 除了砖块，其他建筑和管道一样视为连通
+		if node is BrickNode or node is CoreNode:
 			continue
 
-		var pipe_node: PipeNode = node as PipeNode
 		var dirs: Array[Vector2i] = GridCoordinate.DIR_4
 
 		for dir_idx: int in 4:
-			if (pipe_node.connection_mask & (1 << dir_idx)) == 0:
-				continue
+			# 管道按 connection_mask 过滤方向；非管道建筑（源头/收集器）全方向连通
+			if node is PipeNode:
+				var pipe_node: PipeNode = node as PipeNode
+				if (pipe_node.connection_mask & (1 << dir_idx)) == 0:
+					continue
 
 			var neighbor_pos: Vector2i = node.grid_position + dirs[dir_idx]
 			var neighbor: Node = _building_manager.get_building_node(neighbor_pos)
@@ -226,6 +220,7 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 					source_dict[nid] = true
 					visited[nid] = true
 					sources.append(neighbor)
+					queue.append(neighbor)  # 非砖块建筑也继续传播 BFS
 			elif neighbor is CollectorNode:
 				var nid: int = neighbor.get_instance_id()
 				# 同时检查局部 collector_dict 和全局 visited
@@ -233,6 +228,7 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 					collector_dict[nid] = true
 					visited[nid] = true
 					collectors.append(neighbor)
+					queue.append(neighbor)  # 非砖块建筑也继续传播 BFS
 
 	return {
 		"pipes": pipes,
@@ -243,4 +239,4 @@ func _bfs_network(start_node: Node, visited: Dictionary[int, bool]) -> Dictionar
 ## 注册默认反应规则
 func _register_default_reactions() -> void:
 	# 水 + 火 → 蒸汽 + 副产物源质
-	_reaction_registry.register("water", "fire", "steam", 1.0)
+	_reaction_registry.register("water", "fire", "steam", 0.0)
