@@ -229,11 +229,11 @@ func test_source_without_type_confirmed_does_not_produce() -> void:
 
 
 ## 源头确认类型后液体向下产出种子
-## 注：mock.essence = 1.0 恰好够创建 1 个种子（消耗 1.0），源质耗尽后 _expand_body 无法扩张，
-## 从而精确隔离"种子创建"行为，避免与扩张行为相互干扰。
+## 注：mock.essence = 0.0 阻止 _expand_body 扩张，从而精确隔离"种子创建"行为。
+## 种子创建免费，不消耗源质。
 func test_source_confirmed_liquid_produces_seed_downward() -> void:
 	var mock := _MockEssence.new()
-	mock.essence = 1.0
+	mock.essence = 0.0
 	_diffusion.set_essence_service(mock)
 
 	var source_pos: Vector2i = _O + Vector2i(0, 0)
@@ -248,7 +248,7 @@ func test_source_confirmed_liquid_produces_seed_downward() -> void:
 	assert_true(_grid.has_element(_O + Vector2i(0, 1)), "液体源头应在下方创建种子")
 	assert_eq(_grid.get_element_id(_O + Vector2i(0, 1)), "water", "种子应为 water")
 	assert_true(_grid.is_source_pos(_O + Vector2i(0, 1)), "种子应被标记为水源")
-	assert_eq(mock.essence, 0.0, "种子创建应消耗 1.0 源质（SOURCE_ESSENCE_COST_PER_TICK），源质耗尽")
+	assert_eq(mock.essence, 0.0, "种子创建免费不消耗源质")
 
 
 ## 源头确认类型后气体向上产出种子
@@ -296,10 +296,10 @@ func test_source_adjacent_same_type_free_maintenance() -> void:
 	assert_eq(mock.essence, 0.0, "免费维持不应消耗源质（扩张因源质不足被阻止）")
 
 
-## 源质不足时源头不创建种子
+## 源质不足时源头仍可创建种子（种子免费），但扩张被阻止
 func test_source_no_seed_when_essence_insufficient() -> void:
 	var mock := _MockEssence.new()
-	mock.essence = 0.5  # 不足 1.0
+	mock.essence = 0.5  # 不足扩张成本 1.0
 	_diffusion.set_essence_service(mock)
 
 	var source_pos: Vector2i = _O + Vector2i(0, 0)
@@ -310,8 +310,8 @@ func test_source_no_seed_when_essence_insufficient() -> void:
 
 	_diffusion.diffuse_all(_grid)
 
-	assert_eq(_grid.get_all_element_positions().size(), 0, "源质不足时不应创建种子")
-	assert_eq(mock.essence, 0.5, "源质不足时不应消耗源质")
+	assert_eq(_grid.get_all_element_positions().size(), 1, "种子创建免费，应创建 1 个种子")
+	assert_eq(mock.essence, 0.5, "种子创建免费不消耗源质")
 
 
 ## 源头被四面包围时找不到空格创建种子
@@ -362,7 +362,7 @@ func test_source_not_in_active_positions_does_not_produce() -> void:
 ## 验证 active_source_positions 过滤：在激活集合中的源头正常产出
 func test_source_in_active_positions_produces_normally() -> void:
 	var mock := _MockEssence.new()
-	mock.essence = 1.0
+	mock.essence = 0.0
 	_diffusion.set_essence_service(mock)
 
 	var source_pos: Vector2i = _O + Vector2i(0, 0)
@@ -377,13 +377,13 @@ func test_source_in_active_positions_produces_normally() -> void:
 
 	# 液体优先 DOWN：种子应出现在 (5, 6)
 	assert_true(_grid.has_element(_O + Vector2i(0, 1)), "激活集合中的源头应在下方创建种子")
-	assert_eq(mock.essence, 0.0, "种子创建应消耗 1.0 源质")
+	assert_eq(mock.essence, 0.0, "种子创建免费不消耗源质")
 
 
 ## 验证 active_source_positions 默认 null 时所有源头都产出（向后兼容）
 func test_source_default_null_active_processes_all() -> void:
 	var mock := _MockEssence.new()
-	mock.essence = 1.0
+	mock.essence = 0.0
 	_diffusion.set_essence_service(mock)
 
 	var source_pos: Vector2i = _O + Vector2i(0, 0)
@@ -396,4 +396,4 @@ func test_source_default_null_active_processes_all() -> void:
 	_diffusion.diffuse_all(_grid)
 
 	assert_true(_grid.has_element(_O + Vector2i(0, 1)), "默认 null 时源头应正常产出种子")
-	assert_eq(mock.essence, 0.0, "种子创建应消耗 1.0 源质")
+	assert_eq(mock.essence, 0.0, "种子创建免费不消耗源质")
