@@ -83,3 +83,20 @@ func test_collector_filter_no_matching_element() -> void:
 	var result: float = _collector.try_collect(_element_grid)
 	assert_eq(result, 0.0, "无匹配元素时应返回 0")
 	assert_true(_element_grid.has_element(Vector2i(0, 1)), "fire 应保留（不匹配筛选）")
+
+
+func test_collector_steam_collect_value() -> void:
+	# 蒸汽的 collect_value = 3.0，每个蒸汽格子应贡献 3.0 源质
+	_element_grid.set_element(Vector2i(0, 1), "steam", 0)
+	var result: float = _collector.try_collect(_element_grid)
+	assert_eq(result, 3.0, "蒸汽每个单位价值 3.0")
+	assert_false(_element_grid.has_element(Vector2i(0, 1)), "收集后蒸汽应被移除")
+
+
+func test_collector_skips_product_elements() -> void:
+	# 反应产物在存续期内不应被收集（至少可见 1 tick）
+	_element_grid.set_element(Vector2i(0, 1), "steam", 0)
+	_element_grid.mark_as_product(Vector2i(0, 1), 3)
+	var result: float = _collector.try_collect(_element_grid)
+	assert_eq(result, 0.0, "有产物标记的元素不应被收集")
+	assert_true(_element_grid.has_element(Vector2i(0, 1)), "产物应保留在格子上")
