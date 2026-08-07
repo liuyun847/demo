@@ -7,7 +7,7 @@ func test_building_type_constants() -> void:
 	assert_eq(GameConfig.PIPE_TYPE_ID, "type_02", "pipe_type_id 应为 type_02")
 
 func test_simulation_config_constants() -> void:
-	assert_eq(GameConfig.SIMULATION_TICK_INTERVAL, 0.2, "simulation_tick_interval 应为 0.2")
+	assert_eq(GameConfig.SIMULATION_TICK_INTERVAL, 0.1, "simulation_tick_interval 应为 0.1")
 
 func test_save_and_load_settings() -> void:
 	var original_save_path: String = GameConfig.unified_save_path

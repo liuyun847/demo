@@ -84,9 +84,9 @@ const COLLECTOR_DEFAULT_RADIUS: int = 1
 const INITIAL_ESSENCE: float = 100.0
 
 # 扩散系统配置
-const SIMULATION_TICK_INTERVAL: float = 0.2
+const SIMULATION_TICK_INTERVAL: float = 0.1
 const DIFFUSION_STEPS_PER_TICK: int = 1
-const ELEMENT_ABANDON_DISTANCE: int = 100
+const ELEMENT_ABANDON_DISTANCE: int = 1000
 const CLEANUP_INTERVAL_TICKS: int = 10
 ## 反应产物存续 tick 数，防止产物瞬间消失
 const PRODUCT_SURVIVAL_TICKS: int = 3
