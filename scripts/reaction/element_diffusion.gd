@@ -25,7 +25,7 @@ func _get_essence() -> Variant:
 func _init() -> void:
 	pass
 
-## 主入口：对所有元素执行扩散/收缩
+## 主入口：对所有元素执行扩散
 ## active_source_positions: 可选，激活源头位置集合（Dictionary{Vector2i: bool}）。
 ##   - null（默认）: 处理所有已注册源头（向后兼容，测试用）
 ##   - 非空 Dictionary: 仅处理位置在集合中的源头（由 ReactionCoordinator 传入连通核心的源头）
@@ -43,15 +43,13 @@ func diffuse_all(element_grid: ElementGrid, active_source_positions: Variant = n
 				# 固体不扩散也不收缩
 				continue
 			ElementTypeData.State.GAS:
+				# 无源区域不再收缩消失，仅停止扩张（回收由距离/遗弃清理负责）
 				if body.has_source:
 					_expand_body(element_grid, body, true)
-				else:
-					_shrink_body(element_grid, body, true)
 			_:  # LIQUID 及其他默认为液体行为
+				# 无源区域不再收缩消失，仅停止扩张（回收由距离/遗弃清理负责）
 				if body.has_source:
 					_expand_body(element_grid, body, false)
-				else:
-					_shrink_body(element_grid, body, false)
 
 
 ## 源头种子产出：每源头每 tick 最多创建 1 个种子（免费）
@@ -218,60 +216,15 @@ func _expand_body(element_grid: ElementGrid, body: ElementBody, upward: bool) ->
 			es.subtract(cost_per_cell)
 			count += 1
 
-## 无源区域收缩
-## upward: true=气体(均匀收缩), false=液体(优先移除上方)
-func _shrink_body(element_grid: ElementGrid, body: ElementBody, upward: bool) -> void:
-	if body.cells.is_empty():
-		return
-
-	# 过滤掉有存续标记的格子（反应产物在存续期内不收缩）
-	var removable: Array[Vector2i] = body.cells.filter(
-		func(pos: Vector2i) -> bool: return not element_grid.is_product(pos)
-	)
-	if removable.is_empty():
-		return
-
-	if upward:
-		# 气体：均匀收缩，从边缘开始
-		_shrink_uniform(element_grid, removable)
-	else:
-		# 液体：保持原逻辑，优先移除上方（Y 较小）
-		var sorted: Array[Vector2i] = removable.duplicate()
-		sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
-		var remove_count: int = min(sorted.size(), 3)
-		for i in range(remove_count):
-			element_grid.remove_element(sorted[i])
-
-## 气体均匀收缩：从边缘开始，按 (x+y) 升序确定性排序
-func _shrink_uniform(element_grid: ElementGrid, cells: Array[Vector2i]) -> void:
-	var cell_set: Dictionary = {}
-	for c: Vector2i in cells:
-		cell_set[c] = true
-
-	# 找边缘格子：至少有一个 DIR_4 邻居不在 body 中
-	var edges: Array[Vector2i] = []
-	for c: Vector2i in cells:
-		for dir: Vector2i in GridCoordinate.DIR_4:
-			if not cell_set.has(c + dir):
-				edges.append(c)
-				break
-
-	# 确定性排序（按 x+y 升序，保持稳定行为，不使用随机）
-	edges.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return (a.x + a.y) < (b.x + b.y))
-
-	# 收缩速率：max(3, body 大小 / 10)，适配大 body
-	var rate: int = max(3, cells.size() / 10)
-	var remove_count: int = min(edges.size(), rate)
-
-	# 边缘不足时从内部按 (x+y) 升序补充
-	if remove_count < rate and remove_count < cells.size():
-		var non_edges: Array[Vector2i] = cells.filter(
-			func(c: Vector2i) -> bool: return not edges.has(c)
-		)
-		non_edges.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return (a.x + a.y) < (b.x + b.y))
-		for i in range(min(non_edges.size(), rate - remove_count)):
-			edges.append(non_edges[i])
-		remove_count = min(edges.size(), rate)
-
-	for i in range(remove_count):
-		element_grid.remove_element(edges[i])
+## 距离/遗弃清理：移除距参照点（默认核心原点）切比雪夫距离超过 ELEMENT_ABANDON_DISTANCE 的元素
+## 这是元素回收的兜底手段：元素失去源后不再收缩消失，仅当远离核心时被周期性清理。
+## 扩展点：后续如需区分原料与反应产物，可在此对产物豁免或延长寿命。
+func cleanup_abandoned(element_grid: ElementGrid, reference_pos: Vector2i = Vector2i.ZERO) -> void:
+	var threshold: int = GameConfig.ELEMENT_ABANDON_DISTANCE
+	var to_remove: Array[Vector2i] = []
+	for pos: Vector2i in element_grid.get_all_element_positions():
+		var dist: int = max(abs(pos.x - reference_pos.x), abs(pos.y - reference_pos.y))
+		if dist > threshold:
+			to_remove.append(pos)
+	for pos: Vector2i in to_remove:
+		element_grid.remove_element(pos)

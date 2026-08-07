@@ -64,14 +64,15 @@ func after_each() -> void:
 	_diffusion = null
 	_bm = null
 
-func test_without_source_vanishes() -> void:
+## 无源元素不再收缩消失，持续存在（回收由距离/遗弃清理负责）
+func test_without_source_persists() -> void:
 	var pos := _O + Vector2i(0, 0)
 	_grid.set_element(pos, "water", pos.y)
 
 	_diffusion.diffuse_all(_grid)
 
 	var count: int = _grid.get_all_element_positions().size()
-	assert_eq(count, 0, "无源水体应逐渐缩小直至消失")
+	assert_eq(count, 1, "无源水体应持续存在，不再收缩消失")
 
 func test_with_source_does_not_lose_source_cell() -> void:
 	var pos := _O + Vector2i(0, 0)
@@ -153,11 +154,8 @@ func test_adjacent_sources_form_single_body() -> void:
 	assert_eq(_grid.get_all_element_positions().size(), 4, "相邻两源形成合并水体，一次扩张 2 格 = 4 格总和")
 
 
-## 测试3: 无源气体从边缘均匀收缩，不定向消失
-## 使用 fire(GAS) 构造阶梯形连通区域，各格 (x+y) 互不相同：
-## (5,5)=10, (5,6)=11, (6,6)=12, (6,7)=13，均为边缘格。
-## _shrink_uniform 按 (x+y) 升序确定性移除前 3 格（rate=max(3,4/10)=3）。
-func test_gas_shrink_uniform_by_x_plus_y() -> void:
+## 无源气体不再收缩消失，持续存在（回收由距离/遗弃清理负责）
+func test_gas_without_source_persists() -> void:
 	var cells: Array[Vector2i] = [
 		Vector2i(5, 5),
 		Vector2i(5, 6),
@@ -169,13 +167,53 @@ func test_gas_shrink_uniform_by_x_plus_y() -> void:
 
 	_diffusion.diffuse_all(_grid)
 
-	# (x+y) 最小的 3 格被移除：(5,5)、(5,6)、(6,6)
-	assert_false(_grid.has_element(Vector2i(5, 5)), "(5,5) x+y=10 应被移除")
-	assert_false(_grid.has_element(Vector2i(5, 6)), "(5,6) x+y=11 应被移除")
-	assert_false(_grid.has_element(Vector2i(6, 6)), "(6,6) x+y=12 应被移除")
-	# (x+y) 最大的 (6,7) 应保留
-	assert_true(_grid.has_element(Vector2i(6, 7)), "(6,7) x+y=13 应保留")
-	assert_eq(_grid.get_all_element_positions().size(), 1, "4 格气体收缩 3 格后应剩 1 格")
+	assert_eq(_grid.get_all_element_positions().size(), 4, "无源气体应持续存在，不再收缩消失")
+
+
+# ========== 距离/遗弃清理测试 ==========
+# cleanup_abandoned 移除距参照点切比雪夫距离超过 ELEMENT_ABANDON_DISTANCE 的元素
+
+
+## 远离参照点的元素被清理
+func test_cleanup_removes_far_elements() -> void:
+	# 用 _O 偏移避开核心占据的 (-1,-1)~(0,0) 区域
+	var near_pos := _O + Vector2i(0, 0)
+	var far_pos := _O + Vector2i(GameConfig.ELEMENT_ABANDON_DISTANCE + 1, 0)
+	_grid.set_element(near_pos, "water", near_pos.y)
+	_grid.set_element(far_pos, "water", far_pos.y)
+
+	_diffusion.cleanup_abandoned(_grid)
+
+	assert_true(_grid.has_element(near_pos), "近距离元素应保留")
+	assert_false(_grid.has_element(far_pos), "超过阈值的远距离元素应被清理")
+
+
+## 恰好在阈值内的元素保留，超过阈值才清理（切比雪夫距离 max(|x|,|y|)）
+func test_cleanup_chebyshev_threshold() -> void:
+	var on_threshold := Vector2i(GameConfig.ELEMENT_ABANDON_DISTANCE, 0)
+	# 切比雪夫距离 = max(1000, 1001) = 1001 > 阈值，应被清理
+	var beyond_threshold := Vector2i(GameConfig.ELEMENT_ABANDON_DISTANCE, GameConfig.ELEMENT_ABANDON_DISTANCE + 1)
+	_grid.set_element(on_threshold, "water", on_threshold.y)
+	_grid.set_element(beyond_threshold, "water", beyond_threshold.y)
+
+	_diffusion.cleanup_abandoned(_grid)
+
+	assert_true(_grid.has_element(on_threshold), "切比雪夫距离 = 阈值时应保留")
+	assert_false(_grid.has_element(beyond_threshold), "切比雪夫距离 > 阈值时应被清理")
+
+
+## 自定义参照点：以非原点为参照清理
+func test_cleanup_custom_reference() -> void:
+	var ref := Vector2i(10, 10)
+	var near_pos := Vector2i(10, 12)
+	var far_pos := Vector2i(10, 10 + GameConfig.ELEMENT_ABANDON_DISTANCE + 1)
+	_grid.set_element(near_pos, "water", near_pos.y)
+	_grid.set_element(far_pos, "water", far_pos.y)
+
+	_diffusion.cleanup_abandoned(_grid, ref)
+
+	assert_true(_grid.has_element(near_pos), "距参照点近的元素应保留")
+	assert_false(_grid.has_element(far_pos), "距参照点远的元素应被清理")
 
 
 ## 测试9: 源质不足时按实际可负担数量逐个扩张

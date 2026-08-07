@@ -13,6 +13,8 @@ var _reaction_registry: ReactionRegistry = null
 var _reaction_processor: ReactionProcessor = null
 
 var _paused: bool = false
+## tick 计数器，用于周期性距离/遗弃清理
+var _tick_count: int = 0
 
 ## 源质服务（依赖注入），未注入时回退到全局 EssencePool
 var _essence_service: Variant = null
@@ -102,7 +104,7 @@ func _on_tick() -> void:
 	_element_grid.tick_products()
 
 	# 收集器必须在扩散前执行：tick_products 到期后产物变为普通元素，
-	# 扩散系统的 _shrink_body 会移除无源元素，必须在收集器收集之后再收缩
+	# 收集器在扩散前收集，防止产物被后续流程移除
 	# 注意：源头新种子需等到下一 tick 才能被收集器收集（收集器在种子产出前执行）
 	_process_collectors()
 
@@ -112,6 +114,15 @@ func _on_tick() -> void:
 	_element_diffusion.diffuse_all(_element_grid, active_source_positions)
 
 	_reaction_processor.process_all()
+
+	# 周期性距离/遗弃清理：移除远离核心的元素（元素失去源后不再收缩消失，由这里兜底回收）
+	_tick_count += 1
+	if _tick_count >= GameConfig.CLEANUP_INTERVAL_TICKS:
+		_tick_count = 0
+		var core_pos: Vector2i = Vector2i.ZERO
+		if _building_manager.core_node != null and is_instance_valid(_building_manager.core_node):
+			core_pos = _building_manager.core_node.grid_position
+		_element_diffusion.cleanup_abandoned(_element_grid, core_pos)
 
 ## 收集所有连通到核心的网络中的源头位置（Dictionary{Vector2i: bool}）
 ## 用于限制只有连通核心的源头才产出元素
