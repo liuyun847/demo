@@ -80,8 +80,15 @@ func _draw_pipes() -> void:
 		if mask & GridCoordinate.DirFlag.DOWN:
 			draw_rect(Rect2(cx - pw, cy, _PIPE_PASSAGE_W, half), _PIPE_COLOR_PASSAGE)
 
-		# 单格管道也画中心方块，与多格管道等宽同色
-		draw_rect(Rect2(cx - pw, cy - pw, _PIPE_PASSAGE_W, _PIPE_PASSAGE_W), _PIPE_COLOR_PASSAGE)
+		# 中心方块：无连接口（孤立管道）或半段未成对覆盖中心（单方向/L形）时必须画。
+		# 直管/T形/十字的半段已拼满中心，可省略以减少一次 draw_rect
+		var has_pair := \
+			(mask & (GridCoordinate.DirFlag.LEFT | GridCoordinate.DirFlag.RIGHT)) == \
+				(GridCoordinate.DirFlag.LEFT | GridCoordinate.DirFlag.RIGHT) or \
+			(mask & (GridCoordinate.DirFlag.UP | GridCoordinate.DirFlag.DOWN)) == \
+				(GridCoordinate.DirFlag.UP | GridCoordinate.DirFlag.DOWN)
+		if mask == 0 or not has_pair:
+			draw_rect(Rect2(cx - pw, cy - pw, _PIPE_PASSAGE_W, _PIPE_PASSAGE_W), _PIPE_COLOR_PASSAGE)
 
 		draw_rect(Rect2(cx - half, cy - half, building_size, building_size), _PIPE_COLOR_WALL, false, _PIPE_WALL_W)
 

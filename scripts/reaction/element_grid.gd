@@ -88,8 +88,8 @@ func move_element(from: Vector2i, to: Vector2i) -> bool:
 		_source_positions[to] = true
 	if product_timer != null:
 		_product_timers[to] = product_timer
-	EventBus.element_removed.emit(from, element_id)
-	EventBus.element_spawned.emit(to, element_id)
+	# 用单信号替代 removed+spawned 两次发射（滑动密集场景下显著省信号开销）
+	EventBus.element_moved.emit(from, to, element_id)
 	return true
 
 ## 标记为水源

@@ -25,6 +25,13 @@ func _get_essence() -> Variant:
 func _init() -> void:
 	pass
 
+## 静态 Y 比较器：避免扩散排序每 tick 创建 lambda 闭包
+static func _cmp_y_asc(a: Vector2i, b: Vector2i) -> bool:
+	return a.y < b.y
+
+static func _cmp_y_desc(a: Vector2i, b: Vector2i) -> bool:
+	return a.y > b.y
+
 ## 主入口：对所有元素执行扩散
 ## active_source_positions: 可选，激活源头位置集合（Dictionary{Vector2i: bool}）。
 ##   - null（默认）: 处理所有已注册源头（向后兼容，测试用）
@@ -134,45 +141,40 @@ func _detect_element_bodies(element_grid: ElementGrid) -> Array[ElementBody]:
 		body.element_id = element_id
 		body.has_source = false
 		body.min_source_y = GameConfig.SOURCE_Y_SENTINEL
-		body.rate = 1
+		body.rate = 0  # BFS 中累计水源数，最后 max(rate, 1)
 
-		var queue: Array[Vector2i] = []
-		queue.push_back(pos)
+		# 用 head 指针代替 pop_front：pop_front 是 O(n) 的头部弹出，
+		# 元素量大时 BFS 总复杂度退化到 O(n²)
+		var queue: Array[Vector2i] = [pos]
+		var head: int = 0
 		visited[pos] = true
 
-		while not queue.is_empty():
-			var current: Vector2i = queue.pop_front()
+		while head < queue.size():
+			var current: Vector2i = queue[head]
+			head += 1
 
-			# 只连接同类型元素
-			var current_id: String = element_grid.get_element_id(current)
-			if current_id != element_id:
-				continue
-
+			# 队列中的格子入队前已确认与 element_id 同类型，起点类型在外层已读取，
+			# 无需每次循环重复 get_element_id 校验
 			body.cells.append(current)
 
 			if element_grid.is_source_pos(current):
 				body.has_source = true
+				body.rate += 1  # 顺带累计水源数，避免 BFS 后再遍历一次 body.cells
 				var sy: int = element_grid.get_source_y(current)
 				if sy < body.min_source_y:
 					body.min_source_y = sy
 
 			for dir: Vector2i in GridCoordinate.DIR_4:
 				var neighbor: Vector2i = current + dir
-				if not element_grid.has_element(neighbor):
-					continue
-				if element_grid.get_element_id(neighbor) != element_id:
+				# 内联 get_element_id：无元素时返回 ""，一次字典查询替代 has+get 两次方法调用
+				if element_grid._elements.get(neighbor, "") != element_id:
 					continue
 				if visited.has(neighbor):
 					continue
 				visited[neighbor] = true
 				queue.append(neighbor)
 
-		if body.has_source:
-			var source_count: int = 0
-			for cell: Vector2i in body.cells:
-				if element_grid.is_source_pos(cell):
-					source_count += 1
-			body.rate = max(source_count, 1)
+		body.rate = max(body.rate, 1)
 
 		bodies.append(body)
 
@@ -188,22 +190,26 @@ func _expand_body(element_grid: ElementGrid, body: ElementBody, upward: bool) ->
 	for cell: Vector2i in body.cells:
 		for dir: Vector2i in GridCoordinate.DIR_4:
 			var neighbor: Vector2i = cell + dir
-			if element_grid.is_position_available(neighbor):
-				# 液体限制在 min_source_y 以下（不高于最高水源）
-				if not upward and neighbor.y < body.min_source_y:
-					continue
-				if not seen.has(neighbor):
-					seen[neighbor] = true
-					candidates.append(neighbor)
+			# 内联 is_position_available：热路径直接查内部字典，避免每格方法分派开销
+			if element_grid._elements.has(neighbor):
+				continue
+			if element_grid.is_building_at(neighbor):
+				continue
+			# 液体限制在 min_source_y 以下（不高于最高水源）
+			if not upward and neighbor.y < body.min_source_y:
+				continue
+			if not seen.has(neighbor):
+				seen[neighbor] = true
+				candidates.append(neighbor)
 
 	if candidates.is_empty():
 		return
 
 	# 液体: 优先向下 (Y 降序)；气体: 优先向上 (Y 升序)
 	if upward:
-		candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
+		candidates.sort_custom(_cmp_y_asc)
 	else:
-		candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
+		candidates.sort_custom(_cmp_y_desc)
 
 	var total_to_expand: int = min(candidates.size(), body.rate)
 	var cost_per_cell: float = GameConfig.SOURCE_ESSENCE_COST_PER_TICK
@@ -230,19 +236,51 @@ func _flow_no_source(element_grid: ElementGrid, body: ElementBody, upward: bool)
 		Vector2i(-1, 0),
 		Vector2i(1, 0),
 	]
-	# 液体从下往上处理（Y 降序），气体从上往下处理（Y 升序）
-	var sorted: Array[Vector2i] = body.cells.duplicate()
-	if upward:
-		sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
-	else:
-		sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
+	# 液体从下往上处理（Y 降序），气体从上往下处理（Y 升序）。
+	# 按行分桶替代全局 sort_custom：构建 O(n)，按 y 序处理行即可，避免 O(n log n) 排序。
+	# 行内元素只移向空位；同行竞争同一空位时先处理者占位——原全局 sort 对同 y 行
+	# 顺序本就不确定（不稳定排序），分桶顺序与之等价，不影响格子数/方向/速率不变量
+	var buckets: Dictionary = {}
+	var min_y: int = 0
+	var max_y: int = 0
+	var first: bool = true
+	for cell: Vector2i in body.cells:
+		if first:
+			min_y = cell.y
+			max_y = cell.y
+			first = false
+		elif cell.y < min_y:
+			min_y = cell.y
+		elif cell.y > max_y:
+			max_y = cell.y
+		var row: Variant = buckets.get(cell.y)
+		if row == null:
+			row = []
+			buckets[cell.y] = row
+		row.append(cell)
 
-	for cell: Vector2i in sorted:
-		if not element_grid.has_element(cell):
+	if upward:
+		for y in range(min_y, max_y + 1):
+			var row: Variant = buckets.get(y)
+			if row != null:
+				_flow_row(element_grid, row, dirs)
+	else:
+		for y in range(max_y, min_y - 1, -1):
+			var row: Variant = buckets.get(y)
+			if row != null:
+				_flow_row(element_grid, row, dirs)
+
+## 按行处理元素流动（液体逐行自下而上、气体逐行自上而下调用）
+func _flow_row(element_grid: ElementGrid, row: Array, dirs: Array[Vector2i]) -> void:
+	for cell: Vector2i in row:
+		if not element_grid._elements.has(cell):
 			continue  # 已在此次流动中被移动
 		for dir: Vector2i in dirs:
 			var target: Vector2i = cell + dir
-			if not element_grid.is_position_available(target):
+			# 内联 is_position_available：热路径直接查内部字典，避免每格方法分派开销
+			if element_grid._elements.has(target):
+				continue
+			if element_grid.is_building_at(target):
 				continue
 			# 用 move_element 搬移：保留产物存续计时器/水源标记，
 			# 避免反应产物在无源滑动后被收集器提前收走
