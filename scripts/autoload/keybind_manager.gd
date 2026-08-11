@@ -107,6 +107,12 @@ const ACTION_CONFIGS: Dictionary = {
 		"default_key_type": "key",
 		"modifier": "",
 	},
+	"focus_core": {
+		"display_name": "回到核心",
+		"default_key": KEY_B,
+		"default_key_type": "key",
+		"modifier": "",
+	},
 }
 
 static var GAMEPLAY_ACTIONS: Array[String] = []
