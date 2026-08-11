@@ -119,7 +119,9 @@ func _update_selection_highlight() -> void:
 	var selected: String = ""
 	match mode:
 		Mode.SOURCE:
-			selected = (target as SourceNode).element_type_id
+			var source := target as SourceNode
+			# 未确认类型（关闭态）不高亮任何按钮，与灰显外观保持一致
+			selected = source.element_type_id if source.has_type_selected() else ""
 		Mode.COLLECTOR:
 			selected = (target as CollectorNode).filter_element_type
 	for type_id: String in _buttons.keys():

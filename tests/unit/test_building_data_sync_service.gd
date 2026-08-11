@@ -60,6 +60,15 @@ func test_sync_source_restore_element_type() -> void:
 	assert_true(node.has_type_selected(), "通过 restore_data 设置后节点应标记为已确认")
 
 
+## 回归测试：未确认类型（关闭态）源头同步时不落盘元素类型，重载后保持关闭不产出
+func test_sync_source_unconfirmed_writes_empty() -> void:
+	var data := _make_source_data()
+	var node: SourceNode = autoqfree(_SourceScript.new())
+	# 未调用 set_element_type，has_type_selected() 为 false（关闭态默认）
+	BuildingDataSyncService.sync_from_node(data, node, {})
+	assert_eq(data.element_type_id, "", "关闭态源头不应落盘元素类型")
+
+
 # ========== 收集器路径 ==========
 
 func test_sync_collector_pull_from_node() -> void:

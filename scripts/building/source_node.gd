@@ -19,6 +19,13 @@ func _draw() -> void:
 	var half := GameConfig.BUILDING_SIZE / 2.0
 	var size := float(GameConfig.BUILDING_SIZE)
 
+	# 未确认类型（关闭态）：灰显占位，提示尚未产出
+	if not has_type_selected():
+		draw_rect(Rect2(-half, -half, size, size), Color(0.45, 0.45, 0.45, 0.5))
+		draw_circle(Vector2.ZERO, half * 0.25, Color(0.65, 0.65, 0.65))
+		draw_rect(Rect2(-half, -half, size, size), Color(0.3, 0.3, 0.3), false, 1.5)
+		return
+
 	var element_type := ElementRegistry.get_element_type(element_type_id)
 	var elem_color: Color = element_type.color if element_type else Color.WHITE
 
@@ -41,12 +48,4 @@ func get_tooltip_summary() -> Dictionary:
 		"name": get_building_name(),
 		"type": "A 型 - 源头",
 		"产出": "免费",
-	}
-
-func get_tooltip_details() -> Dictionary:
-	var type_data := ElementRegistry.get_element_type(element_type_id)
-	var type_name: String = type_data.display_name if type_data else "未知"
-	return {
-		"元素类型": type_name,
-		"产出成本": "免费",
 	}
