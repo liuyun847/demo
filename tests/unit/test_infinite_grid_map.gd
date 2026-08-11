@@ -88,3 +88,29 @@ func test_on_viewport_size_changed_same_behavior_as_update() -> void:
 	var blocks_after_resize: int = _grid_map.loaded_blocks.size()
 
 	assert_eq(blocks_after_resize, blocks_after_update, "_on_viewport_size_changed 应与 update_visible_blocks 加载相同数量的区块")
+
+
+## 回归测试：缩放较大时 thin 线数组为空，_draw 不应因 draw_multiline 空数组报引擎错误
+func test_draw_no_error_when_thin_lines_empty() -> void:
+	var cam := Camera2D.new()
+	add_child_autoqfree(cam)
+	cam.make_current()  # 须先入树再 make_current，否则报引擎错误
+	# 模拟缩放较大（可见大格子数 >= 阈值）时 thin 线被隐藏：数组为空
+	_grid_map._cached_thin_v_points.clear()
+	_grid_map._cached_thin_h_points.clear()
+	_grid_map._cache_dirty = false
+	_grid_map._draw()
+	# _draw 全程不应产生任何引擎错误（draw_multiline 空数组会报错）
+	assert_engine_error_count(0, "thin 点数组为空时 _draw 不应产生引擎错误")
+
+
+## 回归测试：loaded_blocks 为空时 thick 数组为空，_draw 同样不应报错
+func test_draw_no_error_when_thick_lines_empty() -> void:
+	var cam := Camera2D.new()
+	add_child_autoqfree(cam)
+	cam.make_current()  # 须先入树再 make_current，否则报引擎错误
+	_grid_map.loaded_blocks.clear()
+	_grid_map._cached_thick_points.clear()
+	_grid_map._cache_dirty = false
+	_grid_map._draw()
+	assert_engine_error_count(0, "thick 点数组为空时 _draw 不应产生引擎错误")
