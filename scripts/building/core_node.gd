@@ -74,10 +74,3 @@ func get_tooltip_summary() -> Dictionary:
 		"type": "网络核心",
 		"desc": "管道网络必须连通到核心才能激活",
 	}
-
-func get_tooltip_details() -> Dictionary:
-	return {
-		"说明": "地图中心的能量核心，连接管道网络",
-		"状态": "不可删除",
-		"范围": "2x2",
-	}

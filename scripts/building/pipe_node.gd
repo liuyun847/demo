@@ -38,18 +38,3 @@ func get_building_name() -> String:
 
 func get_tooltip_summary() -> Dictionary:
 	return {}
-
-func get_tooltip_details() -> Dictionary:
-	var connections: Array[String] = []
-	if connection_mask & GridCoordinate.DirFlag.UP:
-		connections.append("上")
-	if connection_mask & GridCoordinate.DirFlag.DOWN:
-		connections.append("下")
-	if connection_mask & GridCoordinate.DirFlag.LEFT:
-		connections.append("左")
-	if connection_mask & GridCoordinate.DirFlag.RIGHT:
-		connections.append("右")
-	var conn_str := "无" if connections.is_empty() else "、".join(connections)
-	return {
-		"连接方向": conn_str,
-	}
