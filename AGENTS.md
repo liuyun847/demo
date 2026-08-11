@@ -56,10 +56,10 @@ Root (Node2D) → main.gd
 - **输入状态机**: 6 状态（IDLE/DRAGGING/REMOVING/SELECTING/DESELECTING/PASTE_DRAGGING），按模式切换幽灵预览。R 键仅切换拖拽角点
 - **幽灵预览**: GhostPreviewManager 维护多组预览数组（ghost/selected/paste/remove），`_draw()` 统一渲染
 - **建筑系统**: 管道/源头/收集器/砖块 + 地图中心核心，BuildingFactory 基于 `BuildingTypeData.Category` 枚举注册表创建。`clear_all_buildings()` 逐个 emit `building_removed`，`clear_all_buildings_silent()` 静默清空
-- **源头系统**: SourceNode 无方向概念，不自行产出。ElementDiffusion 每 tick 开头按需创建种子：相邻已有同类型元素→免费维持；否则按状态选种子位置（LIQUID→DOWN、GAS→UP）免费创建。源质仅在扩散扩张时消耗（每格 1.0）。未选类型（has_type_selected=false）不产出。元素类型存于 SourceNode，ElementGrid._source_buildings 仅记录位置
+- **源头系统**: SourceNode 无方向概念，不自行产出。默认关闭态（未选类型 `has_type_selected=false`）灰显且不产出，开启后按类型着色。关闭态不落盘元素类型（重载后仍保持关闭），旧存档携带类型的源头重载后自动转为已确认。ElementDiffusion 每 tick 开头按需创建种子：相邻已有同类型元素→免费维持；否则按状态选种子位置（LIQUID→DOWN、GAS→UP）免费创建。源质仅在扩散扩张时消耗（每格 1.0）。元素类型存于 SourceNode，ElementGrid._source_buildings 仅记录位置
 - **收集器筛选**: CollectorNode 的 filter_element_type 字段，空串=收全部（默认，兼容旧存档），非空仅收匹配类型。通过共享 ElementTypePanel（Mode.COLLECTOR）选择
-- **共享 UI 面板**: ElementTypePanel 用 Mode 枚举（SOURCE/COLLECTOR）服务两类建筑，源头模式无"全部"，收集器模式有"全部"按钮（空筛选）。信号 `element_type_panel_opened/closed`
-- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心搜索），每 tick：产物计时器递减→收集→扩散(含源头种子)→反应→周期性距离/遗弃清理。元素失去源后仅停止扩张不消失，由 `cleanup_abandoned` 兜底（每 CLEANUP_INTERVAL_TICKS 移除距核心切比雪夫距离超 ELEMENT_ABANDON_DISTANCE 的元素）。只有连通核心的管道网络才能激活源头/收集器
+- **共享 UI 面板**: ElementTypePanel 用 Mode 枚举（SOURCE/COLLECTOR）服务两类建筑，源头模式无"全部"，收集器模式有"全部"按钮（空筛选）。信号 `element_type_panel_opened/closed`。源头/收集器放置后自动弹出面板；**任何模式**（选择/放置）下左键点击已有源头/收集器均可重新打开面板
+- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心搜索），每 tick：产物计时器递减→收集→扩散(含源头种子)→反应→周期性距离/遗弃清理。水源标记每 tick 清空重建（源头类型切换后旧类型元素体立即失去源，只滑动不扩张）。元素失去源后不增殖，仅沿自然方向**滑动**（液体下沉/气体上浮，格子总数不变、不耗源质），移出距离边界由 `cleanup_abandoned` 兜底（每 CLEANUP_INTERVAL_TICKS 移除距核心切比雪夫距离超 ELEMENT_ABANDON_DISTANCE 的元素）。只有连通核心的管道网络才能激活源头/收集器
 - **元素系统**: 水/火/蒸汽，按 State（LIQUID/GAS/SOLID）差异化扩散（液体向下、气体向上、固体不动），反应产物存续标记防瞬间消失
 - **反应系统**: ReactionRegistry 注册规则（无序匹配，重复注册跳过并告警），ReactionProcessor 每 tick 检测相邻格子反应，密度决定产物位置
 - **源质经济**: EssencePool 管理货币（MAX_ESSENCE 上限，setter/add 均 clampf），ProgressSystem 按阈值解锁。BuildingManager/ReactionCoordinator/ElementDiffusion/ReactionProcessor 通过依赖注入（`_essence_service` + `set_essence_service()`）解耦，未注入回退 EssencePool，支持测试隔离
@@ -94,7 +94,7 @@ git add -A && git commit -m "feat: 你的改动说明"
 ## 手动运行
 
 ```bash
-& "C:\Users\MLTZ\Desktop\Godot_v4.6.1-stable_win64.exe" --headless '--path' 'C:\Users\MLTZ\Desktop\code\godot\game\demo' '--script' 'res://addons/gut/gut_cmdln.gd'
+powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1
 ```
 
-**验证**: 退出码 `exit_code == 0` 且 `save/test_output.xml` 中 `failures="0"` 即全部通过。
+**验证**: 脚本退出码 `exit_code == 0` 即全部通过。脚本自动删除旧 `save/test_output.xml`（避免残留结果误读上一轮状态），运行后清理测试输出。
