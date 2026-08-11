@@ -4,6 +4,7 @@ android/
 .trae/
 *.tmp
 /save/
+working/
 .env
 docs/
 tools/

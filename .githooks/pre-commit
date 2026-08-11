@@ -8,7 +8,11 @@ export GODOT
 TEST_SCRIPT="res://addons/gut/gut_cmdln.gd"
 TEST_OUTPUT="$PROJECT_DIR/save/test_output.xml"
 
-cleanup() { rm -f "$PROJECT_DIR/.git/precommit-gut-output.tmp"; }
+cleanup() {
+    rm -f "$PROJECT_DIR/.git/precommit-gut-output.tmp"
+    # 清理测试输出残留，避免 save/ 目录堆积旧结果
+    rm -f "$TEST_OUTPUT"
+}
 trap cleanup EXIT
 
 cd "$PROJECT_DIR" || exit 1
@@ -44,6 +48,9 @@ echo "=== [pre-commit] 2/2 运行 GUT 测试套件 ==="
 
 GUT_OUTPUT="$PROJECT_DIR/.git/precommit-gut-output.tmp"
 
+# 删除旧测试输出，避免上次残留结果掩盖本次运行状态（无新输出则判定失败）
+rm -f "$TEST_OUTPUT"
+
 # 运行测试，保存原始输出和退出码
 # -gcompact_mode 是 GUT 7.4.0+ 的选项；旧版本会忽略未知标志，无副作用
 "$GODOT" --headless --path "$PROJECT_DIR" --script "$TEST_SCRIPT" -gcompact_mode > "$GUT_OUTPUT" 2>&1
@@ -60,14 +67,19 @@ if [ $EXIT_CODE -ne 0 ]; then
     exit 1
 fi
 
-if [ -f "$TEST_OUTPUT" ]; then
-    # grep -oP 支持 GNU grep；macOS 需 brew install grep 后用 ggrep
-    FAILURES=$(grep -oP 'failures="\K[0-9]+' "$TEST_OUTPUT" 2>/dev/null)
-    if [ "$FAILURES" != "0" ] && [ -n "$FAILURES" ]; then
-        echo ""
-        echo "=== [pre-commit] ❌ 发现 $FAILURES 个测试失败，提交已阻止 ==="
-        exit 1
-    fi
+if [ ! -f "$TEST_OUTPUT" ]; then
+    echo ""
+    echo "=== [pre-commit] ❌ 未生成测试结果文件（save/test_output.xml），提交已阻止 ==="
+    echo "请检查 GUT 配置（.gutconfig.json 的 junit_xml_file）后重试。"
+    exit 1
+fi
+
+# grep -oP 支持 GNU grep；macOS 需 brew install grep 后用 ggrep
+FAILURES=$(grep -oP 'failures="\K[0-9]+' "$TEST_OUTPUT" 2>/dev/null)
+if [ "$FAILURES" != "0" ] && [ -n "$FAILURES" ]; then
+    echo ""
+    echo "=== [pre-commit] ❌ 发现 $FAILURES 个测试失败，提交已阻止 ==="
+    exit 1
 fi
 
 echo "=== [pre-commit] ✅ 测试全部通过 ==="
