@@ -98,6 +98,22 @@ func test_element_removed_signal() -> void:
 	EventBus.element_removed.emit(Vector2i(5, 5), "water")
 	assert_true(triggered[0], "element_removed 信号应触发")
 
+func test_element_moved_signal() -> void:
+	var triggered := [false]
+	var captured_from: Array = [null]
+	var captured_to: Array = [null]
+	EventBus.element_moved.connect(
+		func(f: Variant, t: Variant, _id: Variant) -> void:
+			triggered[0] = true
+			captured_from[0] = f
+			captured_to[0] = t,
+		CONNECT_ONE_SHOT
+	)
+	EventBus.element_moved.emit(Vector2i(3, 4), Vector2i(4, 4), "water")
+	assert_true(triggered[0], "element_moved 信号应触发")
+	assert_eq(captured_from[0], Vector2i(3, 4), "element_moved 应携带起点")
+	assert_eq(captured_to[0], Vector2i(4, 4), "element_moved 应携带终点")
+
 func test_essence_threshold_reached_signal() -> void:
 	var triggered := [false]
 	EventBus.essence_threshold_reached.connect(func(_t: Variant, _u: Variant) -> void: triggered[0] = true, CONNECT_ONE_SHOT)
