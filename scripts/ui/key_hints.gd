@@ -8,6 +8,7 @@ const EDIT_ACTIONS: Array[String] = ["ui_copy", "ui_cut", "ui_paste", "ui_undo",
 
 var _keycap_labels: Array[Label] = []
 var _toggle_key_label: Label
+var _focus_key_label: Label
 var _left_click_desc: Label
 var _right_click_desc: Label
 var _pipette_desc: Label
@@ -28,6 +29,7 @@ func _ready() -> void:
 	_build_edit_section()
 	_build_separator()
 	_build_toggle_row()
+	_build_focus_row()
 	_build_rotate_row()
 	_build_click_section()
 
@@ -80,6 +82,19 @@ func _build_toggle_row() -> void:
 	row.add_child(_toggle_key_label)
 
 	var desc := _make_desc("切换模式")
+	row.add_child(desc)
+
+	add_child(row)
+
+func _build_focus_row() -> void:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.add_theme_constant_override("separation", 8)
+
+	_focus_key_label = _make_keycap("focus_core")
+	row.add_child(_focus_key_label)
+
+	var desc := _make_desc("回到核心")
 	row.add_child(desc)
 
 	add_child(row)
@@ -208,6 +223,7 @@ func _refresh_all() -> void:
 		if i < _keycap_labels.size():
 			_keycap_labels[i].text = _get_action_text(EDIT_ACTIONS[i])
 	_toggle_key_label.text = _get_action_text("toggle_place_mode")
+	_focus_key_label.text = _get_action_text("focus_core")
 	_refresh_click_rows()
 
 func _refresh_click_rows() -> void:

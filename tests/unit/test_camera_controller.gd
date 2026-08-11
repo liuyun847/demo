@@ -96,3 +96,20 @@ func test_move_zoomed_in() -> void:
 	Input.action_release("move_right")
 	var _expected_speed: float = move_speed / 0.5
 	assert_gt(_camera.position.x, move_speed * 0.5, "缩放 0.5 倍时移动速度应更快")
+
+func test_focus_core_moves_camera_to_origin() -> void:
+	_camera.position = Vector2(500, 300)
+	var key_event := InputEventKey.new()
+	key_event.keycode = KEY_B
+	key_event.pressed = true
+	_camera._unhandled_input(key_event)
+	assert_eq(_camera.position, Vector2.ZERO, "按下 focus_core 后视口应移回核心位置")
+
+func test_focus_core_keeps_zoom() -> void:
+	_camera.position = Vector2(500, 300)
+	_camera.zoom = Vector2(0.5, 0.5)
+	var key_event := InputEventKey.new()
+	key_event.keycode = KEY_B
+	key_event.pressed = true
+	_camera._unhandled_input(key_event)
+	assert_eq(_camera.zoom, Vector2(0.5, 0.5), "回到核心不应改变缩放")

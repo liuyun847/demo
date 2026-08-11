@@ -12,6 +12,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		zoom_at_position(event.position, 1 + GameConfig.zoom_speed)
 	elif event.is_action_pressed("zoom_out"):
 		zoom_at_position(event.position, 1 - GameConfig.zoom_speed)
+	elif event.is_action_pressed("focus_core"):
+		# 视口移回核心（世界原点）。核心占据 (-1,-1)..(0,0)，视觉中心即原点，不可移动
+		position = Vector2.ZERO
 
 # 在指定位置进行缩放
 func zoom_at_position(screen_pos: Vector2, factor: float) -> void:
