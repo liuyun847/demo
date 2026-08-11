@@ -4,6 +4,18 @@ const _BM: GDScript = preload("res://scripts/building/building_manager.gd")
 const _PRS: GDScript = preload("res://scripts/building/pipe_render_system.gd")
 
 
+## Mock 源质服务，隔离测试避免污染全局 EssencePool
+class _MockEssence:
+	var essence: float = 0.0
+	func add(amount: float) -> void:
+		essence += amount
+	func subtract(amount: float) -> float:
+		essence -= amount
+		return amount
+	func has(amount: float) -> bool:
+		return essence >= amount
+
+
 func before_all() -> void:
 	_ensure_building_types_registered()
 
@@ -181,3 +193,58 @@ func test_brick_blocks_source_chain() -> void:
 	assert_eq(active.size(), 1, "砖块阻断后，只有直连核心的源头被激活")
 	assert_true(active.has(Vector2i(1, 0)), "直连核心的源头应在激活集合中")
 	assert_false(active.has(Vector2i(3, 0)), "砖块另一侧的源头不应在激活集合中")
+
+
+## 回归测试：源头切换类型后，旧类型元素体不再被当作有源（不再扩张消耗源质）
+## 每 tick 清空水源标记后由 _process_source_buildings 按当前源头类型重建。
+func test_source_type_switch_old_elements_lose_source() -> void:
+	var bm: BuildingManager = autoqfree(_BM.new())
+	var pr: PipeRenderSystem = autoqfree(_PRS.new())
+	pr.name = "PipeRenderSystem"
+	bm.add_child(pr)
+	add_child_autoqfree(bm)
+	# 停掉 bm 自带 coordinator 的 Timer，避免测试期间自动 tick 干扰断言
+	var builtin_coord := bm.get_node_or_null("ReactionCoordinator") as ReactionCoordinator
+	if builtin_coord:
+		builtin_coord._timer.stop()
+
+	# 独立 coordinator，不进树（Timer 不运行），手动 _ready 初始化内部系统，手动 _on_tick 驱动
+	var mock := _MockEssence.new()
+	mock.essence = 100.0
+	var coord: ReactionCoordinator = autoqfree(ReactionCoordinator.new())
+	coord.init(bm)
+	coord.set_essence_service(mock)
+	coord._ready()
+
+	# 源头 (1,0) 邻接核心格 (0,0)，连通核心；先产出 water
+	bm.place_building(Vector2i(1, 0), GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = bm.get_building_node(Vector2i(1, 0)) as SourceNode
+	source_node.set_element_type("water")
+
+	# 扩散数 tick，water 向下蔓延（种子 + 扩张）
+	for _i in range(3):
+		coord._on_tick()
+	var water_count_before: int = _count_elements(coord, "water")
+	assert_gt(water_count_before, 1, "切换前 water 应已扩散出多个格子")
+
+	# 切换源头类型为 fire，再扩散数 tick
+	source_node.set_element_type("fire")
+	for _i in range(3):
+		coord._on_tick()
+
+	assert_eq(_count_elements(coord, "water"), water_count_before, "切换类型后旧类型 water 不应再增殖扩张")
+	# 旧类型元素不应残留水源标记
+	var has_water_source: bool = false
+	for pos: Vector2i in coord._element_grid.get_all_element_positions():
+		if coord._element_grid.get_element_id(pos) == "water" and coord._element_grid.is_source_pos(pos):
+			has_water_source = true
+			break
+	assert_false(has_water_source, "切换类型后 water 元素不应再被标记为水源")
+
+
+func _count_elements(coord: ReactionCoordinator, element_id: String) -> int:
+	var count: int = 0
+	for pos: Vector2i in coord._element_grid.get_all_element_positions():
+		if coord._element_grid.get_element_id(pos) == element_id:
+			count += 1
+	return count
