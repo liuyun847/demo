@@ -77,8 +77,8 @@ func _on_building_placed(grid_pos: Vector2i) -> void:
 func _on_building_removed(grid_pos: Vector2i) -> void:
 	_dirty = true
 	_cached_networks.clear()
-	# 清除所有水源标记，被移除的建筑不再能维持水源
-	# 下个 tick 的 _process_source_buildings() 会为仍然存在的源头重新标记
+	# 立即清除所有水源标记，被移除的建筑不再能维持水源。
+	# 每 tick 也会清空重建（_on_tick），此处立即生效避免移除后残留标记。
 	_element_grid.clear_all_sources()
 	# 取消注册源头建筑（erase 安全，非源头位置无副作用）
 	_element_grid.unregister_source_building(grid_pos)
@@ -111,11 +111,14 @@ func _on_tick() -> void:
 	# 源头产出由扩散系统接管：diffuse_all 内部的 _process_source_buildings 负责种子创建
 	# 仅允许连通到核心的源头产出种子，未连通的源头不工作
 	var active_source_positions: Dictionary = _collect_active_source_positions()
+	# 每 tick 清空水源标记，由 _process_source_buildings 按当前源头类型/状态重新标记。
+	# 保证源头切换类型后，旧类型元素体立即失去水源（只自然滑动、不再扩张消耗源质）。
+	_element_grid.clear_all_sources()
 	_element_diffusion.diffuse_all(_element_grid, active_source_positions)
 
 	_reaction_processor.process_all()
 
-	# 周期性距离/遗弃清理：移除远离核心的元素（元素失去源后不再收缩消失，由这里兜底回收）
+	# 周期性距离/遗弃清理：移除移出边界的元素（无源元素仅滑动不增殖，由这里兜底回收）
 	_tick_count += 1
 	if _tick_count >= GameConfig.CLEANUP_INTERVAL_TICKS:
 		_tick_count = 0

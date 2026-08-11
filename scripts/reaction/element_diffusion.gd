@@ -43,13 +43,17 @@ func diffuse_all(element_grid: ElementGrid, active_source_positions: Variant = n
 				# 固体不扩散也不收缩
 				continue
 			ElementTypeData.State.GAS:
-				# 无源区域不再收缩消失，仅停止扩张（回收由距离/遗弃清理负责）
 				if body.has_source:
 					_expand_body(element_grid, body, true)
+				else:
+					# 无源气体仅自然上滑（格子数不变），移出边界由距离清理回收
+					_flow_no_source(element_grid, body, true)
 			_:  # LIQUID 及其他默认为液体行为
-				# 无源区域不再收缩消失，仅停止扩张（回收由距离/遗弃清理负责）
 				if body.has_source:
 					_expand_body(element_grid, body, false)
+				else:
+					# 无源液体仅自然下滑（格子数不变），移出边界由距离清理回收
+					_flow_no_source(element_grid, body, false)
 
 
 ## 源头种子产出：每源头每 tick 最多创建 1 个种子（免费）
@@ -174,7 +178,7 @@ func _detect_element_bodies(element_grid: ElementGrid) -> Array[ElementBody]:
 
 	return bodies
 
-## 有源区域扩张
+## 有源区域扩张（消耗源质）
 ## upward: true=向上扩散(气体), false=向下扩散(液体)
 func _expand_body(element_grid: ElementGrid, body: ElementBody, upward: bool) -> void:
 	var candidates: Array[Vector2i] = []
@@ -185,7 +189,7 @@ func _expand_body(element_grid: ElementGrid, body: ElementBody, upward: bool) ->
 		for dir: Vector2i in GridCoordinate.DIR_4:
 			var neighbor: Vector2i = cell + dir
 			if element_grid.is_position_available(neighbor):
-				# 液体限制在 min_source_y 以上，气体不限制（向上扩散）
+				# 液体限制在 min_source_y 以下（不高于最高水源）
 				if not upward and neighbor.y < body.min_source_y:
 					continue
 				if not seen.has(neighbor):
@@ -212,12 +216,42 @@ func _expand_body(element_grid: ElementGrid, body: ElementBody, upward: bool) ->
 			break
 		if not es.has(cost_per_cell):
 			break  # 源质不足，停止扩张
+		# 仅在成功放置后才扣除源质，避免 set_element 失败仍消耗
 		if element_grid.set_element(pos, element_id, body.min_source_y):
 			es.subtract(cost_per_cell)
 			count += 1
 
+## 无源区域自然流动（不增殖）：格子总数不变，元素仅沿自然方向滑动
+## 液体优先向下、气体优先向上，主方向被堵时尝试左右；移出距离边界由 cleanup_abandoned 回收。
+## 处理顺序按流动方向从外到内，避免同 tick 内元素互相追逐目标格。
+func _flow_no_source(element_grid: ElementGrid, body: ElementBody, upward: bool) -> void:
+	var dirs: Array[Vector2i] = [
+		Vector2i(0, 1) if not upward else Vector2i(0, -1),
+		Vector2i(-1, 0),
+		Vector2i(1, 0),
+	]
+	# 液体从下往上处理（Y 降序），气体从上往下处理（Y 升序）
+	var sorted: Array[Vector2i] = body.cells.duplicate()
+	if upward:
+		sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
+	else:
+		sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
+
+	for cell: Vector2i in sorted:
+		if not element_grid.has_element(cell):
+			continue  # 已在此次流动中被移动
+		for dir: Vector2i in dirs:
+			var target: Vector2i = cell + dir
+			if not element_grid.is_position_available(target):
+				continue
+			# 用 move_element 搬移：保留产物存续计时器/水源标记，
+			# 避免反应产物在无源滑动后被收集器提前收走
+			if element_grid.move_element(cell, target):
+				break  # 成功移动一格后停止尝试其他方向
+			# 放置失败（防御）则继续尝试下一个方向
+
 ## 距离/遗弃清理：移除距参照点（默认核心原点）切比雪夫距离超过 ELEMENT_ABANDON_DISTANCE 的元素
-## 这是元素回收的兜底手段：元素失去源后不再收缩消失，仅当远离核心时被周期性清理。
+## 这是元素回收的兜底手段：无源元素流动移出边界、或远离核心的元素，由这里周期性清理。
 ## 扩展点：后续如需区分原料与反应产物，可在此对产物豁免或延长寿命。
 func cleanup_abandoned(element_grid: ElementGrid, reference_pos: Vector2i = Vector2i.ZERO) -> void:
 	var threshold: int = GameConfig.ELEMENT_ABANDON_DISTANCE

@@ -64,15 +64,81 @@ func after_each() -> void:
 	_diffusion = null
 	_bm = null
 
-## 无源元素不再收缩消失，持续存在（回收由距离/遗弃清理负责）
-func test_without_source_persists() -> void:
+## 无源水体仅自然滑动（不增殖）：格子总数不变，向下移动 1 格，回收由距离/遗弃清理负责
+func test_without_source_flows_downward_free() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 0.0  # 源质为 0 也应能流动，证明无源流动免费
+	_diffusion.set_essence_service(mock)
+
 	var pos := _O + Vector2i(0, 0)
 	_grid.set_element(pos, "water", pos.y)
 
 	_diffusion.diffuse_all(_grid)
 
-	var count: int = _grid.get_all_element_positions().size()
-	assert_eq(count, 1, "无源水体应持续存在，不再收缩消失")
+	assert_false(_grid.has_element(pos), "无源水体原格应腾空")
+	assert_true(_grid.has_element(_O + Vector2i(0, 1)), "无源水体应向下滑动 1 格")
+	assert_eq(_grid.get_all_element_positions().size(), 1, "无源流动格子总数不变")
+	assert_eq(mock.essence, 0.0, "无源流动不应消耗源质")
+
+
+## 无源水体主方向（向下）被堵时向左右滑动，仍保持格子总数不变
+func test_without_source_slides_sideways_when_blocked() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 0.0
+	_diffusion.set_essence_service(mock)
+
+	var pos := _O + Vector2i(0, 0)
+	_grid.set_element(pos, "water", pos.y)
+	# 正下方用砖块堵住
+	_bm.place_building(_O + Vector2i(0, 1), GameConfig.BRICK_TYPE_ID)
+
+	_diffusion.diffuse_all(_grid)
+
+	assert_false(_grid.has_element(pos), "原格应腾空")
+	assert_true(
+		_grid.has_element(_O + Vector2i(-1, 0)) or _grid.has_element(_O + Vector2i(1, 0)),
+		"主方向被堵时应向左右滑动"
+	)
+	assert_eq(_grid.get_all_element_positions().size(), 1, "滑动后格子总数不变")
+
+
+## 回归测试：无源滑动后再被水源接管，水体应继续扩张而非永久冻结
+func test_no_source_flow_then_source_reconnect_expands() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 100.0
+	_diffusion.set_essence_service(mock)
+
+	var pos := _O + Vector2i(0, 0)
+	_grid.set_element(pos, "water", pos.y)
+
+	# tick 1: 无源免费滑动产生移动后的格
+	_diffusion.diffuse_all(_grid)
+	var flowed := _O + Vector2i(0, 1)
+	assert_true(_grid.has_element(flowed), "无源水体先向下滑动 1 格")
+
+	# 模拟源头接管：把滑动后的格标记为水源
+	_grid.mark_as_source(flowed)
+
+	# tick 2: 有源后应继续向下扩张（增殖），不被任何残留状态冻结
+	_diffusion.diffuse_all(_grid)
+	assert_true(_grid.has_element(_O + Vector2i(0, 2)), "水源接管后应继续向下扩张")
+
+## 回归测试：反应产物在无源滑动时保留存续计时器（防被收集器提前收走）
+func test_without_source_flow_keeps_product_timer() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 0.0
+	_diffusion.set_essence_service(mock)
+
+	var pos := _O + Vector2i(0, 0)
+	_grid.set_element(pos, "water", pos.y)
+	_grid.mark_as_product(pos, 5)
+
+	_diffusion.diffuse_all(_grid)
+
+	var flowed := _O + Vector2i(0, 1)
+	assert_true(_grid.has_element(flowed), "无源水体应向下滑动 1 格")
+	assert_true(_grid.is_product(flowed), "滑动后产物存续计时器应保留")
+	assert_false(_grid.is_product(pos), "原格产物标记应随元素一并迁移")
 
 func test_with_source_does_not_lose_source_cell() -> void:
 	var pos := _O + Vector2i(0, 0)
@@ -154,8 +220,12 @@ func test_adjacent_sources_form_single_body() -> void:
 	assert_eq(_grid.get_all_element_positions().size(), 4, "相邻两源形成合并水体，一次扩张 2 格 = 4 格总和")
 
 
-## 无源气体不再收缩消失，持续存在（回收由距离/遗弃清理负责）
-func test_gas_without_source_persists() -> void:
+## 无源气体仅自然滑动（不增殖）：格子总数不变，整体上移 1 格，回收由距离/遗弃清理负责
+func test_gas_without_source_rises_free() -> void:
+	var mock := _MockEssence.new()
+	mock.essence = 0.0  # 源质为 0 也应能流动，证明无源流动免费
+	_diffusion.set_essence_service(mock)
+
 	var cells: Array[Vector2i] = [
 		Vector2i(5, 5),
 		Vector2i(5, 6),
@@ -167,7 +237,11 @@ func test_gas_without_source_persists() -> void:
 
 	_diffusion.diffuse_all(_grid)
 
-	assert_eq(_grid.get_all_element_positions().size(), 4, "无源气体应持续存在，不再收缩消失")
+	assert_true(_grid.has_element(Vector2i(5, 4)), "无源气体应整体上移 1 格")
+	assert_true(_grid.has_element(Vector2i(6, 5)), "无源气体应整体上移 1 格")
+	assert_false(_grid.has_element(Vector2i(6, 7)), "原底部格应腾空")
+	assert_eq(_grid.get_all_element_positions().size(), 4, "无源流动格子总数不变")
+	assert_eq(mock.essence, 0.0, "无源流动不应消耗源质")
 
 
 # ========== 距离/遗弃清理测试 ==========
