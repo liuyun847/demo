@@ -31,7 +31,14 @@ fi
 # ── 步骤 1：Godot 项目错误检查（godot-debug）───────────
 echo "=== [pre-commit] 1/2 Godot 项目错误检查（godot-debug）==="
 
-powershell.exe -ExecutionPolicy Bypass -File "$PROJECT_DIR/.githooks/check_godot_project.ps1" "$PROJECT_DIR"
+# 统一使用 godot-debug 技能中的检查脚本（集中维护，其他项目共用），项目内不再保留副本
+SKILL_CHECK_SCRIPT="$HOME/.trae-cn/skills/godot-debug/check_godot_project.ps1"
+if [ ! -f "$SKILL_CHECK_SCRIPT" ]; then
+    echo "=== [pre-commit] ❌ 未找到 godot-debug 技能检查脚本: $SKILL_CHECK_SCRIPT ==="
+    exit 1
+fi
+
+powershell.exe -ExecutionPolicy Bypass -File "$SKILL_CHECK_SCRIPT" "$PROJECT_DIR"
 POWERSHELL_EXIT=$?
 
 if [ $POWERSHELL_EXIT -ne 0 ]; then
@@ -56,14 +63,19 @@ rm -f "$TEST_OUTPUT"
 "$GODOT" --headless --path "$PROJECT_DIR" --script "$TEST_SCRIPT" -gcompact_mode > "$GUT_OUTPUT" 2>&1
 EXIT_CODE=$?
 
-# 显示完整输出（仅剥离 ANSI 颜色码）
-ESC_CHAR=$(printf '\x1b'); sed "s/${ESC_CHAR}\[[0-9;]*m//g" "$GUT_OUTPUT"
-rm -f "$GUT_OUTPUT"
+# 测试全部通过时静默（不输出 GUT 详情，避免刷屏及大输出场景下的工具误判）；
+# 失败时仅显示失败/错误相关行，便于定位问题
+show_failures() {
+    ESC_CHAR=$(printf '\x1b')
+    grep -iE "fail|error" "$GUT_OUTPUT" | sed "s/${ESC_CHAR}\[[0-9;]*m//g" | head -n 100
+}
 
 if [ $EXIT_CODE -ne 0 ]; then
     echo ""
     echo "=== [pre-commit] ❌ 测试失败（exit code: $EXIT_CODE），提交已阻止 ==="
+    show_failures
     echo "请先修复测试再重新提交。"
+    rm -f "$GUT_OUTPUT"
     exit 1
 fi
 
@@ -71,6 +83,7 @@ if [ ! -f "$TEST_OUTPUT" ]; then
     echo ""
     echo "=== [pre-commit] ❌ 未生成测试结果文件（save/test_output.xml），提交已阻止 ==="
     echo "请检查 GUT 配置（.gutconfig.json 的 junit_xml_file）后重试。"
+    rm -f "$GUT_OUTPUT"
     exit 1
 fi
 
@@ -79,7 +92,11 @@ FAILURES=$(grep -oP 'failures="\K[0-9]+' "$TEST_OUTPUT" 2>/dev/null)
 if [ "$FAILURES" != "0" ] && [ -n "$FAILURES" ]; then
     echo ""
     echo "=== [pre-commit] ❌ 发现 $FAILURES 个测试失败，提交已阻止 ==="
+    show_failures
+    echo "请先修复测试再重新提交。"
+    rm -f "$GUT_OUTPUT"
     exit 1
 fi
 
+rm -f "$GUT_OUTPUT"
 echo "=== [pre-commit] ✅ 测试全部通过 ==="
