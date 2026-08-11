@@ -86,9 +86,14 @@ func _draw() -> void:
 		_rebuild_line_cache()
 		_cache_dirty = false
 
-	draw_multiline(_cached_thin_v_points, GameConfig.LINE_COLOR, adjusted_thin_width, true)
-	draw_multiline(_cached_thin_h_points, GameConfig.LINE_COLOR, adjusted_thin_width, true)
-	draw_multiline(_cached_thick_points, GameConfig.LINE_COLOR, adjusted_thick_width)
+	# draw_multiline 要求点数组非空且大小为偶数；
+	# 缩放较大时 thin 线被隐藏（数组为空），跳过绘制避免引擎报错
+	if not _cached_thin_v_points.is_empty():
+		draw_multiline(_cached_thin_v_points, GameConfig.LINE_COLOR, adjusted_thin_width, true)
+	if not _cached_thin_h_points.is_empty():
+		draw_multiline(_cached_thin_h_points, GameConfig.LINE_COLOR, adjusted_thin_width, true)
+	if not _cached_thick_points.is_empty():
+		draw_multiline(_cached_thick_points, GameConfig.LINE_COLOR, adjusted_thick_width)
 
 ## 重建线段点缓存。根据当前视口和 loaded_blocks 计算 thin/thick 点数组。
 func _rebuild_line_cache() -> void:
