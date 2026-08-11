@@ -200,6 +200,24 @@ func test_roundtrip_source_preserves_type() -> void:
 	assert_true(loaded_source.has_type_selected(), "重载后源头应标记为已确认类型")
 
 
+## 回归测试：关闭态（未确认类型）源头保存→重载后仍保持关闭态，不自动变成已确认
+func test_roundtrip_unconfirmed_source_stays_closed() -> void:
+	# 放置源头但不设置元素类型（关闭态默认）
+	_bm.place_building(Vector2i(2, 2), GameConfig.SOURCE_TYPE_ID)
+	var source_node: SourceNode = _bm.get_building_node(Vector2i(2, 2)) as SourceNode
+	assert_not_null(source_node, "源头节点应存在")
+	assert_false(source_node.has_type_selected(), "初始应为关闭态")
+
+	# 保存 → 重载
+	_sm.save_buildings()
+	_bm.clear_all_buildings()
+	_sm.load_buildings()
+
+	var loaded_source: SourceNode = _bm.get_building_node(Vector2i(2, 2)) as SourceNode
+	assert_not_null(loaded_source, "重载后源头节点应存在")
+	assert_false(loaded_source.has_type_selected(), "关闭态源头重载后应保持关闭，不自动产出")
+
+
 func test_roundtrip_collector_preserves_filter() -> void:
 	# 放置收集器并设置筛选
 	_bm.place_building(Vector2i(4, 4), GameConfig.COLLECTOR_TYPE_ID)

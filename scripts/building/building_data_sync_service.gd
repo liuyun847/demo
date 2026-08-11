@@ -40,7 +40,9 @@ static func _sync_source(data: BuildingData, node: Node, restore_data: Dictionar
 			if node.has_method("set_element_type"):
 				node.set_element_type(type_id)
 	else:
-		data.element_type_id = node.element_type_id
+		var source_node := node as SourceNode
+		# 未确认类型（关闭态）不落盘元素类型，重载后保持关闭不产出
+		data.element_type_id = source_node.element_type_id if source_node.has_type_selected() else ""
 
 
 ## 同步收集器节点数据。collector_filter 为筛选元素类型，restore_data 非空时反写节点。
