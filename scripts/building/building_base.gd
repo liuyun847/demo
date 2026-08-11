@@ -8,6 +8,3 @@ func get_building_name() -> String:
 
 func get_tooltip_summary() -> Dictionary:
 	return {}
-
-func get_tooltip_details() -> Dictionary:
-	return {}

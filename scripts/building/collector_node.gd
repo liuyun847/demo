@@ -84,13 +84,3 @@ func get_tooltip_summary() -> Dictionary:
 		"type": "B 型 - 收集器",
 		"radius": "半径 %d" % collection_radius,
 	}
-
-func get_tooltip_details() -> Dictionary:
-	var filter_name: String = "全部"
-	if not filter_element_type.is_empty():
-		var ft := ElementRegistry.get_element_type(filter_element_type)
-		filter_name = ft.display_name if ft else filter_element_type
-	return {
-		"收集半径": collection_radius,
-		"筛选": filter_name,
-	}
