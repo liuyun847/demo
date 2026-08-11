@@ -69,7 +69,7 @@ Root (Node2D) → main.gd
 
 # 通信方式
 
-通过 EventBus 松耦合通信（同场景兄弟节点允许 `get_node()` 直接引用）。信号覆盖建筑放置/删除、元素生成/移除、源质变更、暂停、选中、粘贴模式、阈值解锁、按键重置（`keybinds_reset`，区别于单键变更的 `keybind_changed`）等。
+通过 EventBus 松耦合通信（同场景兄弟节点允许 `get_node()` 直接引用）。信号覆盖建筑放置/删除、元素生成/移除/移动（`element_moved` 单信号替代滑动时 removed+spawned 两次发射，降低密集滑动开销）、源质变更、暂停、选中、粘贴模式、阈值解锁、按键重置（`keybinds_reset`，区别于单键变更的 `keybind_changed`）等。
 
 # Git Hooks 与工具
 
