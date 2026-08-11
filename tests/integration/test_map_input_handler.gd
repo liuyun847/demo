@@ -379,3 +379,48 @@ func test_place_source_opens_type_panel() -> void:
 	# 验证类型选择面板已创建
 	assert_true(is_instance_valid(_handler._current_type_panel), "放置源头后应自动打开类型选择面板")
 	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.SOURCE, "面板模式应为 SOURCE")
+
+
+## 回归测试：放置模式下左键点击已有源头也应弹出类型选择面板
+## 场景：物品栏仍选中源头，点击已放置的源头重新打开面板（无需先取消选中）
+func test_click_existing_source_in_placement_mode_opens_panel() -> void:
+	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
+	ui_overlay.name = "UIOverlay"
+	add_child_autoqfree(ui_overlay)
+	_handler._ui_overlay = ui_overlay
+
+	_bar.select_slot(1)  # 源头
+	assert_eq(_bar.get_current_building_type(), GameConfig.SOURCE_TYPE_ID, "应选中源头类型")
+
+	var grid_pos := Vector2i(12, 12)
+	_bm.place_building(grid_pos, GameConfig.SOURCE_TYPE_ID)
+	# 直接放置不经过放置流程，_current_type_panel 初始应为空
+	assert_false(is_instance_valid(_handler._current_type_panel), "初始不应有面板")
+
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
+
+	assert_true(is_instance_valid(_handler._current_type_panel), "放置模式下点击已有源头应打开面板")
+	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.SOURCE, "面板模式应为 SOURCE")
+
+
+## 回归测试：放置模式下左键点击已有收集器也应弹出筛选面板
+## 场景：物品栏仍选中收集器，点击已放置的收集器重新打开面板
+func test_click_existing_collector_in_placement_mode_opens_panel() -> void:
+	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
+	ui_overlay.name = "UIOverlay"
+	add_child_autoqfree(ui_overlay)
+	_handler._ui_overlay = ui_overlay
+
+	_bar.select_slot(3)  # 收集器
+	assert_eq(_bar.get_current_building_type(), GameConfig.COLLECTOR_TYPE_ID, "应选中收集器类型")
+
+	var grid_pos := Vector2i(12, 13)
+	_bm.place_building(grid_pos, GameConfig.COLLECTOR_TYPE_ID)
+	assert_false(is_instance_valid(_handler._current_type_panel), "初始不应有面板")
+
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
+
+	assert_true(is_instance_valid(_handler._current_type_panel), "放置模式下点击已有收集器应打开面板")
+	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.COLLECTOR, "面板模式应为 COLLECTOR")

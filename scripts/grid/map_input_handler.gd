@@ -271,8 +271,14 @@ func _open_collector_type_panel(collector: CollectorNode) -> void:
 func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.is_action("place_building") and event.pressed:
 		if building_manager.has_building(grid_pos):
+			# 放置模式下点击已有源头/收集器同样弹出类型选择面板（与选择模式行为一致）
 			var node := building_manager.get_building_node(grid_pos)
 			if node is SourceNode:
+				_open_source_type_panel(node as SourceNode)
+				viewport.set_input_as_handled()
+				return
+			if node is CollectorNode:
+				_open_collector_type_panel(node as CollectorNode)
 				viewport.set_input_as_handled()
 				return
 		var building_type: String = inventory_bar.get_current_building_type() if inventory_bar else "default"
