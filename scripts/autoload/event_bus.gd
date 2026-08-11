@@ -43,6 +43,10 @@ signal building_hover_exited(grid_pos: Vector2i)
 signal element_spawned(grid_pos: Vector2i, element_type_id: String)
 @warning_ignore("unused_signal")
 signal element_removed(grid_pos: Vector2i, element_type_id: String)
+## 元素移动信号：滑动/搬移时用单信号替代 removed+spawned 两次发射，
+## 密集滑动场景（如无源水体逐 tick 下滑）可显著降低信号分发开销
+@warning_ignore("unused_signal")
+signal element_moved(from_grid_pos: Vector2i, to_grid_pos: Vector2i, element_type_id: String)
 
 # 源质系统信号
 @warning_ignore("unused_signal")
