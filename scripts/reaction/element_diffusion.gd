@@ -36,10 +36,35 @@ static func _cmp_y_desc(a: Vector2i, b: Vector2i) -> bool:
 ## active_source_positions: 可选，激活源头位置集合（Dictionary{Vector2i: bool}）。
 ##   - null（默认）: 处理所有已注册源头（向后兼容，测试用）
 ##   - 非空 Dictionary: 仅处理位置在集合中的源头（由 ReactionCoordinator 传入连通核心的源头）
-func diffuse_all(element_grid: ElementGrid, active_source_positions: Variant = null) -> void:
+## dirty_positions: 可选，脏区域位置集合。
+##   - null（默认）: 全量检测所有连通区域（向后兼容，测试用）
+##   - Array[Vector2i]: 增量模式，仅重算脏区域涉及的连通区域（方向 A），
+##     无水源标记的稳定区域（无变化）整体跳过，显著降低大水体场景的每 tick 开销。
+##     注意：含水源标记的区域每 tick 因水源重建（clear_all_sources + 重新 mark_as_source）
+##     仍会整体重算，增量收益主要覆盖无源稳定区域（如源头关闭的静态水体/无源滑动池）
+func diffuse_all(element_grid: ElementGrid, active_source_positions: Variant = null, dirty_positions: Variant = null) -> void:
 	# 先处理源头建筑：每源头每 tick 最多创建 1 个种子元素并 mark_as_source
 	_process_source_buildings(element_grid, active_source_positions)
-	var bodies: Array[ElementBody] = _detect_element_bodies(element_grid)
+
+	if dirty_positions == null:
+		# 全量模式（兼容测试/旧调用）：检测所有连通区域
+		var bodies_all: Array[ElementBody] = _detect_element_bodies(element_grid)
+		_process_bodies(element_grid, bodies_all)
+		return
+
+	# 增量模式：合并调用方传入的脏区域 + 源头产出/水源变化新增的脏区域
+	# （复制而非引用，避免 append 污染调用方持有的数组）
+	var all_dirty: Array[Vector2i] = []
+	all_dirty.assign(dirty_positions)
+	all_dirty.append_array(element_grid.take_dirty())
+	if all_dirty.is_empty():
+		return  # 无变化区域，稳定水体跳过内部格
+	var bodies: Array[ElementBody] = _detect_element_bodies_dirty(element_grid, all_dirty)
+	_process_bodies(element_grid, bodies)
+
+
+## 按物态分发区域处理逻辑（固体跳过、有源扩张、无源自然流动）
+func _process_bodies(element_grid: ElementGrid, bodies: Array[ElementBody]) -> void:
 	for body: ElementBody in bodies:
 		var type_data: ElementTypeData = ElementRegistry.get_element_type(body.element_id)
 		if type_data == null:
@@ -126,7 +151,7 @@ func _find_seed_position(element_grid: ElementGrid, source_pos: Vector2i, state:
 			return npos
 	return GameConfig.INVALID_GRID_POS
 
-## 检测所有连通元素区域，按元素类型分别检测
+## 检测所有连通元素区域，按元素类型分别检测（全量模式）
 func _detect_element_bodies(element_grid: ElementGrid) -> Array[ElementBody]:
 	var visited: Dictionary = {}
 	var bodies: Array[ElementBody] = []
@@ -134,51 +159,72 @@ func _detect_element_bodies(element_grid: ElementGrid) -> Array[ElementBody]:
 	for pos: Vector2i in element_grid.get_all_element_positions():
 		if visited.has(pos):
 			continue
-
-		var element_id: String = element_grid.get_element_id(pos)
-		var body := ElementBody.new()
-		body.cells = []
-		body.element_id = element_id
-		body.has_source = false
-		body.min_source_y = GameConfig.SOURCE_Y_SENTINEL
-		body.rate = 0  # BFS 中累计水源数，最后 max(rate, 1)
-
-		# 用 head 指针代替 pop_front：pop_front 是 O(n) 的头部弹出，
-		# 元素量大时 BFS 总复杂度退化到 O(n²)
-		var queue: Array[Vector2i] = [pos]
-		var head: int = 0
-		visited[pos] = true
-
-		while head < queue.size():
-			var current: Vector2i = queue[head]
-			head += 1
-
-			# 队列中的格子入队前已确认与 element_id 同类型，起点类型在外层已读取，
-			# 无需每次循环重复 get_element_id 校验
-			body.cells.append(current)
-
-			if element_grid.is_source_pos(current):
-				body.has_source = true
-				body.rate += 1  # 顺带累计水源数，避免 BFS 后再遍历一次 body.cells
-				var sy: int = element_grid.get_source_y(current)
-				if sy < body.min_source_y:
-					body.min_source_y = sy
-
-			for dir: Vector2i in GridCoordinate.DIR_4:
-				var neighbor: Vector2i = current + dir
-				# 内联 get_element_id：无元素时返回 ""，一次字典查询替代 has+get 两次方法调用
-				if element_grid._elements.get(neighbor, "") != element_id:
-					continue
-				if visited.has(neighbor):
-					continue
-				visited[neighbor] = true
-				queue.append(neighbor)
-
-		body.rate = max(body.rate, 1)
-
+		var body: ElementBody = _bfs_body(element_grid, pos, visited)
 		bodies.append(body)
 
 	return bodies
+
+## 增量检测：仅从脏区域位置出发 BFS，未变化区域整体跳过（方向 A）
+## 脏位置中已被移除的格子跳过；同一区域多个脏位置由 visited 去重。
+func _detect_element_bodies_dirty(element_grid: ElementGrid, dirty_positions: Array[Vector2i]) -> Array[ElementBody]:
+	var visited: Dictionary = {}
+	var bodies: Array[ElementBody] = []
+
+	for pos: Vector2i in dirty_positions:
+		if visited.has(pos):
+			continue
+		# 脏位置可能是刚被移除的格子（无元素），跳过
+		if not element_grid._elements.has(pos):
+			continue
+		var body: ElementBody = _bfs_body(element_grid, pos, visited)
+		bodies.append(body)
+
+	return bodies
+
+## 从 start_pos 出发 BFS 同类型连通区域，构建 ElementBody（含水源统计）
+func _bfs_body(element_grid: ElementGrid, start_pos: Vector2i, visited: Dictionary) -> ElementBody:
+	var element_id: String = element_grid._elements[start_pos]
+	var body := ElementBody.new()
+	body.cells = []
+	body.element_id = element_id
+	body.has_source = false
+	body.min_source_y = GameConfig.SOURCE_Y_SENTINEL
+	body.rate = 0  # BFS 中累计水源数，最后 max(rate, 1)
+
+	# 用 head 指针代替 pop_front：pop_front 是 O(n) 的头部弹出，
+	# 元素量大时 BFS 总复杂度退化到 O(n²)
+	var queue: Array[Vector2i] = [start_pos]
+	var head: int = 0
+	visited[start_pos] = true
+
+	while head < queue.size():
+		var current: Vector2i = queue[head]
+		head += 1
+
+		# 队列中的格子入队前已确认与 element_id 同类型，起点类型在外层已读取，
+		# 无需每次循环重复 get_element_id 校验
+		body.cells.append(current)
+
+		if element_grid.is_source_pos(current):
+			body.has_source = true
+			body.rate += 1  # 顺带累计水源数，避免 BFS 后再遍历一次 body.cells
+			var sy: int = element_grid.get_source_y(current)
+			if sy < body.min_source_y:
+				body.min_source_y = sy
+
+		for dir: Vector2i in GridCoordinate.DIR_4:
+			var neighbor: Vector2i = current + dir
+			# 内联 get_element_id：无元素时返回 ""，一次字典查询替代 has+get 两次方法调用
+			if element_grid._elements.get(neighbor, "") != element_id:
+				continue
+			if visited.has(neighbor):
+				continue
+			visited[neighbor] = true
+			queue.append(neighbor)
+
+	body.rate = max(body.rate, 1)
+
+	return body
 
 ## 有源区域扩张（消耗源质）
 ## upward: true=向上扩散(气体), false=向下扩散(液体)

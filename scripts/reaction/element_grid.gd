@@ -16,15 +16,22 @@ var building_manager_ref: BuildingManager = null
 ## is_building_at 在 ref 未初始化时只 warning 一次的标记
 var _warned_null_building_ref: bool = false
 
+## 脏区域跟踪: {Vector2i: true}
+## 记录自上次扩散/反应扫描以来发生过变化的格子（含邻接格），
+## 供增量扩散跳过稳定区域（方向 A：脏区域增量更新，稳定水体不重复重算）
+var _dirty_cells: Dictionary = {}
+
 
 ## 注册源头建筑位置（由 ReactionCoordinator 在建筑放置时调用）
 func register_source_building(pos: Vector2i) -> void:
 	_source_buildings[pos] = true
+	_mark_dirty(pos)
 
 
 ## 取消注册源头建筑位置（由 ReactionCoordinator 在建筑移除时调用，erase 安全）
 func unregister_source_building(pos: Vector2i) -> void:
 	_source_buildings.erase(pos)
+	_mark_dirty(pos)
 
 
 ## 获取所有源头建筑位置字典（key=Vector2i, value=true）
@@ -39,6 +46,7 @@ func set_element(pos: Vector2i, element_id: String, source_y_val: int) -> bool:
 		return false
 	_elements[pos] = element_id
 	_source_y[pos] = source_y_val
+	_mark_dirty(pos)
 	EventBus.element_spawned.emit(pos, element_id)
 	return true
 
@@ -51,6 +59,7 @@ func remove_element(pos: Vector2i) -> void:
 	_source_y.erase(pos)
 	_source_positions.erase(pos)
 	_product_timers.erase(pos)
+	_mark_dirty(pos)
 	EventBus.element_removed.emit(pos, element_id)
 
 ## 检查指定位置是否有元素
@@ -88,13 +97,18 @@ func move_element(from: Vector2i, to: Vector2i) -> bool:
 		_source_positions[to] = true
 	if product_timer != null:
 		_product_timers[to] = product_timer
+	_mark_dirty(from)
+	_mark_dirty(to)
 	# 用单信号替代 removed+spawned 两次发射（滑动密集场景下显著省信号开销）
 	EventBus.element_moved.emit(from, to, element_id)
 	return true
 
 ## 标记为水源
 func mark_as_source(pos: Vector2i) -> void:
-	_source_positions[pos] = true
+	if not _source_positions.has(pos):
+		_source_positions[pos] = true
+		# 水源状态变化影响其所在区域的有源判定（has_source/rate），需纳入重算
+		_mark_dirty(pos)
 
 ## 检查是否为水源
 func is_source_pos(pos: Vector2i) -> bool:
@@ -102,10 +116,15 @@ func is_source_pos(pos: Vector2i) -> bool:
 
 ## 取消水源标记
 func unmark_source(pos: Vector2i) -> void:
-	_source_positions.erase(pos)
+	if _source_positions.erase(pos):
+		_mark_dirty(pos)
 
 ## 清除所有水源标记
+## 被清除的水源格子会影响其所在区域的有源判定（源头切换/移除后旧体失去水源），
+## 因此对每个原水源格标记脏区域；无水源时为零开销。
 func clear_all_sources() -> void:
+	for pos: Vector2i in _source_positions.keys():
+		_mark_dirty(pos)
 	_source_positions.clear()
 
 ## 标记位置为反应产物，存活 ticks 个 tick
@@ -164,3 +183,36 @@ func clear_all() -> void:
 	_source_positions.clear()
 	_product_timers.clear()
 	_source_buildings.clear()
+	_dirty_cells.clear()
+
+
+# ========== 脏区域跟踪（方向 A：增量更新） ==========
+
+## 标记 pos 及其四邻为脏区域。
+## 位置变化会同时影响邻格的可达性（流动/扩张/反应判定），因此邻格也需重算。
+func _mark_dirty(pos: Vector2i) -> void:
+	_dirty_cells[pos] = true
+	for dir: Vector2i in GridCoordinate.DIR_4:
+		_dirty_cells[pos + dir] = true
+
+## 取走全部脏区域位置并清空（增量扩散/反应扫描的输入）
+func take_dirty() -> Array[Vector2i]:
+	var positions: Array[Vector2i] = []
+	positions.assign(_dirty_cells.keys())
+	_dirty_cells.clear()
+	return positions
+
+## 查看当前脏区域位置（副本，不消费；用于反应扫描同时保留给下一 tick 扩散重算）
+func peek_dirty() -> Array[Vector2i]:
+	var positions: Array[Vector2i] = []
+	positions.assign(_dirty_cells.keys())
+	return positions
+
+## 当前待处理脏区域数量
+func get_dirty_count() -> int:
+	return _dirty_cells.size()
+
+## 标记所有现有元素为脏（建筑放置/移除等全局变更时使用，事件低频可接受全量）
+func mark_all_dirty() -> void:
+	for pos: Vector2i in _elements:
+		_mark_dirty(pos)

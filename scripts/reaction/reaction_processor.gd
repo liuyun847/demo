@@ -26,7 +26,21 @@ func _get_essence() -> Variant:
 	return _essence_service
 
 ## 处理所有相邻格子的反应
-func process_all() -> void:
+## dirty_positions: 可选，脏区域位置集合。
+##   - null（默认）: 全量扫描所有元素（向后兼容，测试用）
+##   - Array[Vector2i]: 增量模式，仅扫描脏区域及其邻格（方向 A）。
+##     未变化区域中的相邻对要么已反应过、要么被永久阻断（无变化），无需重复扫描。
+func process_all(dirty_positions: Variant = null) -> void:
+	if dirty_positions == null:
+		_process_all_full()
+		return
+	if dirty_positions.is_empty():
+		return
+	_process_all_dirty(dirty_positions)
+
+
+## 全量模式：快照所有元素并扫描全部位置（兼容旧调用/测试）
+func _process_all_full() -> void:
 	var all_positions: Array[Vector2i] = _grid.get_all_element_positions()
 	if all_positions.is_empty():
 		return
@@ -38,23 +52,38 @@ func process_all() -> void:
 	# 已参与反应的格子集合，避免一帧内多次反应
 	var reacted: Dictionary = {}
 
+	var pending_reactions: Array[Dictionary] = _scan_reactions(snapshot, all_positions, reacted)
+
+	_execute_reactions(pending_reactions)
+
+
+## 增量模式：仅扫描脏区域位置（方向 A）
+## 脏区域由 ElementGrid 在元素变更时记录（含四邻），因此覆盖所有可能产生新反应的相邻对。
+func _process_all_dirty(dirty_positions: Array[Vector2i]) -> void:
+	var reacted: Dictionary = {}
+
+	var pending_reactions: Array[Dictionary] = _scan_reactions(null, dirty_positions, reacted)
+
+	_execute_reactions(pending_reactions)
+
+
+## 扫描给定位置集合，收集待执行的反应。
+## snapshot 为 null 时直接从 grid 读取（增量模式，扫描期间无修改）。
+func _scan_reactions(snapshot: Variant, positions: Array[Vector2i], reacted: Dictionary) -> Array[Dictionary]:
+	var pending_reactions: Array[Dictionary] = []
+
 	# 类型注册表查询缓存：元素类型只有少数几种，逐格重复查 registry 是冗余开销。
 	# 本地字典缓存后，海量元素仅首次查询走方法分派
 	var type_cache: Dictionary = {}
 
-	var pending_reactions: Array[Dictionary] = []
-
-	for pos: Vector2i in all_positions:
+	for pos: Vector2i in positions:
 		if reacted.has(pos):
 			continue
-		var element_id: String = snapshot.get(pos, "")
+		var element_id: String = _read_id(snapshot, pos)
 		if element_id.is_empty():
 			continue
 
-		var type_data: ElementTypeData = type_cache.get(element_id)
-		if type_data == null:
-			type_data = ElementRegistry.get_element_type(element_id)
-			type_cache[element_id] = type_data
+		var type_data: ElementTypeData = _cached_type(type_cache, element_id)
 		if type_data == null or not type_data.reactive:
 			continue
 
@@ -62,14 +91,11 @@ func process_all() -> void:
 			var neighbor_pos: Vector2i = pos + dir
 			if reacted.has(neighbor_pos):
 				continue
-			var neighbor_id: String = snapshot.get(neighbor_pos, "")
+			var neighbor_id: String = _read_id(snapshot, neighbor_pos)
 			if neighbor_id.is_empty():
 				continue
 
-			var neighbor_type: ElementTypeData = type_cache.get(neighbor_id)
-			if neighbor_type == null:
-				neighbor_type = ElementRegistry.get_element_type(neighbor_id)
-				type_cache[neighbor_id] = neighbor_type
+			var neighbor_type: ElementTypeData = _cached_type(type_cache, neighbor_id)
 			if neighbor_type == null or not neighbor_type.reactive:
 				continue
 
@@ -99,7 +125,27 @@ func process_all() -> void:
 			reacted[neighbor_pos] = true
 			break  # 每个格子每帧最多参与一次反应
 
-	# 执行所有待处理的反应
+	return pending_reactions
+
+
+## 读取位置元素 ID：快照模式走本地字典，增量模式直接查 grid
+func _read_id(snapshot: Variant, pos: Vector2i) -> String:
+	if snapshot == null:
+		return _grid.get_element_id(pos)
+	return snapshot.get(pos, "")
+
+
+## 类型查询缓存
+func _cached_type(type_cache: Dictionary, element_id: String) -> ElementTypeData:
+	var type_data: ElementTypeData = type_cache.get(element_id)
+	if type_data == null:
+		type_data = ElementRegistry.get_element_type(element_id)
+		type_cache[element_id] = type_data
+	return type_data
+
+
+## 执行所有待处理的反应
+func _execute_reactions(pending_reactions: Array[Dictionary]) -> void:
 	for reaction: Dictionary in pending_reactions:
 		var pos_a: Vector2i = reaction["pos_a"]
 		var pos_b: Vector2i = reaction["pos_b"]
