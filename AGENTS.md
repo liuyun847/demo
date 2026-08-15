@@ -19,11 +19,12 @@ demo/
 │   ├── ui/                      # UI 组件（6 个）
 │   ├── persistence/             # 存档（1 个）
 │   ├── resources/               # 数据定义（3 个）
+│   ├── utils/                   # FileIOHelper（1 个，原子写 cfg section）
 │   └── main.gd / CameraController.gd / InfiniteGridMap.gd / Settings.gd / StartMenu.gd / fps_display.gd
 ├── scenes/                      # 场景（7 个 .tscn）
 ├── resources/                   # 图标资源（5 个 .svg）
 ├── save/                        # 运行时存档（gitignore，单文件 game.cfg）
-├── tests/                       # GUT 测试（33 unit + 3 integration）
+├── tests/                       # GUT 测试（36 unit + 3 integration）
 ├── project.godot / .gutconfig.json / AGENTS.md / icon.svg
 └── .githooks/                   # Git 钩子（pre-commit/commit-msg）
 ```
@@ -59,13 +60,13 @@ Root (Node2D) → main.gd
 - **源头系统**: SourceNode 无方向概念，不自行产出。默认关闭态（未选类型 `has_type_selected=false`）灰显且不产出，开启后按类型着色。关闭态不落盘元素类型（重载后仍保持关闭），旧存档携带类型的源头重载后自动转为已确认。ElementDiffusion 每 tick 开头按需创建种子：相邻已有同类型元素→免费维持；否则按状态选种子位置（LIQUID→DOWN、GAS→UP）免费创建。源质仅在扩散扩张时消耗（每格 1.0）。元素类型存于 SourceNode，ElementGrid._source_buildings 仅记录位置
 - **收集器筛选**: CollectorNode 的 filter_element_type 字段，空串=收全部（默认，兼容旧存档），非空仅收匹配类型。通过共享 ElementTypePanel（Mode.COLLECTOR）选择
 - **共享 UI 面板**: ElementTypePanel 用 Mode 枚举（SOURCE/COLLECTOR）服务两类建筑，源头模式无"全部"，收集器模式有"全部"按钮（空筛选）。信号 `element_type_panel_opened/closed`。源头/收集器放置后自动弹出面板；**任何模式**（选择/放置）下左键点击已有源头/收集器均可重新打开面板
-- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心搜索），每 tick：产物计时器递减→收集→扩散(含源头种子)→反应→周期性距离/遗弃清理。水源标记每 tick 清空重建（源头类型切换后旧类型元素体立即失去源，只滑动不扩张）。元素失去源后不增殖，仅沿自然方向**滑动**（液体下沉/气体上浮，格子总数不变、不耗源质），移出距离边界由 `cleanup_abandoned` 兜底（每 CLEANUP_INTERVAL_TICKS 移除距核心切比雪夫距离超 ELEMENT_ABANDON_DISTANCE 的元素）。只有连通核心的管道网络才能激活源头/收集器
+- **模拟系统**: ReactionCoordinator 管理 BFS 网络拓扑（从核心搜索）。**分帧模拟**（方向 D）：0.1s Timer 仅置 `_tick_pending` 标记，由 `_process` 每帧推进一个 TickPhase（PREP→DIFFUSE→REACTIONS→CLEANUP），把单帧峰值分摊到多帧；低帧率时 tick 合并不堆积；`_on_tick()` 保留为同步完整 tick 供测试直调。暂停即刻冻结：丢弃剩余阶段并 `mark_all_dirty()` 以便恢复后全量重算。**增量脏区域**（方向 A）：ElementGrid 追踪脏格（含四邻），`take_dirty()`/`peek_dirty()` 采样，扩散/反应只重算脏区域相关连通域，无水源标记的稳定区域整体跳过（含水源的区域因每 tick 重建水源标记仍会整体重算）；建筑放置/移除触发 `mark_all_dirty()`。每 tick：产物计时器递减→收集→扩散(含源头种子)→反应→周期性距离/遗弃清理。水源标记每 tick 清空重建（源头类型切换后旧类型元素体立即失去源，只滑动不扩张）。元素失去源后不增殖，仅沿自然方向**滑动**（液体下沉/气体上浮，格子总数不变、不耗源质），移出距离边界由 `cleanup_abandoned` 兜底（每 CLEANUP_INTERVAL_TICKS 移除距核心切比雪夫距离超 ELEMENT_ABANDON_DISTANCE 的元素）。只有连通核心的管道网络才能激活源头/收集器
 - **元素系统**: 水/火/蒸汽，按 State（LIQUID/GAS/SOLID）差异化扩散（液体向下、气体向上、固体不动），反应产物存续标记防瞬间消失
-- **反应系统**: ReactionRegistry 注册规则（无序匹配，重复注册跳过并告警），ReactionProcessor 每 tick 检测相邻格子反应，密度决定产物位置
+- **反应系统**: ReactionRegistry 注册规则（无序匹配，重复注册跳过并告警），ReactionProcessor 每 tick 检测相邻格子反应，密度决定产物位置。支持增量扫描：`process_all(dirty_positions)` 仅扫描脏区域，null=全量扫描（兼容测试直调）
 - **源质经济**: EssencePool 管理货币（MAX_ESSENCE 上限，setter/add 均 clampf），ProgressSystem 按阈值解锁。BuildingManager/ReactionCoordinator/ElementDiffusion/ReactionProcessor 通过依赖注入（`_essence_service` + `set_essence_service()`）解耦，未注入回退 EssencePool，支持测试隔离
 - **框选与剪贴板**: 选中 → Ctrl+C/X/V 复制/剪切/粘贴，Ctrl+Z/Y 撤销/重做（栈上限 100），粘贴支持旋转和拖拽
-- **持久化**: 单文件存档 `save/game.cfg`（ConfigFile），含 `[buildings]`/`[settings]`/`[keybindings]` 三 section。各模块经 `FileIOHelper.write_cfg_section` 读写自己的 section（保留其他 section，原子保存 .tmp->rename）。启动自动加载；首次启动检测到旧版多 JSON 存档会迁移到 game.cfg 并重命名旧文件为 .json.bak
-- **可视化**: 管道 ECS 批量渲染（PackedVector2Array）、流体批量渲染、无限网格分块渲染
+- **持久化**: 单文件存档 `save/game.cfg`（ConfigFile），含 `[buildings]`/`[settings]`/`[keybindings]` 三 section。各模块经 `FileIOHelper.write_cfg_section`（scripts/utils/file_io_helper.gd）读写自己的 section（保留其他 section，原子保存 .tmp->rename）。启动自动加载；首次启动检测到旧版多 JSON 存档会迁移到 game.cfg 并重命名旧文件为 .json.bak
+- **可视化**: 元素渲染用 **MultiMesh 实例批处理**（方向 C：边框层为环形网格（不透明描边）+ 填充层 QuadMesh（`ELEMENT_ALPHA` 半透明），swap-last 紧凑移除；注意 `instance_count` setter 会清空实例数据，扩容后必须 `_restore_all_instances()` 重写全部实例）、管道 ECS 批量渲染（PackedVector2Array）、无限网格分块渲染（draw_multiline 点数组缓存，空数组需守卫）
 
 # 通信方式
 
@@ -73,9 +74,11 @@ Root (Node2D) → main.gd
 
 # Git Hooks 与工具
 
-`.githooks/pre-commit` 提交时自动运行：**Godot 项目错误检查** → **GUT 测试**。已通过 `git config core.hooksPath .githooks` 启用。
+`.githooks/pre-commit` 提交时自动运行：**Godot 导入缓存刷新** → **godot-debug 技能脚本项目检查**（`$HOME/.trae-cn/skills/godot-debug/check_godot_project.ps1`，集中维护，不在仓库内，缺失则提交失败）→ **GUT 测试**。测试通过时静默，失败时仅显示 fail/error 相关行。已通过 `git config core.hooksPath .githooks` 启用。
 
-**Godot 路径**: 钩子用 `$GODOT_PATH` 环境变量（默认 `C:/Users/MLTZ/Desktop/Godot_v4.6.1-stable_win64.exe`），使用前需设置。
+`.githooks/commit-msg` 强制 **Conventional Commits** 格式（`type(scope): 描述`，标题后空行；type ∈ feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert），不满足则阻止提交。已有提交历史均遵循此规范。
+
+**Godot 路径**: 钩子/脚本用 `$GODOT_PATH` 环境变量（默认 `C:/Users/MLTZ/Desktop/Godot_v4.6.1-stable_win64.exe`），使用前需设置。
 
 # 测试
 
