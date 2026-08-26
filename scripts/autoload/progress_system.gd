@@ -13,47 +13,12 @@ func _exit_tree() -> void:
 		EssencePool.essence_changed.disconnect(_on_essence_changed)
 
 func _init_thresholds() -> void:
+	# 纯搭建阶段：0 阈值解锁全部建筑（挑战系统后续接入时再按数值突破设置阈值）
 	_thresholds = [
 		{
 			"threshold": 0.0,
 			"unlocks": {
-				"buildings": ["type_02", "type_03", "type_04", "type_07"],
-			}
-		},
-		{
-			"threshold": 100.0,
-			"unlocks": {
-				"description": "解锁轻质元素投放",
-			}
-		},
-		{
-			"threshold": 500.0,
-			"unlocks": {
-				"description": "A 型建筑升级（多方向输出）",
-			}
-		},
-		{
-			"threshold": 2000.0,
-			"unlocks": {
-				"description": "解锁中性元素投放",
-			}
-		},
-		{
-			"threshold": 5000.0,
-			"unlocks": {
-				"description": "A 型建筑升级（更高输出速率）",
-			}
-		},
-		{
-			"threshold": 10000.0,
-			"unlocks": {
-				"description": "B 型建筑升级（更大收集半径）",
-			}
-		},
-		{
-			"threshold": 50000.0,
-			"unlocks": {
-				"description": "解锁粘性元素",
+				"buildings": MachineSpec.get_placement_types(),
 			}
 		},
 	]

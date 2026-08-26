@@ -8,6 +8,9 @@ const MAX_CONTENT_WIDTH: float = 200.0
 var _target_node: Node2D = null
 var _hovered_grid_pos: Vector2i = Vector2i.MIN
 var _panel_open: bool = false
+## 尺寸重算代次：每次 hover 递增；_recalculate_size 续体恢复时代次过期则作废，
+## 防止快速切换悬停建筑时旧续体用过期内容覆盖新布局（交错恢复导致文字与面板错位）
+var _resize_generation: int = 0
 
 @onready var _panel: Panel = $Panel
 @onready var _name_label: Label = $Panel/MarginContainer/VBoxContainer/NameLabel
@@ -23,6 +26,8 @@ func _on_building_removed(grid_pos: Vector2i) -> void:
 		return
 	_hovered_grid_pos = Vector2i.MIN
 	_target_node = null
+	# 隐藏即作废 in-flight 尺寸重算（其续体恢复时不再定位）
+	_resize_generation += 1
 	hide()
 
 func _ready() -> void:
@@ -33,8 +38,8 @@ func _ready() -> void:
 	EventBus.building_hover_exited.connect(_on_building_hover_exited)
 	EventBus.building_removed.connect(_on_building_removed)
 	EventBus.camera_changed.connect(_update_position)
-	EventBus.element_type_panel_opened.connect(_on_element_panel_opened)
-	EventBus.element_type_panel_closed.connect(_on_element_panel_closed)
+	EventBus.config_panel_opened.connect(_on_config_panel_opened)
+	EventBus.config_panel_closed.connect(_on_config_panel_closed)
 
 func _exit_tree() -> void:
 	if EventBus.building_hovered.is_connected(_on_building_hovered):
@@ -45,10 +50,10 @@ func _exit_tree() -> void:
 		EventBus.building_removed.disconnect(_on_building_removed)
 	if EventBus.camera_changed.is_connected(_update_position):
 		EventBus.camera_changed.disconnect(_update_position)
-	if EventBus.element_type_panel_opened.is_connected(_on_element_panel_opened):
-		EventBus.element_type_panel_opened.disconnect(_on_element_panel_opened)
-	if EventBus.element_type_panel_closed.is_connected(_on_element_panel_closed):
-		EventBus.element_type_panel_closed.disconnect(_on_element_panel_closed)
+	if EventBus.config_panel_opened.is_connected(_on_config_panel_opened):
+		EventBus.config_panel_opened.disconnect(_on_config_panel_opened)
+	if EventBus.config_panel_closed.is_connected(_on_config_panel_closed):
+		EventBus.config_panel_closed.disconnect(_on_config_panel_closed)
 
 func _create_styles() -> void:
 	_panel_style = StyleBoxFlat.new()
@@ -69,11 +74,11 @@ func _apply_styles() -> void:
 	_panel.set(&"theme_override_styles/panel", _panel_style)
 	_panel.queue_redraw()
 
-func _on_element_panel_opened() -> void:
+func _on_config_panel_opened() -> void:
 	_panel_open = true
 	hide()
 
-func _on_element_panel_closed() -> void:
+func _on_config_panel_closed() -> void:
 	_panel_open = false
 
 func _on_building_hovered(grid_pos: Vector2i, node: Node2D) -> void:
@@ -83,12 +88,16 @@ func _on_building_hovered(grid_pos: Vector2i, node: Node2D) -> void:
 	_target_node = node
 	_update_content()
 	show()
-	await _recalculate_size()
-	_update_position()
+	_resize_generation += 1
+	var generation := _resize_generation
+	if await _recalculate_size(generation):
+		_update_position()
 
 func _on_building_hover_exited(_grid_pos: Vector2i) -> void:
 	_hovered_grid_pos = Vector2i.MIN
 	_target_node = null
+	# 隐藏即作废 in-flight 尺寸重算（其续体恢复时不再定位）
+	_resize_generation += 1
 	hide()
 
 func _update_content() -> void:
@@ -115,13 +124,18 @@ func _update_content() -> void:
 		_summary_container.add_child(_create_summary_label("暂无属性", Color(0.25, 0.25, 0.25)))
 	else:
 		for key: String in summary.keys():
+			# 名称已由标题（NameLabel）显示，摘要中跳过冗余的 name 键
+			if key == "name":
+				continue
 			_summary_container.add_child(_create_summary_label("%s: %s" % [key, summary[key]], Color(0.1, 0.1, 0.1)))
 
-## 创建摘要 Label：短文本按自然宽度显示（卡片贴合内容），超过上限才限制宽度触发换行
+## 创建摘要 Label：短文本按自然宽度单行显示（卡片贴合内容）；超过上限才限制宽度触发换行。
+## 注意：autowrap 模式下 Label 的 get_minimum_size().x 恒为 1（可压缩到任意窄），
+## 若短文本也开 autowrap，VBox 会塌缩到标题宽度、把摘要挤成竖排窄条（曾致卡片错位），
+## 故短文本不开启 autowrap，此时 min size 宽度 = 文本自然宽度。
 func _create_summary_label(text: String, font_color: Color) -> Label:
 	var label := Label.new()
 	label.text = text
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.add_theme_font_size_override("font_size", 13)
 	label.add_theme_color_override("font_color", font_color)
 	var font := label.get_theme_font("font")
@@ -129,13 +143,20 @@ func _create_summary_label(text: String, font_color: Color) -> Label:
 		text, HORIZONTAL_ALIGNMENT_LEFT, -1, label.get_theme_font_size("font_size")
 	).x
 	if text_width > MAX_CONTENT_WIDTH:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.custom_minimum_size = Vector2(MAX_CONTENT_WIDTH, 0)
 	return label
 
-func _recalculate_size() -> void:
+## 重算卡片尺寸（返回 false 表示本次测量作废：代次过期或已不在场景树）。
+## 注意 autowrap Label 的 min size 宽度恒为 1，测量必须在内容布局稳定后取
+## get_combined_minimum_size()，且旧续体恢复时代次过期必须作废，否则旧内容覆盖新布局。
+func _recalculate_size(generation: int) -> bool:
 	await get_tree().process_frame
+	if generation != _resize_generation:
+		# 内容已被更新的悬停重建，本次测量作废（避免旧尺寸覆盖新内容）
+		return false
 	if not is_inside_tree():
-		return
+		return false
 	var vbox: VBoxContainer = $Panel/MarginContainer/VBoxContainer
 	var content_min: Vector2 = vbox.get_combined_minimum_size()
 	var margin_w: float = _margin.get_theme_constant("margin_left") + _margin.get_theme_constant("margin_right")
@@ -143,6 +164,7 @@ func _recalculate_size() -> void:
 	# 卡片尺寸完全贴合内容（含内边距），不再强制最小宽高导致大面积空白
 	offset_right = offset_left + content_min.x + margin_w
 	offset_bottom = offset_top + content_min.y + margin_h
+	return true
 
 func _update_position() -> void:
 	if not visible:

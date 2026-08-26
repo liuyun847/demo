@@ -6,12 +6,10 @@ var _bar: InventoryBar = null
 var _camera: Camera2D = null
 
 func before_each() -> void:
-	preload("res://scripts/building/pipe_node.gd")
 	preload("res://scripts/resources/building_data.gd")
 	preload("res://scripts/resources/undo_command.gd")
 	preload("res://scripts/grid/input_state_machine.gd")
 	preload("res://scripts/building/ghost_preview_manager.gd")
-	preload("res://scripts/building/brick_node.gd")
 
 	_camera = autoqfree(Camera2D.new())
 	_camera.enabled = true
@@ -22,10 +20,6 @@ func before_each() -> void:
 	_bm.name = "BuildingManager"
 	_bm.unique_name_in_owner = true
 
-	var pipe_render: PipeRenderSystem = autoqfree(load("res://scripts/building/pipe_render_system.gd").new())
-	pipe_render.name = "PipeRenderSystem"
-	_bm.add_child(pipe_render)
-
 	var gp: GhostPreviewManager = autoqfree(load("res://scripts/building/ghost_preview_manager.gd").new())
 	gp.name = "GhostPreviewManager"
 	gp.owner = _bm
@@ -34,14 +28,12 @@ func before_each() -> void:
 	add_child_autoqfree(_bm)
 
 	# 确保 ProgressSystem 已初始化（槽位锁定依赖它）
-	# 手动触发 essence_changed 信号让 ProgressSystem 初始化解锁状态
 	if ProgressSystem.get_unlocked_building_types().is_empty():
-		# 直接设置阈值和触发初始化
 		ProgressSystem.set("_thresholds", [
 			{
 				"threshold": 0.0,
 				"unlocks": {
-					"buildings": ["type_02", "type_03", "type_04", "type_07"],
+					"buildings": MachineSpec.get_placement_types(),
 				}
 			},
 		])
@@ -85,8 +77,8 @@ func _make_mouse_event(button_index: int, pressed: bool, pos: Vector2 = Vector2(
 
 func _make_clipboard() -> Dictionary:
 	var buildings: Array[Dictionary] = []
-	buildings.append({"offset": Vector2i(0, 0), "type": GameConfig.PIPE_TYPE_ID})
-	buildings.append({"offset": Vector2i(1, 0), "type": GameConfig.PIPE_TYPE_ID})
+	buildings.append({"offset": Vector2i(0, 0), "type": MachineSpec.T_BELT})
+	buildings.append({"offset": Vector2i(1, 0), "type": MachineSpec.T_BELT})
 	return {"buildings": buildings}
 
 func test_place_single_building() -> void:
@@ -118,7 +110,7 @@ func test_place_building_line_drag() -> void:
 	assert_true(_bm.has_building(end), "拖拽后终点应有建筑")
 
 func test_remove_single_building() -> void:
-	_bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
+	_bm.place_building(Vector2i(5, 5), MachineSpec.T_BELT)
 	assert_true(_bm.has_building(Vector2i(5, 5)), "放置后建筑应存在")
 
 	var event_press := _make_mouse_event(MOUSE_BUTTON_RIGHT, true)
@@ -130,9 +122,9 @@ func test_remove_single_building() -> void:
 	assert_false(_bm.has_building(Vector2i(5, 5)), "右键单击后建筑应被删除")
 
 func test_selection_rect_selects_buildings() -> void:
-	_bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
-	_bm.place_building(Vector2i(6, 5), GameConfig.PIPE_TYPE_ID)
-	_bm.place_building(Vector2i(5, 6), GameConfig.PIPE_TYPE_ID)
+	_bm.place_building(Vector2i(5, 5), MachineSpec.T_BELT)
+	_bm.place_building(Vector2i(6, 5), MachineSpec.T_BELT)
+	_bm.place_building(Vector2i(5, 6), MachineSpec.T_BELT)
 
 	SelectionManager.clear_selection()
 	SelectionManager._building_manager = _bm
@@ -150,7 +142,7 @@ func test_selection_rect_selects_buildings() -> void:
 func test_hover_detects_building() -> void:
 	var screen_pos := Vector2(320, 240)
 	var grid_pos := _screen_to_grid(screen_pos)
-	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
+	_bm.place_building(grid_pos, MachineSpec.T_BELT)
 
 	watch_signals(EventBus)
 	var motion_event := InputEventMouseMotion.new()
@@ -243,7 +235,7 @@ func test_paste_drag_updates_anchor() -> void:
 func test_hover_exited_signal() -> void:
 	var screen_pos := Vector2(320, 240)
 	var grid_pos := _screen_to_grid(screen_pos)
-	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
+	_bm.place_building(grid_pos, MachineSpec.T_BELT)
 
 	watch_signals(EventBus)
 
@@ -263,8 +255,8 @@ func test_hover_exited_signal() -> void:
 
 func test_remove_records_type_in_undo() -> void:
 	var grid_pos := Vector2i(7, 7)
-	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
-	assert_true(_bm.has_building(grid_pos), "管道应放置成功")
+	_bm.place_building(grid_pos, MachineSpec.T_BELT)
+	assert_true(_bm.has_building(grid_pos), "传送带应放置成功")
 
 	var event_press := _make_mouse_event(MOUSE_BUTTON_RIGHT, true)
 	var event_release := _make_mouse_event(MOUSE_BUTTON_RIGHT, false)
@@ -291,7 +283,7 @@ func test_copy_selection_fills_clipboard() -> void:
 	SelectionManager.undo_stack.clear()
 
 	var grid_pos := Vector2i(5, 0)
-	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
+	_bm.place_building(grid_pos, MachineSpec.T_BELT)
 	SelectionManager.select_cell(grid_pos)
 
 	SelectionManager.copy_selection()
@@ -299,7 +291,7 @@ func test_copy_selection_fills_clipboard() -> void:
 	assert_true(SelectionManager.clipboard.has("buildings"), "剪贴板应含 buildings 键")
 	var buildings: Array = SelectionManager.clipboard["buildings"]
 	assert_eq(buildings.size(), 1, "应复制了 1 个建筑")
-	assert_eq(buildings[0]["type"], GameConfig.PIPE_TYPE_ID, "剪贴板中建筑类型应为管道")
+	assert_eq(buildings[0]["type"], MachineSpec.T_BELT, "剪贴板中建筑类型应为传送带")
 	assert_eq(buildings[0]["offset"], Vector2i(0, 0), "单建筑偏移应为 (0, 0)")
 	var was_cut: bool = SelectionManager.clipboard.get("was_cut", true)
 	assert_false(was_cut, "复制操作的 was_cut 应为 false")
@@ -311,7 +303,7 @@ func test_cut_selection_records_undo_and_removes_building() -> void:
 	SelectionManager.undo_stack.clear()
 
 	var grid_pos := Vector2i(5, 1)
-	_bm.place_building(grid_pos, GameConfig.PIPE_TYPE_ID)
+	_bm.place_building(grid_pos, MachineSpec.T_BELT)
 	SelectionManager.select_cell(grid_pos)
 
 	SelectionManager.cut_selection()
@@ -325,102 +317,138 @@ func test_cut_selection_records_undo_and_removes_building() -> void:
 		assert_true(value.has("type"), "字典应包含 type 键")
 
 
-## 测试：放置收集器后自动打开筛选面板（与源头行为一致）
-## 回归测试：修复"收集器没有显示筛选面板"的 bug
-func test_place_collector_opens_filter_panel() -> void:
-	# 设置 UIOverlay（_open_collector_type_panel 依赖它）
+## 测试：放置筛选器后自动打开筛选配置面板
+func test_place_filter_opens_panel() -> void:
 	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
 	ui_overlay.name = "UIOverlay"
 	add_child_autoqfree(ui_overlay)
 	_handler._ui_overlay = ui_overlay
 
-	# 选中收集器槽位（索引 3 = 收集器）
-	_bar.select_slot(3)
-	assert_eq(_bar.get_current_building_type(), GameConfig.COLLECTOR_TYPE_ID, "应选中收集器类型")
+	_bar.select_slot(4)
+	assert_eq(_bar.get_current_building_type(), MachineSpec.T_FILTER, "应选中筛选器类型")
 
-	# 放置收集器
 	var grid_pos := Vector2i(10, 10)
 	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
 	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
 	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
 	_handler._handle_building_mode(event_release, grid_pos, get_viewport())
 
-	# 验证收集器已放置
-	assert_true(_bm.has_building(grid_pos), "收集器应放置成功")
-
-	# 验证筛选面板已创建（_current_type_panel 不为 null）
-	assert_true(is_instance_valid(_handler._current_type_panel), "放置收集器后应自动打开筛选面板")
-	# 验证面板模式为 COLLECTOR
-	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.COLLECTOR, "面板模式应为 COLLECTOR")
+	assert_true(_bm.has_building(grid_pos), "筛选器应放置成功")
+	assert_true(is_instance_valid(_handler._current_type_panel), "放置筛选器后应自动打开配置面板")
+	assert_eq(_handler._current_type_panel.mode, MachineConfigPanel.Mode.FILTER, "面板模式应为 FILTER")
 
 
-## 测试：放置源头后自动打开类型选择面板（已有行为，作为对照）
-func test_place_source_opens_type_panel() -> void:
-	# 设置 UIOverlay
+## 回归测试：放置模式下左键点击已有筛选器也应弹出配置面板
+func test_click_existing_filter_in_placement_mode_opens_panel() -> void:
 	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
 	ui_overlay.name = "UIOverlay"
 	add_child_autoqfree(ui_overlay)
 	_handler._ui_overlay = ui_overlay
 
-	# 选中源头槽位（索引 1 = 源头）
-	_bar.select_slot(1)
-	assert_eq(_bar.get_current_building_type(), GameConfig.SOURCE_TYPE_ID, "应选中源头类型")
-
-	# 放置源头
-	var grid_pos := Vector2i(10, 10)
-	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
-	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
-	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
-	_handler._handle_building_mode(event_release, grid_pos, get_viewport())
-
-	# 验证源头已放置
-	assert_true(_bm.has_building(grid_pos), "源头应放置成功")
-
-	# 验证类型选择面板已创建
-	assert_true(is_instance_valid(_handler._current_type_panel), "放置源头后应自动打开类型选择面板")
-	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.SOURCE, "面板模式应为 SOURCE")
-
-
-## 回归测试：放置模式下左键点击已有源头也应弹出类型选择面板
-## 场景：物品栏仍选中源头，点击已放置的源头重新打开面板（无需先取消选中）
-func test_click_existing_source_in_placement_mode_opens_panel() -> void:
-	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
-	ui_overlay.name = "UIOverlay"
-	add_child_autoqfree(ui_overlay)
-	_handler._ui_overlay = ui_overlay
-
-	_bar.select_slot(1)  # 源头
-	assert_eq(_bar.get_current_building_type(), GameConfig.SOURCE_TYPE_ID, "应选中源头类型")
-
-	var grid_pos := Vector2i(12, 12)
-	_bm.place_building(grid_pos, GameConfig.SOURCE_TYPE_ID)
-	# 直接放置不经过放置流程，_current_type_panel 初始应为空
-	assert_false(is_instance_valid(_handler._current_type_panel), "初始不应有面板")
-
-	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
-	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
-
-	assert_true(is_instance_valid(_handler._current_type_panel), "放置模式下点击已有源头应打开面板")
-	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.SOURCE, "面板模式应为 SOURCE")
-
-
-## 回归测试：放置模式下左键点击已有收集器也应弹出筛选面板
-## 场景：物品栏仍选中收集器，点击已放置的收集器重新打开面板
-func test_click_existing_collector_in_placement_mode_opens_panel() -> void:
-	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
-	ui_overlay.name = "UIOverlay"
-	add_child_autoqfree(ui_overlay)
-	_handler._ui_overlay = ui_overlay
-
-	_bar.select_slot(3)  # 收集器
-	assert_eq(_bar.get_current_building_type(), GameConfig.COLLECTOR_TYPE_ID, "应选中收集器类型")
+	_bar.select_slot(4)
+	assert_eq(_bar.get_current_building_type(), MachineSpec.T_FILTER, "应选中筛选器类型")
 
 	var grid_pos := Vector2i(12, 13)
-	_bm.place_building(grid_pos, GameConfig.COLLECTOR_TYPE_ID)
+	_bm.place_building(grid_pos, MachineSpec.T_FILTER)
 	assert_false(is_instance_valid(_handler._current_type_panel), "初始不应有面板")
 
 	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
 	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
 
-	assert_true(is_instance_valid(_handler._current_type_panel), "放置模式下点击已有收集器应打开面板")
-	assert_eq(_handler._current_type_panel.mode, ElementTypePanel.Mode.COLLECTOR, "面板模式应为 COLLECTOR")
+	assert_true(is_instance_valid(_handler._current_type_panel), "放置模式下点击已有筛选器应打开面板")
+	assert_eq(_handler._current_type_panel.mode, MachineConfigPanel.Mode.FILTER, "面板模式应为 FILTER")
+
+
+## 测试：放置拖拽按拖拽方向自动设定建筑朝向（左→右 = 东）
+func test_drag_placement_sets_direction_from_drag() -> void:
+	_bar.select_slot(0)  # 传送带
+	var start := Vector2i(3, 7)
+	var end := Vector2i(7, 7)
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_building_mode(event_press, start, get_viewport())
+	_handler._handle_building_mode(event_release, end, get_viewport())
+	assert_eq(_bm.get_building_data(Vector2i(5, 7)).direction, MachineSpec.DIR_E, "左→右拖拽传送带应为东向")
+	# 撤销命令应携带朝向
+	var cmd: UndoCommand = SelectionManager.undo_stack.back()
+	assert_eq(cmd.buildings[Vector2i(5, 7)].direction, MachineSpec.DIR_E, "撤销命令应记录朝向")
+
+
+## 测试：R 键单格放置旋转朝向（_pending_direction 循环）
+func test_r_cycle_pending_direction() -> void:
+	# SelectionManager 是跨测试共享的 autoload，需确保不在粘贴模式（否则 R 走粘贴分支）
+	SelectionManager.cancel_paste_mode()
+	_bar.select_slot(0)
+	assert_eq(_handler._pending_direction, MachineSpec.DIR_E, "初始朝向东")
+	var rotate_event := InputEventKey.new()
+	rotate_event.pressed = true
+	rotate_event.keycode = KEY_R
+	# 模拟 rotate_clipboard 动作（input map 中的 action）
+	_handler._unhandled_input(rotate_event)
+	assert_eq(_handler._pending_direction, MachineSpec.DIR_S, "R 键应使待放置朝向顺时针转到南")
+	# 单格放置使用 _pending_direction
+	var grid_pos := Vector2i(20, 20)
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
+	_handler._handle_building_mode(event_release, grid_pos, get_viewport())
+	assert_true(_bm.has_building(grid_pos), "单格应放置成功")
+	var placed_data: BuildingData = _bm.get_building_data(grid_pos) as BuildingData
+	assert_eq(placed_data.direction, MachineSpec.DIR_S, "放置后的建筑朝向应为南（R 旋转生效）")
+
+
+## 测试：L 型拖放（先横后纵）逐格朝向：水平段全东、垂直段全南、拐角转向
+func test_l_drag_horizontal_then_vertical_directions() -> void:
+	_bar.select_slot(0)  # 传送带
+	var start := Vector2i(2, 2)
+	var end := Vector2i(5, 4)
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_building_mode(event_press, start, get_viewport())
+	_handler._handle_building_mode(event_release, end, get_viewport())
+	# 路径：(2,2)(3,2)(4,2)(5,2)(5,3)(5,4)，先横后纵（默认拐角先水平）
+	assert_eq(_bm.get_building_data(Vector2i(2, 2)).direction, MachineSpec.DIR_E, "水平段起点朝东")
+	assert_eq(_bm.get_building_data(Vector2i(4, 2)).direction, MachineSpec.DIR_E, "水平段中间朝东")
+	assert_eq(_bm.get_building_data(Vector2i(5, 2)).direction, MachineSpec.DIR_S, "拐角格应转向朝南")
+	assert_eq(_bm.get_building_data(Vector2i(5, 3)).direction, MachineSpec.DIR_S, "垂直段朝南")
+	assert_eq(_bm.get_building_data(Vector2i(5, 4)).direction, MachineSpec.DIR_S, "垂直段末端朝南")
+	# 撤销命令逐格记录方向
+	var cmd: UndoCommand = SelectionManager.undo_stack.back()
+	assert_eq(cmd.buildings[Vector2i(5, 2)].direction, MachineSpec.DIR_S, "撤销命令应记录拐角的南向")
+
+
+## 测试：L 型拖放（先纵后横）逐格朝向：垂直段全北、水平段全东
+func test_l_drag_vertical_then_horizontal_directions() -> void:
+	_bar.select_slot(0)  # 传送带
+	# 切换拐角为先纵后横
+	_handler._drag_corner_first_horizontal = false
+	var start := Vector2i(2, 4)
+	var end := Vector2i(5, 2)
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_building_mode(event_press, start, get_viewport())
+	_handler._handle_building_mode(event_release, end, get_viewport())
+	_handler._drag_corner_first_horizontal = true
+	# 路径：(2,4)(2,3)(2,2)(3,2)(4,2)(5,2)，先纵后横
+	assert_eq(_bm.get_building_data(Vector2i(2, 4)).direction, MachineSpec.DIR_N, "垂直段起点朝北")
+	assert_eq(_bm.get_building_data(Vector2i(2, 2)).direction, MachineSpec.DIR_E, "拐角格应转向朝东")
+	assert_eq(_bm.get_building_data(Vector2i(3, 2)).direction, MachineSpec.DIR_E, "水平段朝东")
+	assert_eq(_bm.get_building_data(Vector2i(5, 2)).direction, MachineSpec.DIR_E, "水平段末端朝东")
+
+
+## 测试：反向 L 型拖放（起点右下 → 终点左上）逐格朝向：水平段全西、垂直段全北
+## 覆盖 _l_path_cells 的降序路径（x/y 均递减），防止坐标升序导致方向反转
+func test_l_drag_reverse_directions() -> void:
+	_bar.select_slot(0)  # 传送带
+	var start := Vector2i(5, 4)
+	var end := Vector2i(2, 2)
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	var event_release := _make_mouse_event(MOUSE_BUTTON_LEFT, false)
+	_handler._handle_building_mode(event_press, start, get_viewport())
+	_handler._handle_building_mode(event_release, end, get_viewport())
+	# 路径：(5,4)(4,4)(3,4)(2,4)(2,3)(2,2)，先横后纵（默认拐角先水平），整体向西北
+	assert_eq(_bm.get_building_data(Vector2i(5, 4)).direction, MachineSpec.DIR_W, "水平段起点朝西")
+	assert_eq(_bm.get_building_data(Vector2i(3, 4)).direction, MachineSpec.DIR_W, "水平段中间朝西")
+	assert_eq(_bm.get_building_data(Vector2i(2, 4)).direction, MachineSpec.DIR_N, "拐角格应转向朝北")
+	assert_eq(_bm.get_building_data(Vector2i(2, 3)).direction, MachineSpec.DIR_N, "垂直段朝北")
+	assert_eq(_bm.get_building_data(Vector2i(2, 2)).direction, MachineSpec.DIR_N, "垂直段末端朝北")

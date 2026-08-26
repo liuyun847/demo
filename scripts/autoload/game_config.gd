@@ -43,63 +43,29 @@ var shift_speed_multiplier: float = DEFAULT_SHIFT_SPEED_MULTIPLIER:
 	set(value):
 		shift_speed_multiplier = clampf(value, SHIFT_MULTIPLIER_MIN, SHIFT_MULTIPLIER_MAX)
 
-# 核心建筑类型标识
+# 核心建筑类型标识（旧存档跳过用）
 const CORE_TYPE_ID: String = "type_00"
 
-# 核心占据的 2x2 格子（从 -1,-1 到 0,0，以地图原点 (0,0) 为中心）
-const CORE_CELLS: Array[Vector2i] = [
-	Vector2i(-1, -1),
-	Vector2i(0, -1),
-	Vector2i(-1, 0),
-	Vector2i(0, 0),
-]
-
-# 管道建筑类型标识
+# 管道建筑类型标识（旧存档兼容，无实际用途）
 const PIPE_TYPE_ID: String = "type_02"
 
-# 砖块建筑类型标识
+# 砖块建筑类型标识（旧存档兼容，无实际用途）
 const BRICK_TYPE_ID: String = "type_04"
 
-# 源头建筑类型标识
+# 源头建筑类型标识（旧存档兼容，无实际用途）
 const SOURCE_TYPE_ID: String = "type_03"
 
-# 收集器建筑类型标识
+# 收集器建筑类型标识（旧存档兼容，无实际用途）
 const COLLECTOR_TYPE_ID: String = "type_07"
 
-# 建筑放置源质消耗（key: building_type_id, value: cost）
-const BUILDING_ESSENCE_COSTS: Dictionary = {
-	"type_02": 0.0,  # 管道
-	"type_03": 0.0,  # 源头
-	"type_04": 0.0,  # 砖块
-	"type_07": 0.0,  # 收集器
-}
-
-# 元素扩散扩张每格源质消耗（源头种子创建免费，不在源头消耗）
-const SOURCE_ESSENCE_COST_PER_TICK: float = 1.0
-
-# 收集器默认收集半径
-const COLLECTOR_DEFAULT_RADIUS: int = 1
+# 建筑放置源质消耗（key: building_type_id, value: cost；纯搭建阶段全为默认 0）
+const BUILDING_ESSENCE_COSTS: Dictionary = {}
 
 # 初始源质
 const INITIAL_ESSENCE: float = 100.0
 
-# 扩散系统配置
+# 模拟系统配置
 const SIMULATION_TICK_INTERVAL: float = 0.1
-const DIFFUSION_STEPS_PER_TICK: int = 1
-const ELEMENT_ABANDON_DISTANCE: int = 1000
-const CLEANUP_INTERVAL_TICKS: int = 10
-## 反应产物存续 tick 数，防止产物瞬间消失
-const PRODUCT_SURVIVAL_TICKS: int = 3
-## 源 Y 坐标哨兵，表示"未设置"，用于扩散算法初始化
-const SOURCE_Y_SENTINEL: int = 999999
-
-# 元素渲染配置
-## 元素填充透明度
-const ELEMENT_ALPHA: float = 0.85
-
-# UI 配置
-## 源质显示相对摄像机的偏移
-const ESSENCE_DISPLAY_OFFSET: Vector2 = Vector2(8, -8)
 
 # 存档版本号
 const SAVE_VERSION: String = "1.0.0"

@@ -126,18 +126,25 @@ func test_pause_state_changed_signal() -> void:
 	EventBus.pause_state_changed.emit(true)
 	assert_true(triggered[0], "pause_state_changed 信号应触发（参数 true）")
 
-func test_element_type_panel_opened_signal() -> void:
+func test_config_panel_opened_signal() -> void:
 	var triggered := [false]
-	EventBus.element_type_panel_opened.connect(func() -> void: triggered[0] = true, CONNECT_ONE_SHOT)
-	EventBus.element_type_panel_opened.emit()
-	assert_true(triggered[0], "element_type_panel_opened 信号应触发")
+	EventBus.config_panel_opened.connect(func() -> void: triggered[0] = true, CONNECT_ONE_SHOT)
+	EventBus.config_panel_opened.emit()
+	assert_true(triggered[0], "config_panel_opened 信号应触发")
 
 
-func test_element_type_panel_closed_signal() -> void:
+func test_config_panel_closed_signal() -> void:
 	var triggered := [false]
-	EventBus.element_type_panel_closed.connect(func() -> void: triggered[0] = true, CONNECT_ONE_SHOT)
-	EventBus.element_type_panel_closed.emit()
-	assert_true(triggered[0], "element_type_panel_closed 信号应触发")
+	EventBus.config_panel_closed.connect(func() -> void: triggered[0] = true, CONNECT_ONE_SHOT)
+	EventBus.config_panel_closed.emit()
+	assert_true(triggered[0], "config_panel_closed 信号应触发")
+
+
+func test_sim_tick_completed_signal() -> void:
+	var triggered := [false]
+	EventBus.sim_tick_completed.connect(func(_events: Array) -> void: triggered[0] = true, CONNECT_ONE_SHOT)
+	EventBus.sim_tick_completed.emit([])
+	assert_true(triggered[0], "sim_tick_completed 信号应触发")
 
 func test_multiple_connections_all_fire() -> void:
 	var count := [0]

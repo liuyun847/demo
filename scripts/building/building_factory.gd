@@ -14,10 +14,36 @@ static var _creators_by_category: Dictionary = {}
 
 static func _static_init() -> void:
 	# 注册已知 category 的创建函数，保持外部接口不变
-	_creators_by_category[BuildingTypeData.Category.PIPE] = Callable(BuildingFactory, "_create_pipe")
-	_creators_by_category[BuildingTypeData.Category.BRICK] = Callable(BuildingFactory, "_create_brick")
-	_creators_by_category[BuildingTypeData.Category.SOURCE] = Callable(BuildingFactory, "_create_source")
-	_creators_by_category[BuildingTypeData.Category.COLLECTOR] = Callable(BuildingFactory, "_create_collector")
+	_creators_by_category[BuildingTypeData.Category.BELT] = Callable(BuildingFactory, "_create_belt")
+	_creators_by_category[BuildingTypeData.Category.MACHINE] = Callable(BuildingFactory, "_create_machine")
+
+
+## 传送带：通用节点（朝向由数据层恢复）
+static func _create_belt(_type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
+	var belt := BeltNode.new()
+	belt.name = node_name
+	belt.global_position = world_pos
+	belt.grid_position = grid_pos
+	belt.building_type = MachineSpec.T_BELT
+	return belt
+
+
+## 通用机器：按 type_id 决定行为（端口/绘制由 MachineSpec 数据驱动）；
+## 传送带+分流器一体建筑走复合节点（BeltSplitterNode，画传送带底 + 分流器盒体）
+static func _create_machine(type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
+	if type_id == MachineSpec.T_BELT_SPLITTER:
+		var combo := BeltSplitterNode.new()
+		combo.name = node_name
+		combo.global_position = world_pos
+		combo.grid_position = grid_pos
+		combo.building_type = type_id
+		return combo
+	var machine: MachineNode = MachineNode.new()
+	machine.name = node_name
+	machine.global_position = world_pos
+	machine.grid_position = grid_pos
+	machine.building_type = type_id
+	return machine
 
 
 static func _get_placeholder_label_settings() -> LabelSettings:
@@ -26,40 +52,6 @@ static func _get_placeholder_label_settings() -> LabelSettings:
 		_placeholder_label_settings.font_size = 12
 		_placeholder_label_settings.font_color = Color.WHITE
 	return _placeholder_label_settings
-
-
-## 统一签名的创建函数：所有 _create_* 方法都接收 (type_id, grid_pos, world_pos, node_name)。
-## type_id 在部分方法中未使用（带下划线前缀），保持签名一致以便注册表统一调用。
-static func _create_pipe(_type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
-	var pipe := PipeNode.new()
-	pipe.name = node_name
-	pipe.global_position = world_pos
-	pipe.grid_position = grid_pos
-	return pipe
-
-
-static func _create_brick(_type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
-	var brick := BrickNode.new()
-	brick.name = node_name
-	brick.global_position = world_pos
-	brick.grid_position = grid_pos
-	return brick
-
-
-static func _create_source(_type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
-	var source := SourceNode.new()
-	source.name = node_name
-	source.global_position = world_pos
-	source.grid_position = grid_pos
-	return source
-
-
-static func _create_collector(_type_id: String, grid_pos: Vector2i, world_pos: Vector2, node_name: String) -> Node2D:
-	var collector := CollectorNode.new()
-	collector.name = node_name
-	collector.global_position = world_pos
-	collector.grid_position = grid_pos
-	return collector
 
 
 ## 占位建筑：GENERIC 类别或未注册类型走此分支，显示带颜色框和序号标签

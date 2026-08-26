@@ -56,12 +56,16 @@ signal essence_threshold_reached(threshold: float, unlocks: Dictionary)
 @warning_ignore("unused_signal")
 signal pause_state_changed(paused: bool)
 
-# 元素类型选择面板信号（源头/收集器共享）
+# 物品流模拟信号：每个完整 tick 完成后发射事件数组（渲染层做位置插值）
 @warning_ignore("unused_signal")
-signal element_type_panel_opened
-@warning_ignore("unused_signal")
-signal element_type_panel_closed
+signal sim_tick_completed(events: Array)
 
-# 源头产出类型/收集器筛选类型变更信号（触发延迟保存）
+# 机器配置变更信号（筛选器谓词，触发延迟保存）
 @warning_ignore("unused_signal")
-signal element_type_changed(grid_pos: Vector2i)
+signal machine_config_changed(grid_pos: Vector2i)
+
+# 配置面板开关信号（筛选器配置面板）
+@warning_ignore("unused_signal")
+signal config_panel_opened
+@warning_ignore("unused_signal")
+signal config_panel_closed

@@ -94,7 +94,7 @@ func _build_focus_row() -> void:
 	_focus_key_label = _make_keycap("focus_core")
 	row.add_child(_focus_key_label)
 
-	var desc := _make_desc("回到核心")
+	var desc := _make_desc("回到原点")
 	row.add_child(desc)
 
 	add_child(row)
@@ -237,7 +237,7 @@ func _refresh_click_rows() -> void:
 		"place":
 			_left_click_desc.text = "放置/拖拽"
 			_right_click_desc.text = "删除"
-			_rotate_desc.text = "拖拽时切换拐角"
+			_rotate_desc.text = "R 旋转朝向 / 拖拽切拐角"
 			_rotate_row.show()
 		"select":
 			_left_click_desc.text = "框选"

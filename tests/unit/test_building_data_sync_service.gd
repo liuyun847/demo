@@ -1,125 +1,146 @@
 extends GutTest
 
-const _SourceScript = preload("res://scripts/building/source_node.gd")
-const _CollectorScript = preload("res://scripts/building/collector_node.gd")
+## BuildingDataSyncService：物品流字段（direction/op_choice/filter/splitter_phase）
+## 节点 <-> 数据双向同步 + entry 助手测试。
 
+var _data: BuildingData = null
 
-func before_all() -> void:
-	_ensure_building_types_registered()
+func before_each() -> void:
+	_data = BuildingData.new()
+	_data.building_type = MachineSpec.T_APPLIER
 
+func _make_belt_node() -> BeltNode:
+	var node := BeltNode.new()
+	node.building_type = MachineSpec.T_BELT
+	return autoqfree(node)
 
-func _ensure_building_types_registered() -> void:
-	if BuildingTypeManager.has_capacity(GameConfig.PIPE_TYPE_ID):
-		return
-	var types: Array[BuildingTypeData] = []
-	var entries: Array = [
-		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
-		[GameConfig.SOURCE_TYPE_ID,    {"category": BuildingTypeData.Category.SOURCE}],
-		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
-		[GameConfig.BRICK_TYPE_ID,     {}],
-	]
-	for entry: Array in entries:
-		var td := BuildingTypeData.new()
-		td.type_id = entry[0]
-		var props: Dictionary = entry[1]
-		for k: String in props.keys():
-			td.set(k, props[k])
-		types.append(td)
-	BuildingTypeManager.register_all(types)
+func _make_machine_node() -> MachineNode:
+	var node := MachineNode.new()
+	node.building_type = MachineSpec.T_APPLIER
+	return autoqfree(node)
 
+func test_node_to_data_belt_direction() -> void:
+	var node := _make_belt_node()
+	node.set_direction(MachineSpec.DIR_W)
+	BuildingDataSyncService.sync_from_node(_data, node)
+	assert_eq(_data.direction, MachineSpec.DIR_W, "节点朝向应同步到数据")
 
-func _make_source_data() -> BuildingData:
+func test_node_to_data_machine_fields() -> void:
+	var node := _make_machine_node()
+	node.direction = MachineSpec.DIR_S
+	node.op_choice = OpRegistry.OP_SUB1
+	node.filter_kind = "op"
+	node.filter_value = OpRegistry.OP_NEG
+	node.splitter_phase = 1
+	BuildingDataSyncService.sync_from_node(_data, node)
+	assert_eq(_data.direction, MachineSpec.DIR_S)
+	assert_eq(_data.op_choice, OpRegistry.OP_SUB1)
+	assert_eq(_data.filter_kind, "op")
+	assert_eq(_data.filter_cmp, "gt", "未改动的比较字段保持默认")
+	assert_eq(_data.filter_value, OpRegistry.OP_NEG)
+	assert_eq(_data.splitter_phase, 1)
+
+func test_restore_data_applies_to_node_and_data() -> void:
+	var node := _make_machine_node()
+	var restore_data := {
+		"direction": MachineSpec.DIR_N,
+		"op_choice": OpRegistry.OP_MUL2,
+		"filter_kind": "num",
+		"filter_cmp": "lt",
+		"filter_value": 7,
+		"splitter_phase": 1,
+	}
+	BuildingDataSyncService.sync_from_node(_data, node, restore_data)
+	assert_eq(_data.direction, MachineSpec.DIR_N)
+	assert_eq(_data.op_choice, OpRegistry.OP_MUL2)
+	assert_eq(_data.filter_cmp, "lt")
+	assert_eq(_data.filter_value, 7)
+	assert_eq(_data.splitter_phase, 1)
+	assert_eq(node.direction, MachineSpec.DIR_N, "restore 应写回节点")
+	assert_eq(node.op_choice, OpRegistry.OP_MUL2)
+	assert_eq(node.filter_kind, "num")
+
+func test_restore_partial_fields() -> void:
+	var node := _make_machine_node()
+	BuildingDataSyncService.sync_from_node(_data, node, {"direction": MachineSpec.DIR_S})
+	assert_eq(_data.direction, MachineSpec.DIR_S)
+	assert_eq(_data.op_choice, -1, "未提供的字段保持默认")
+	assert_eq(node.op_choice, -1)
+
+func test_sync_non_flow_node_noop() -> void:
+	# 未知/非物品流节点不应同步也不崩溃
+	var plain: Node = autofree(Node.new())
+	BuildingDataSyncService.sync_from_node(_data, plain)
+	assert_eq(_data.direction, 0, "非物品流节点不改变数据")
+
+func test_entry_to_restore_data() -> void:
+	var entry := {
+		"type": MachineSpec.T_FILTER,
+		"direction": 2,
+		"op_choice": 3,
+		"filter_kind": "op",
+		"filter_value": 4,
+	}
+	var restore := BuildingDataSyncService.entry_to_restore_data(entry)
+	assert_eq(restore.direction, 2)
+	assert_eq(restore.op_choice, 3)
+	assert_eq(restore.filter_kind, "op")
+	assert_eq(restore.filter_value, 4)
+	assert_false(restore.has("splitter_phase"), "缺失字段不出现")
+
+func test_data_to_entry_defaults_omitted() -> void:
 	var data := BuildingData.new()
-	data.building_type = GameConfig.SOURCE_TYPE_ID
-	return data
+	data.building_type = MachineSpec.T_NUM_SOURCE
+	data.direction = 0
+	data.op_choice = -1
+	data.filter_kind = "num"
+	data.filter_cmp = "gt"
+	data.filter_value = 0
+	var entry := BuildingDataSyncService.data_to_entry(data)
+	assert_eq(entry.type, MachineSpec.T_NUM_SOURCE)
+	assert_eq(entry.direction, 0, "朝向总是记录")
+	assert_false(entry.has("op_choice"), "未选择操作不记录")
+	assert_false(entry.has("filter_kind"), "默认筛选配置不记录")
 
-
-func _make_collector_data() -> BuildingData:
+func test_data_to_entry_custom_fields() -> void:
 	var data := BuildingData.new()
-	data.building_type = GameConfig.COLLECTOR_TYPE_ID
-	return data
+	data.building_type = MachineSpec.T_SPLITTER
+	data.direction = 3
+	data.splitter_phase = 1
+	data.op_choice = OpRegistry.OP_IS_ZERO
+	var entry := BuildingDataSyncService.data_to_entry(data)
+	assert_eq(entry.direction, 3)
+	assert_eq(entry.splitter_phase, 1)
+	assert_eq(entry.op_choice, OpRegistry.OP_IS_ZERO)
+	assert_eq(entry.op_def, "iszero", "操作选择应附带稳定定义串")
 
+func test_composite_op_entry_carries_definition() -> void:
+	# 复合操作必须携带定义串，否则重载后 id 失效会静默停产
+	var comp := OpRegistry.compose(OpRegistry.OP_ADD1, OpRegistry.OP_MUL2)
+	var data := BuildingData.new()
+	data.building_type = MachineSpec.T_APPLIER
+	data.op_choice = comp
+	var entry := BuildingDataSyncService.data_to_entry(data)
+	assert_eq(entry.op_choice, comp)
+	assert_true(entry.has("op_def"), "复合操作应记录定义串")
+	var restore := BuildingDataSyncService.entry_to_restore_data(entry)
+	assert_true(restore.has("op_def"), "restore_data 应透传定义串")
+	# 模拟跨会话：清空注册表后用定义串恢复
+	OpRegistry.reset()
+	var restored := OpRegistry.ensure_from_definition(str(restore.op_def))
+	assert_true(restored >= 0, "定义串恢复应成功")
+	assert_eq(OpRegistry.apply(restored, 3), 8, "恢复后语义一致：先 +1 再 ×2")
 
-# ========== 源头路径 ==========
-
-func test_sync_source_pull_from_node() -> void:
-	var data := _make_source_data()
-	var node: SourceNode = autoqfree(_SourceScript.new())
-	node.set_element_type("water")
-	BuildingDataSyncService.sync_from_node(data, node, {})
-	assert_eq(data.element_type_id, "water")
-	assert_true(node.has_type_selected(), "set_element_type 后节点应标记为已确认")
-
-
-func test_sync_source_restore_element_type() -> void:
-	var data := _make_source_data()
-	var node: SourceNode = autoqfree(_SourceScript.new())
-	BuildingDataSyncService.sync_from_node(data, node, {"element_type_id": "water"})
-	assert_eq(data.element_type_id, "water")
-	assert_eq(node.element_type_id, "water")
-	assert_true(node.has_type_selected(), "通过 restore_data 设置后节点应标记为已确认")
-
-
-## 回归测试：未确认类型（关闭态）源头同步时不落盘元素类型，重载后保持关闭不产出
-func test_sync_source_unconfirmed_writes_empty() -> void:
-	var data := _make_source_data()
-	var node: SourceNode = autoqfree(_SourceScript.new())
-	# 未调用 set_element_type，has_type_selected() 为 false（关闭态默认）
-	BuildingDataSyncService.sync_from_node(data, node, {})
-	assert_eq(data.element_type_id, "", "关闭态源头不应落盘元素类型")
-
-
-# ========== 收集器路径 ==========
-
-func test_sync_collector_pull_from_node() -> void:
-	var data := _make_collector_data()
-	var node: CollectorNode = autoqfree(_CollectorScript.new())
-	node.set_filter("water")
-	BuildingDataSyncService.sync_from_node(data, node, {})
-	assert_eq(data.collector_filter, "water")
-
-
-func test_sync_collector_restore_filter() -> void:
-	var data := _make_collector_data()
-	var node: CollectorNode = autoqfree(_CollectorScript.new())
-	BuildingDataSyncService.sync_from_node(data, node, {"collector_filter": "fire"})
-	assert_eq(data.collector_filter, "fire")
-	assert_eq(node.filter_element_type, "fire")
-
-
-func test_sync_collector_empty_filter_default() -> void:
-	var data := _make_collector_data()
-	var node: CollectorNode = autoqfree(_CollectorScript.new())
-	BuildingDataSyncService.sync_from_node(data, node, {})
-	assert_eq(data.collector_filter, "", "空筛选为默认值（收全部）")
-	assert_eq(node.filter_element_type, "")
-
-
-# ========== 异常路径 ==========
-
-func test_sync_source_with_non_source_node_skipped() -> void:
-	var data := _make_source_data()
-	var node: Node2D = autoqfree(Node2D.new())
-	BuildingDataSyncService.sync_source(data, node, {"element_type_id": "water"})
-	assert_eq(data.element_type_id, "", "非 SourceNode 应跳过同步，data 保持默认空字符串")
-
-
-func test_sync_collector_with_non_collector_node_skipped() -> void:
-	var data := _make_collector_data()
-	var node: Node2D = autoqfree(Node2D.new())
-	BuildingDataSyncService.sync_collector(data, node, {"collector_filter": "water"})
-	assert_eq(data.collector_filter, "", "非 CollectorNode 应跳过同步，data 保持默认空字符串")
-
-
-# ========== 回归保护：output_direction 字段应被忽略 ==========
-
-func test_sync_source_ignores_legacy_output_direction() -> void:
-	# 旧存档可能携带 output_direction 字段，应被静默忽略（不报错、不影响同步）
-	var data := _make_source_data()
-	var node: SourceNode = autoqfree(_SourceScript.new())
-	BuildingDataSyncService.sync_from_node(data, node, {
-		"output_direction": [1, 0],
-		"element_type_id": "water",
-	})
-	assert_eq(data.element_type_id, "water", "应正常同步 element_type_id")
-	assert_false("output_direction" in data, "BuildingData 不应再持有 output_direction 属性")
+func test_filter_op_entry_carries_definition() -> void:
+	var comp := OpRegistry.compose(OpRegistry.OP_SUB1, OpRegistry.OP_NEG)
+	var data := BuildingData.new()
+	data.building_type = MachineSpec.T_FILTER
+	data.filter_kind = "op"
+	data.filter_cmp = "eq"
+	data.filter_value = comp
+	var entry := BuildingDataSyncService.data_to_entry(data)
+	assert_true(entry.has("filter_op_def"), "op 筛选应记录定义串")
+	var restore := BuildingDataSyncService.entry_to_restore_data(entry)
+	OpRegistry.reset()
+	var restored := OpRegistry.ensure_from_definition(str(restore.filter_op_def))
+	assert_eq(OpRegistry.apply(restored, 4), -3, "恢复后语义一致：先 -1 得 3，再取反得 -3")

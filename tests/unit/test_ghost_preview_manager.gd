@@ -15,6 +15,26 @@ func test_ghost_show_and_hide() -> void:
 	_gpm.hide_ghost()
 	assert_true(_gpm.get_layer_cells("ghost").is_empty(), "隐藏后应为空")
 
+## 展示放置预览时记录逐格类型/朝向（供端口方向箭头绘制）
+func test_show_ghost_stores_type_and_dirs() -> void:
+	var cells: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0)]
+	_gpm.show_ghost(cells, MachineSpec.T_BELT, [MachineSpec.DIR_E, MachineSpec.DIR_S])
+	assert_eq(_gpm.get_layer_cells("ghost").size(), 2)
+	assert_eq(_gpm.ghost_types.size(), 2, "应记录每格类型")
+	assert_eq(_gpm.ghost_types[Vector2i(0, 0)], MachineSpec.T_BELT)
+	assert_eq(_gpm.ghost_dirs[Vector2i(1, 0)], MachineSpec.DIR_S, "每格朝向应独立记录")
+	_gpm.hide_ghost()
+	assert_true(_gpm.ghost_types.is_empty(), "隐藏后应清空类型映射")
+	assert_true(_gpm.ghost_dirs.is_empty(), "隐藏后应清空朝向映射")
+
+## 不带类型/朝向的 show_ghost（兼容旧调用）不记录箭头信息
+func test_show_ghost_without_info_skips_arrows() -> void:
+	var cells: Array[Vector2i] = [Vector2i(2, 2)]
+	_gpm.show_ghost(cells)
+	assert_eq(_gpm.get_layer_cells("ghost").size(), 1)
+	assert_true(_gpm.ghost_types.is_empty(), "无类型信息时不应记映射")
+	assert_true(_gpm.ghost_dirs.is_empty())
+
 func test_remove_ghost_show_and_hide() -> void:
 	var cells: Array[Vector2i] = [Vector2i(2, 2), Vector2i(3, 3)]
 	_gpm.show_remove_ghost(cells)
@@ -56,6 +76,23 @@ func test_set_paste_preview_line() -> void:
 	_gpm.set_paste_preview_line(anchors, clipboard)
 	assert_eq(_gpm.get_layer_cells("paste_ghost").size(), 4, "2 锚点 × 2 偏移量 = 4 个预览格子")
 	assert_eq(_gpm.paste_ghost_types.size(), 4, "应有 4 个类型映射")
+
+## 粘贴预览记录每格朝向（缺省 direction 回退东向）
+func test_set_paste_preview_line_records_dirs() -> void:
+	var buildings: Array[Dictionary] = [
+		{"offset": Vector2i(0, 0), "type": MachineSpec.T_BELT, "direction": MachineSpec.DIR_N},
+		{"offset": Vector2i(1, 0), "type": MachineSpec.T_APPLIER},
+	]
+	var clipboard := {
+		"buildings": buildings,
+	}
+	var anchors: Array[Vector2i] = [Vector2i(5, 5)]
+	_gpm.set_paste_preview_line(anchors, clipboard)
+	assert_eq(_gpm.paste_ghost_dirs.size(), 2, "应记录每格朝向")
+	assert_eq(_gpm.paste_ghost_dirs[Vector2i(5, 5)], MachineSpec.DIR_N, "显式朝向应记录")
+	assert_eq(_gpm.paste_ghost_dirs[Vector2i(6, 5)], MachineSpec.DIR_E, "缺省朝向回退东")
+	_gpm.clear_paste_preview()
+	assert_true(_gpm.paste_ghost_dirs.is_empty(), "清除后应清空朝向映射")
 
 func test_set_paste_preview_line_dedup() -> void:
 	var buildings: Array[Dictionary] = [

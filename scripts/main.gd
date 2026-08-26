@@ -1,7 +1,5 @@
 extends Node2D
 
-const FileIOHelper := preload("res://scripts/utils/file_io_helper.gd")
-
 const SLOT_KEYS := [
 	"slot_1", "slot_2", "slot_3", "slot_4", "slot_5",
 	"slot_6", "slot_7", "slot_8", "slot_9", "slot_0"
@@ -35,7 +33,6 @@ func _assert_ui_ready() -> bool:
 func _enter_tree() -> void:
 	EventBus.buildings_loaded.connect(_on_buildings_loaded)
 	EventBus.start_game_requested.connect(_on_start_game_requested)
-	EventBus.start_game_requested.connect(_on_game_started)
 	EventBus.show_start_menu_requested.connect(_on_show_start_menu_requested)
 	EventBus.show_settings_requested.connect(_on_show_settings_requested)
 
@@ -47,23 +44,11 @@ func _ready() -> void:
 	settings_panel.hide()
 	inventory_bar.hide()
 	_create_pause_overlay()
-	_create_essence_display()
 	_update_pause_state()
-
-## 创建源质数值显示控件（始终存在，避免 ESC 进入主场景时未创建）
-func _create_essence_display() -> void:
-	# 检查 EssenceDisplay 是否已存在，避免重复创建
-	if $UIOverlay.get_node_or_null("EssenceDisplay") == null:
-		var essence_display := EssenceDisplay.new()
-		essence_display.name = "EssenceDisplay"
-		essence_display.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		essence_display.position = GameConfig.ESSENCE_DISPLAY_OFFSET
-		$UIOverlay.add_child(essence_display)
 
 func _exit_tree() -> void:
 	EventBus.buildings_loaded.disconnect(_on_buildings_loaded)
 	EventBus.start_game_requested.disconnect(_on_start_game_requested)
-	EventBus.start_game_requested.disconnect(_on_game_started)
 	EventBus.show_start_menu_requested.disconnect(_on_show_start_menu_requested)
 	EventBus.show_settings_requested.disconnect(_on_show_settings_requested)
 
@@ -114,12 +99,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_buildings_loaded() -> void:
 	if is_inside_tree():
 		show_start_menu.call_deferred()
-
-func _on_game_started() -> void:
-	# 仅在无 [buildings] 存档时重置源质（有存档时 SaveManager 已加载存档值）
-	# EssenceDisplay 已在 _ready() 中创建，此处无需再创建
-	if not FileIOHelper.cfg_has_section(GameConfig.unified_save_path, GameConfig.SECTION_BUILDINGS):
-		EssencePool.set_value(GameConfig.INITIAL_ESSENCE)
 
 func _on_start_game_requested() -> void:
 	hide_start_menu()

@@ -96,21 +96,23 @@ func _update_all_locks() -> void:
 				slot.set_locked(not unlocked)
 
 func _init_default_types() -> void:
-	# 用数组定义实际建筑类型，type_id 直接使用 GameConfig 常量
-	# category 用 BuildingTypeData.Category 枚举值，替代旧的 is_pipe/is_emitter/is_collector 三个 bool
-	var type_entries: Array[Dictionary] = [
-		{"id": GameConfig.PIPE_TYPE_ID,      "name": "管道",   "icon": "res://resources/pipe_icon.svg",           "category": BuildingTypeData.Category.PIPE},
-		{"id": GameConfig.SOURCE_TYPE_ID,    "name": "源头",   "icon": "res://resources/source_water_icon.svg",   "category": BuildingTypeData.Category.SOURCE},
-		{"id": GameConfig.BRICK_TYPE_ID,     "name": "砖块",   "icon": "res://resources/brick_icon.svg",          "category": BuildingTypeData.Category.BRICK},
-		{"id": GameConfig.COLLECTOR_TYPE_ID, "name": "收集器", "icon": "res://resources/collector_icon.svg",      "category": BuildingTypeData.Category.COLLECTOR},
-	]
-	for entry: Dictionary in type_entries:
+	# 函数式工厂建筑清单：传送带 + 5 种机器（MachineSpec 唯一来源）
+	var icon_map := {
+		MachineSpec.T_BELT: "res://resources/belt.svg",
+		MachineSpec.T_NUM_SOURCE: "res://resources/num_source.svg",
+		MachineSpec.T_APPLIER: "res://resources/applier.svg",
+		MachineSpec.T_SPLITTER: "res://resources/splitter.svg",
+		MachineSpec.T_FILTER: "res://resources/filter.svg",
+		MachineSpec.T_TRASH: "res://resources/trash.svg",
+	}
+	for type_id: String in MachineSpec.get_placement_types():
 		var data: BuildingTypeData = BuildingTypeData.new()
-		data.type_id = entry.id
-		data.display_name = entry.name
-		if ResourceLoader.exists(entry.icon):
-			data.icon_texture = load(entry.icon)
-		data.category = entry.get("category", BuildingTypeData.Category.GENERIC)
+		data.type_id = type_id
+		data.display_name = MachineSpec.get_display_name(type_id)
+		var icon_path: String = icon_map.get(type_id, "")
+		if ResourceLoader.exists(icon_path):
+			data.icon_texture = load(icon_path)
+		data.category = BuildingTypeData.Category.BELT if MachineSpec.is_belt(type_id) else BuildingTypeData.Category.MACHINE
 		building_types.append(data)
 	# 补齐占位锁定槽位（显示未来可解锁的建筑类型）
 	for i in range(building_types.size(), 10):

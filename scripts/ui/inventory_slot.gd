@@ -19,7 +19,8 @@ var _locked: bool = false
 func setup_slot(index: int, type_data: BuildingTypeData) -> void:
 	_slot_index = index
 	_type_data = type_data
-	key_label.text = str((index + 1) % 10)
+	# 键盘 1-6 覆盖前 6 个真建筑槽（索引 0-5），占位锁定槽不显示键帽
+	key_label.text = str(index + 1) if index < 6 else ""
 	if type_data:
 		name_label.text = type_data.display_name
 		if type_data.icon_texture:

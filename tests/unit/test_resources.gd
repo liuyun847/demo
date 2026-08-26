@@ -1,158 +1,145 @@
 extends GutTest
 
-const _PipeNodeScript = preload("res://scripts/building/pipe_node.gd")
 const _BuildingData = preload("res://scripts/resources/building_data.gd")
 const _BM = preload("res://scripts/building/building_manager.gd")
 
 
 func before_all() -> void:
-	_ensure_building_types_registered()
-
-
-func _ensure_building_types_registered() -> void:
-	if BuildingTypeManager.has_capacity(GameConfig.PIPE_TYPE_ID):
-		return
-	var types: Array[BuildingTypeData] = []
-	var entries: Array = [
-		[GameConfig.PIPE_TYPE_ID,      {"category": BuildingTypeData.Category.PIPE}],
-		[GameConfig.SOURCE_TYPE_ID,    {"category": BuildingTypeData.Category.SOURCE}],
-		[GameConfig.COLLECTOR_TYPE_ID, {"category": BuildingTypeData.Category.COLLECTOR}],
-		[GameConfig.BRICK_TYPE_ID,     {}],
-	]
-	for entry: Array in entries:
-		var td := BuildingTypeData.new()
-		td.type_id = entry[0]
-		var props: Dictionary = entry[1]
-		for k: String in props.keys():
-			td.set(k, props[k])
-		types.append(td)
-	BuildingTypeManager.register_all(types)
+	BuildingTypeManager.register_defaults()
 
 
 func _setup_bm() -> BuildingManager:
 	var bm: BuildingManager = autoqfree(_BM.new() as BuildingManager)
-	var pr: PipeRenderSystem = preload("res://scripts/building/pipe_render_system.gd").new()
-	pr.name = "PipeRenderSystem"
-	bm.add_child(pr)
 	add_child_autoqfree(bm)
 	return bm
 
 func test_building_data_creation() -> void:
 	var data: BuildingData = BuildingData.new()
 	data.grid_position = Vector2i(3, 5)
-	data.building_type = "type_01"
-	data.capacity = 50
-	data.max_capacity = 100
+	data.building_type = MachineSpec.T_BELT
+	data.direction = MachineSpec.DIR_S
 
 	assert_eq(data.grid_position, Vector2i(3, 5), "grid_position 应正确赋值")
-	assert_eq(data.building_type, "type_01", "building_type 应正确赋值")
-	assert_eq(data.capacity, 50, "capacity 应正确赋值")
-	assert_eq(data.max_capacity, 100, "max_capacity 应正确赋值")
+	assert_eq(data.building_type, MachineSpec.T_BELT, "building_type 应正确赋值")
+	assert_eq(data.direction, MachineSpec.DIR_S, "direction 应正确赋值")
 
 func test_building_data_defaults() -> void:
 	var data: BuildingData = BuildingData.new()
 	assert_eq(data.building_type, "default", "默认 building_type 应为 default")
-	assert_eq(data.capacity, 0, "默认 capacity 应为 0")
-	assert_eq(data.max_capacity, 100, "默认 max_capacity 应为 100")
+	assert_eq(data.direction, 0, "默认方向应为东")
+	assert_eq(data.op_choice, -1, "默认操作选择应为 -1")
+	assert_eq(data.filter_kind, "num", "默认筛选类型应为数字")
+	assert_eq(data.filter_cmp, "gt", "默认筛选比较应为 >")
+	assert_eq(data.filter_value, 0, "默认筛选值应为 0")
+	assert_eq(data.splitter_phase, 0, "默认分流交替位应为 0")
 
-func test_has_capacity_for_pipe() -> void:
-	assert_false(BuildingTypeManager.has_capacity(GameConfig.PIPE_TYPE_ID), "管道类型不应有容量属性")
+func test_building_data_clone_copies_flow_fields() -> void:
+	var data := BuildingData.new()
+	data.building_type = MachineSpec.T_FILTER
+	data.direction = 2
+	data.op_choice = OpRegistry.OP_ADD1
+	data.filter_kind = "op"
+	data.filter_cmp = "eq"
+	data.filter_value = OpRegistry.OP_NEG
+	data.splitter_phase = 1
+	var copy := data.clone()
+	copy.direction = 0
+	assert_eq(data.direction, 2, "克隆修改不应影响原数据")
+	assert_eq(copy.filter_kind, "op")
+	assert_eq(copy.filter_value, OpRegistry.OP_NEG)
+	assert_eq(copy.splitter_phase, 1)
 
-func test_has_capacity_for_default() -> void:
-	assert_false(BuildingTypeManager.has_capacity("default"), "默认类型不应有容量属性")
+func test_building_type_manager_helpers() -> void:
+	assert_true(BuildingTypeManager.is_belt(MachineSpec.T_BELT))
+	assert_false(BuildingTypeManager.is_belt(MachineSpec.T_APPLIER))
+	assert_true(BuildingTypeManager.is_machine(MachineSpec.T_APPLIER))
+	assert_true(BuildingTypeManager.is_known(MachineSpec.T_TRASH))
+	assert_false(BuildingTypeManager.is_known("type_02"), "旧类型应视为未知")
 
-func test_has_capacity_for_other_types() -> void:
-	assert_false(BuildingTypeManager.has_capacity("type_04"), "type_04 不应有容量属性")
-	assert_false(BuildingTypeManager.has_capacity("type_10"), "type_10 不应有容量属性")
+## 端口偏移统一视图：传送带后入前出（预览箭头用），机器与 SPECS 一致
+func test_port_offsets_belt_and_machine() -> void:
+	var belt_e := MachineSpec.get_port_offsets(MachineSpec.T_BELT, MachineSpec.DIR_E)
+	assert_eq(belt_e.ins, [Vector2i(-1, 0)], "东向带输入在后方")
+	assert_eq(belt_e.outs, [Vector2i(1, 0)], "东向带输出在前方")
+	var belt_n := MachineSpec.get_port_offsets(MachineSpec.T_BELT, MachineSpec.DIR_N)
+	assert_eq(belt_n.ins, [Vector2i(0, 1)], "北向带输入在下方")
+	assert_eq(belt_n.outs, [Vector2i(0, -1)], "北向带输出在上方")
+	var applier := MachineSpec.get_port_offsets(MachineSpec.T_APPLIER, MachineSpec.DIR_E)
+	assert_eq(applier.ins, MachineSpec.get_ins(MachineSpec.T_APPLIER, MachineSpec.DIR_E), "机器输入与 SPECS 一致")
+	assert_eq(applier.outs, MachineSpec.get_outs(MachineSpec.T_APPLIER, MachineSpec.DIR_E), "机器输出与 SPECS 一致")
+	var trash := MachineSpec.get_port_offsets(MachineSpec.T_TRASH, MachineSpec.DIR_W)
+	assert_true((trash.outs as Array).is_empty(), "垃圾桶无输出")
 
 func test_undo_command_place_type() -> void:
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
 	cmd.buildings = {
-		Vector2i(10, 10): {"type": "type_01"}
+		Vector2i(10, 10): {"type": MachineSpec.T_BELT}
 	}
 	assert_eq(cmd.type, UndoCommand.Type.PLACE, "类型应为 PLACE")
 	assert_eq(cmd.buildings.size(), 1, "应包含一个建筑记录")
-
-func test_undo_command_cut_type_as_dict() -> void:
-	var cmd: UndoCommand = UndoCommand.new()
-	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {
-		Vector2i(2, 3): {
-			"type": "type_01"
-		}
-	}
-	assert_eq(cmd.type, UndoCommand.Type.CUT, "类型应为 CUT")
-	assert_eq(cmd.buildings.size(), 1)
 
 func test_undo_command_reverse_adds_building() -> void:
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.REMOVE
 	cmd.buildings = {
-		Vector2i(10, 20): {"type": "type_01"}
+		Vector2i(10, 20): {"type": MachineSpec.T_BELT}
 	}
-
 	var bm: BuildingManager = _setup_bm()
 	cmd.reverse(bm)
 	assert_true(bm.has_building(Vector2i(10, 20)), "reverse 应在指定位置放置建筑")
 
 func test_undo_command_reverse_place_removes_building() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
+	bm.place_building(Vector2i(5, 5), MachineSpec.T_BELT)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.PLACE
-	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.PIPE_TYPE_ID}}
+	cmd.buildings = {Vector2i(5, 5): {"type": MachineSpec.T_BELT}}
 	cmd.reverse(bm)
 	assert_false(bm.has_building(Vector2i(5, 5)), "reverse PLACE 应删除建筑")
 
-func test_undo_command_reverse_cut_restores_building() -> void:
+func test_undo_command_reverse_cut_restores_direction() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(3, 3), GameConfig.PIPE_TYPE_ID)
-	assert_true(bm.has_building(Vector2i(3, 3)), "放置后应有建筑")
+	bm.place_building(Vector2i(3, 3), MachineSpec.T_BELT, {"direction": MachineSpec.DIR_N})
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {Vector2i(3, 3): {"type": GameConfig.PIPE_TYPE_ID}}
+	cmd.buildings = {Vector2i(3, 3): {"type": MachineSpec.T_BELT, "direction": MachineSpec.DIR_N}}
 	bm.remove_building(Vector2i(3, 3))
 	assert_false(bm.has_building(Vector2i(3, 3)), "删除后不应有建筑")
 	cmd.reverse(bm)
 	assert_true(bm.has_building(Vector2i(3, 3)), "reverse CUT 应恢复建筑")
+	assert_eq(bm.get_building_data(Vector2i(3, 3)).direction, MachineSpec.DIR_N, "朝向应恢复")
 
-func test_undo_command_reverse_cut_does_not_restore_capacity() -> void:
+func test_undo_command_reverse_cut_restores_op_choice() -> void:
+	# op_choice 字段保留（通用容器/旧存档兼容），用应用器验证撤销恢复
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(8, 8), GameConfig.PIPE_TYPE_ID)
-	assert_true(bm.has_building(Vector2i(8, 8)), "放置后应有建筑")
+	bm.place_building(Vector2i(4, 4), MachineSpec.T_APPLIER, {"op_choice": OpRegistry.OP_MUL2})
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {Vector2i(8, 8): {"type": GameConfig.PIPE_TYPE_ID}}
-	bm.remove_building(Vector2i(8, 8))
+	cmd.buildings = {Vector2i(4, 4): {"type": MachineSpec.T_APPLIER, "op_choice": OpRegistry.OP_MUL2}}
+	bm.remove_building(Vector2i(4, 4))
 	cmd.reverse(bm)
-	assert_true(bm.has_building(Vector2i(8, 8)), "reverse CUT 应恢复建筑")
-	var node: Node = bm.get_building_node(Vector2i(8, 8))
+	var node := bm.get_building_node(Vector2i(4, 4)) as MachineNode
 	assert_not_null(node, "恢复后节点应存在")
-	assert_true(node is PipeNode, "恢复后应为管道节点")
-	# PipeNode 没有 capacity/max_capacity 属性，验证恢复后为普通管道节点即可
+	assert_eq(node.op_choice, OpRegistry.OP_MUL2, "操作选择应恢复")
 
 func test_undo_command_forward_remove() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
+	bm.place_building(Vector2i(5, 5), MachineSpec.T_BELT)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
-
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.REMOVE
-	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.PIPE_TYPE_ID}}
+	cmd.buildings = {Vector2i(5, 5): {"type": MachineSpec.T_BELT}}
 	cmd.forward(bm)
-
 	assert_false(bm.has_building(Vector2i(5, 5)), "forward REMOVE 应删除建筑")
 
 func test_undo_command_forward_cut() -> void:
 	var bm: BuildingManager = _setup_bm()
-	bm.place_building(Vector2i(5, 5), GameConfig.PIPE_TYPE_ID)
+	bm.place_building(Vector2i(5, 5), MachineSpec.T_BELT)
 	assert_true(bm.has_building(Vector2i(5, 5)), "放置后应有建筑")
-
 	var cmd: UndoCommand = UndoCommand.new()
 	cmd.type = UndoCommand.Type.CUT
-	cmd.buildings = {Vector2i(5, 5): {"type": GameConfig.PIPE_TYPE_ID}}
+	cmd.buildings = {Vector2i(5, 5): {"type": MachineSpec.T_BELT}}
 	cmd.forward(bm)
-
 	assert_false(bm.has_building(Vector2i(5, 5)), "forward CUT 应删除建筑")
