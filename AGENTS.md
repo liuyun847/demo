@@ -26,7 +26,7 @@ demo/
 ├── scenes/                      # 场景（6 个 .tscn）
 ├── resources/                   # 图标资源（6 个建筑 svg）
 ├── save/                        # 运行时存档（gitignore，单文件 game.cfg）
-├── tests/                       # GUT 测试（31 个脚本，426 个用例）
+├── tests/                       # GUT 测试（31 个脚本，431 个用例）
 ├── project.godot / .gutconfig.json / AGENTS.md / icon.svg
 └── .githooks/                   # Git 钩子（pre-commit/commit-msg）
 ```
