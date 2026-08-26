@@ -391,6 +391,26 @@ func test_applier_output_blocked_by_machine_cell_waits() -> void:
 	assert_true(_has_num(Vector2i(0, 1), 1))
 	assert_false(_grid.has_item(Vector2i(1, 0)), "机器本体格不应出现物品")
 
+func test_filter_output_blocked_by_machine_cell_waits() -> void:
+	# 筛选器 (0,0) E 的通过口 (1,0) 是分流器本体格：物品应背压停在输入格
+	_buildings[Vector2i(0, 0)] = _bd(MachineSpec.T_FILTER)
+	_buildings[Vector2i(1, 0)] = _bd(MachineSpec.T_SPLITTER)
+	_put(Vector2i(-1, 0), Item.num(1))
+	_tick(3)
+	assert_true(_has_num(Vector2i(-1, 0), 1), "通过口为机器本体格时物品应背压等待在输入格")
+	assert_false(_grid.has_item(Vector2i(1, 0)), "机器本体格不应出现物品")
+
+func test_belt_splitter_output_blocked_by_machine_cell_waits() -> void:
+	# 一体分流器 (1,0) E 的前口 (2,0) 是应用器本体格：物品应停在自己格（带上）等待
+	var data := _bd(MachineSpec.T_BELT_SPLITTER)
+	_buildings[Vector2i(1, 0)] = data
+	_buildings[Vector2i(2, 0)] = _bd(MachineSpec.T_APPLIER)
+	_put(Vector2i(1, 0), Item.num(1))
+	_tick(3)
+	assert_true(_has_num(Vector2i(1, 0), 1), "前口为机器本体格时物品应停在自己格(带上)")
+	assert_false(_grid.has_item(Vector2i(2, 0)), "机器本体格不应出现物品")
+	assert_eq(data.splitter_phase, 0, "未送达不翻转")
+
 # ---------- 综合 ----------
 
 func test_feedback_counter_reaches_five_without_leak() -> void:
