@@ -85,14 +85,10 @@ func _build_clipboard(cut: bool) -> Dictionary:
 		}
 		if building_data != null:
 			# 先同步节点状态到 data，避免读到 stale 数据
-			# （set_element_type/set_filter 只更新节点，不触发同步）
 			var node := building_manager.get_building_node(grid_pos)
 			if node != null:
 				BuildingDataSyncService.sync_from_node(building_data, node)
-			if not building_data.element_type_id.is_empty():
-				entry["element_type_id"] = building_data.element_type_id
-			if not building_data.collector_filter.is_empty():
-				entry["collector_filter"] = building_data.collector_filter
+			entry.merge(BuildingDataSyncService.data_to_entry(building_data))
 		clipboard_buildings.append(entry)
 
 	var result := {
@@ -108,15 +104,10 @@ func _build_clipboard(cut: bool) -> Dictionary:
 			var cut_entry: Dictionary = {"type": buildings_data[grid_pos]}
 			var bdata := building_manager.get_building_data(grid_pos)
 			if bdata != null:
-				# 先同步节点状态到 data，避免读到 stale 数据
-				# （set_element_type/set_filter 只更新节点，不触发同步）
 				var node := building_manager.get_building_node(grid_pos)
 				if node != null:
 					BuildingDataSyncService.sync_from_node(bdata, node)
-				if not bdata.element_type_id.is_empty():
-					cut_entry["element_type_id"] = bdata.element_type_id
-				if not bdata.collector_filter.is_empty():
-					cut_entry["collector_filter"] = bdata.collector_filter
+				cut_entry.merge(BuildingDataSyncService.data_to_entry(bdata))
 			cut_buildings[grid_pos] = cut_entry
 		cmd.buildings = cut_buildings
 		push_undo_command(cmd)
@@ -176,10 +167,10 @@ func get_effective_clipboard() -> Dictionary:
 		var offset: Vector2i = item["offset"]
 		var rotated_offset := _rotate_offset(offset, _paste_rotation)
 		var rotated_item: Dictionary = {"offset": rotated_offset, "type": item["type"]}
-		if item.has("element_type_id"):
-			rotated_item["element_type_id"] = item["element_type_id"]
-		if item.has("collector_filter"):
-			rotated_item["collector_filter"] = item["collector_filter"]
+		rotated_item.merge(BuildingDataSyncService.entry_to_restore_data(item))
+		# 粘贴旋转时同步旋转建筑朝向
+		if rotated_item.has("direction"):
+			rotated_item["direction"] = (int(rotated_item["direction"]) + _paste_rotation) % 4
 		rotated.append(rotated_item)
 	var min_x := 0
 	var min_y := 0
@@ -230,37 +221,43 @@ func perform_paste(anchor: Vector2i) -> void:
 	var valid_items: Array[Dictionary] = []
 	for item: Dictionary in paste_buildings:
 		var grid_pos: Vector2i = anchor + item["offset"]
-		if not building_manager.has_building(grid_pos):
+		if building_manager.can_place(grid_pos, item["type"]):
 			valid_items.append(item)
 
 	if valid_items.is_empty():
 		return
 
 	var placed_cells := {}
+	var previous: Dictionary = {}
 	for item: Dictionary in valid_items:
 		var grid_pos: Vector2i = anchor + item["offset"]
 		var building_type: String = item["type"]
-		var restore_data: Dictionary = {}
-		if item.has("element_type_id"):
-			restore_data["element_type_id"] = item["element_type_id"]
-		if item.has("collector_filter"):
-			restore_data["collector_filter"] = item["collector_filter"]
+		# 粘贴分流器到传送带格会转换原带：记录原条目，撤销时还原
+		var prev_entry: Dictionary = _capture_prev_entry(building_manager, grid_pos)
+		var restore_data: Dictionary = BuildingDataSyncService.entry_to_restore_data(item)
 		if building_manager.place_building(grid_pos, building_type, restore_data):
 			var placed_entry: Dictionary = {"type": building_type}
-			if item.has("element_type_id"):
-				placed_entry["element_type_id"] = item["element_type_id"]
-			if item.has("collector_filter"):
-				placed_entry["collector_filter"] = item["collector_filter"]
+			placed_entry.merge(BuildingDataSyncService.entry_to_restore_data(item))
 			placed_cells[grid_pos] = placed_entry
+			if not prev_entry.is_empty():
+				previous[grid_pos] = prev_entry
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()
 		cmd.type = UndoCommand.Type.PASTE
 		cmd.buildings = placed_cells
+		cmd.previous = previous
 		push_undo_command(cmd)
 
 	selected_cells.clear()
 	EventBus.selection_changed.emit(_get_selected_cells_array())
+
+## 捕获某格现有建筑的撤销条目（供"曾占用格"在撤销时还原原建筑）
+func _capture_prev_entry(building_manager: BuildingManager, grid_pos: Vector2i) -> Dictionary:
+	var prev_data := building_manager.get_building_data(grid_pos)
+	if prev_data == null:
+		return {}
+	return BuildingDataSyncService.data_to_entry(prev_data)
 
 func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 	var building_manager := _get_building_manager()
@@ -272,29 +269,27 @@ func perform_paste_batch(anchors: Array[Vector2i]) -> void:
 
 	var paste_buildings: Array[Dictionary] = effective["buildings"]
 	var placed_cells := {}
+	var previous: Dictionary = {}
 
 	for anchor: Vector2i in anchors:
 		for item: Dictionary in paste_buildings:
 			var grid_pos: Vector2i = anchor + item["offset"]
-			if not building_manager.has_building(grid_pos):
+			if building_manager.can_place(grid_pos, item["type"]):
 				var building_type: String = item["type"]
-				var restore_data: Dictionary = {}
-				if item.has("element_type_id"):
-					restore_data["element_type_id"] = item["element_type_id"]
-				if item.has("collector_filter"):
-					restore_data["collector_filter"] = item["collector_filter"]
+				var prev_entry: Dictionary = _capture_prev_entry(building_manager, grid_pos)
+				var restore_data: Dictionary = BuildingDataSyncService.entry_to_restore_data(item)
 				if building_manager.place_building(grid_pos, building_type, restore_data):
 					var placed_entry: Dictionary = {"type": building_type}
-					if item.has("element_type_id"):
-						placed_entry["element_type_id"] = item["element_type_id"]
-					if item.has("collector_filter"):
-						placed_entry["collector_filter"] = item["collector_filter"]
+					placed_entry.merge(BuildingDataSyncService.entry_to_restore_data(item))
 					placed_cells[grid_pos] = placed_entry
+					if not prev_entry.is_empty():
+						previous[grid_pos] = prev_entry
 
 	if not placed_cells.is_empty():
 		var cmd := UndoCommand.new()
 		cmd.type = UndoCommand.Type.PASTE
 		cmd.buildings = placed_cells
+		cmd.previous = previous
 		push_undo_command(cmd)
 
 	selected_cells.clear()

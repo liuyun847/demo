@@ -3,7 +3,6 @@ extends GutTest
 # 注意：BuildingTypeManager._type_table 是 static var，跨测试共享。
 # 这里在 before_each 中调用 reset_for_test 隔离用例；
 # after_all 重新注册默认表，避免污染后续测试套件。
-const _PipeNodeScript = preload("res://scripts/building/pipe_node.gd")
 
 
 func before_each() -> void:
@@ -11,25 +10,8 @@ func before_each() -> void:
 
 
 func after_all() -> void:
-	# 恢复默认注册（不含 type_01 容器类型，其余 9 个槽位），
-	# 与 inventory_bar._init_default_types 行为对齐，避免后续测试依赖执行顺序。
 	BuildingTypeManager.reset_for_test()
-	var entries: Array = [
-		[GameConfig.PIPE_TYPE_ID,      BuildingTypeData.Category.PIPE],
-		[GameConfig.SOURCE_TYPE_ID,    BuildingTypeData.Category.SOURCE],
-		[GameConfig.BRICK_TYPE_ID,     BuildingTypeData.Category.BRICK],
-		["type_05",                    BuildingTypeData.Category.GENERIC],
-		["type_06",                    BuildingTypeData.Category.GENERIC],
-		[GameConfig.COLLECTOR_TYPE_ID, BuildingTypeData.Category.COLLECTOR],
-		["type_08",                    BuildingTypeData.Category.GENERIC],
-		["type_09",                    BuildingTypeData.Category.GENERIC],
-		["type_10",                    BuildingTypeData.Category.GENERIC],
-	]
-	for entry: Array in entries:
-		var td := BuildingTypeData.new()
-		td.type_id = entry[0]
-		td.category = entry[1]
-		BuildingTypeManager.register(td)
+	BuildingTypeManager.register_defaults()
 
 
 ## 构造 BuildingTypeData：props 中可包含 has_capacity / category
@@ -51,6 +33,24 @@ func test_unknown_type_id_returns_false_for_all() -> void:
 	assert_false(BuildingTypeManager.is_pipe("unknown"), "未知类型 is_pipe 应为 false")
 	assert_false(BuildingTypeManager.is_source("unknown"), "未知类型 is_source 应为 false")
 	assert_false(BuildingTypeManager.is_collector("unknown"), "未知类型 is_collector 应为 false")
+	assert_false(BuildingTypeManager.is_belt("unknown"), "未知类型 is_belt 应为 false")
+	assert_false(BuildingTypeManager.is_machine("unknown"), "未知类型 is_machine 应为 false")
+	assert_false(BuildingTypeManager.is_known("unknown"), "未知类型 is_known 应为 false")
+
+
+## 物品流类别：BELT / MACHINE 查询
+func test_is_belt_and_machine_specific() -> void:
+	BuildingTypeManager.register(_make_type("belt_x", {"category": BuildingTypeData.Category.BELT}))
+	BuildingTypeManager.register(_make_type("mac_x", {"category": BuildingTypeData.Category.MACHINE}))
+	assert_true(BuildingTypeManager.is_belt("belt_x"))
+	assert_false(BuildingTypeManager.is_machine("belt_x"))
+	assert_true(BuildingTypeManager.is_machine("mac_x"))
+	assert_false(BuildingTypeManager.is_belt("mac_x"))
+
+
+func test_is_known_registered() -> void:
+	BuildingTypeManager.register(_make_type("known_x", {}))
+	assert_true(BuildingTypeManager.is_known("known_x"), "已注册类型 is_known 应为 true")
 
 
 func test_is_pipe_specific() -> void:

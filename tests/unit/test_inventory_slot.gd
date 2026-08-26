@@ -16,10 +16,15 @@ func test_setup_slot_key_label() -> void:
 	var key_label: Label = _slot.find_child("KeyLabel", true, false) as Label
 	assert_eq(key_label.text, "1", "槽位 0 的 key_label 应为 '1'")
 
-func test_setup_slot_last_key_label() -> void:
+func test_setup_slot_placeholder_no_keycap() -> void:
+	# 占位锁定槽（索引 >= 6，超出 6 个真建筑）不显示键帽，避免误导玩家按 7/8/9/0
 	_slot.setup_slot(9, null)
 	var key_label: Label = _slot.find_child("KeyLabel", true, false) as Label
-	assert_eq(key_label.text, "0", "槽位 9 的 key_label 应为 '0'")
+	assert_eq(key_label.text, "", "占位槽位 9 的 key_label 应为空")
+	_slot.setup_slot(6, null)
+	assert_eq(_slot.find_child("KeyLabel", true, false).text, "", "槽位 6 为占位槽，不应显示键帽")
+	_slot.setup_slot(5, null)
+	assert_eq(_slot.find_child("KeyLabel", true, false).text, "6", "槽位 5 应为最后一个带键帽的槽位")
 
 func test_set_selected_shows_border() -> void:
 	_slot.setup_slot(0, null)

@@ -9,7 +9,7 @@ func before_each() -> void:
 	add_child_autoqfree(_main)
 
 func _find_node(node_name: String) -> Node:
-	# owned=false 以便找到运行时动态添加（无 owner）的节点，如 PauseOverlay/EssenceDisplay
+	# owned=false 以便找到运行时动态添加（无 owner）的节点，如 PauseOverlay
 	return _main.find_child(node_name, true, false)
 
 func test_initial_state_all_hidden() -> void:
@@ -53,35 +53,25 @@ func test_esc_toggles_start_menu() -> void:
 	assert_true(_find_node("StartMenu").visible, "ESC 后 start_menu 应显示")
 
 
-## 测试：ESC 关闭开始菜单进入主场景后，EssenceDisplay 应已存在
-## 回归测试：修复 ESC 进入主场景时左上角源质数量不显示的 bug
-func test_essence_display_exists_on_esc_enter_game() -> void:
-	# 先显示开始菜单（模拟 _on_buildings_loaded 流程）
+## 测试：ESC 关闭开始菜单进入主场景，物品流系统应就绪
+func test_flow_systems_ready_on_enter_game() -> void:
 	EventBus.show_start_menu_requested.emit()
 	await get_tree().process_frame
-	assert_true(_find_node("StartMenu").visible, "前置：start_menu 应显示")
-
-	# 按 ESC 关闭开始菜单（不通过点击"开始游戏"按钮）
 	var event := InputEventKey.new()
 	event.keycode = KEY_ESCAPE
 	event.pressed = true
 	_main._unhandled_input(event)
 	await get_tree().process_frame
 	assert_false(_find_node("StartMenu").visible, "ESC 后 start_menu 应关闭")
+	var bm := _find_node("BuildingManager") as BuildingManager
+	assert_not_null(bm, "BuildingManager 应存在")
+	assert_not_null(bm.get_flow_coordinator(), "物品流协调器应就绪")
 
-	# 验证 EssenceDisplay 已存在（_ready 中创建，与是否点击"开始游戏"无关）
-	var essence_display: Node = _find_node("EssenceDisplay")
-	assert_not_null(essence_display, "ESC 进入主场景后 EssenceDisplay 应存在")
 
-
-## 测试：EssenceDisplay 在 _ready 阶段就已创建（无需等 start_game_requested）
-func test_essence_display_created_on_ready() -> void:
-	# main 在 before_each 中已 add_child，_ready 已执行
-	# 先检查 PauseOverlay（也在 _ready 中创建）作为对照
+## 测试：PauseOverlay 在 _ready 阶段就已创建（对照节点）
+func test_pause_overlay_created_on_ready() -> void:
 	var pause_overlay: Node = _find_node("PauseOverlay")
-	assert_not_null(pause_overlay, "_ready 后 PauseOverlay 应存在（对照）")
-	var essence_display: Node = _find_node("EssenceDisplay")
-	assert_not_null(essence_display, "_ready 后 EssenceDisplay 应立即存在")
+	assert_not_null(pause_overlay, "_ready 后 PauseOverlay 应存在")
 
 
 func test_slot_keys_select_inventory() -> void:
@@ -90,4 +80,4 @@ func test_slot_keys_select_inventory() -> void:
 	assert_true(bar.visible, "开始游戏后 inventory_bar 应显示")
 	bar.select_slot(0)
 	assert_true(bar.has_building_type_selected(), "选中后应有选中槽位")
-	assert_eq(bar.get_current_building_type(), GameConfig.PIPE_TYPE_ID, "选中的建筑类型应为管道")
+	assert_eq(bar.get_current_building_type(), MachineSpec.T_BELT, "选中的建筑类型应为传送带")

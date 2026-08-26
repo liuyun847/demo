@@ -29,11 +29,12 @@ func _handle_idle_state(_context: Dictionary) -> void:
 	_ghost_preview.hide_select_ghost()
 	_ghost_preview.hide_deselect_ghost()
 	_ghost_preview.clear_paste_preview()
-	_ghost_preview.hide_collector_ghost_range()
 
 func _handle_dragging_state(context: Dictionary) -> void:
 	var start_grid: Vector2i = context.get("start_grid", Vector2i.ZERO)
-	_ghost_preview.show_ghost([start_grid])
+	var building_type: String = context.get("building_type", "")
+	var direction: int = context.get("direction", MachineSpec.DIR_E)
+	_ghost_preview.show_ghost([start_grid], building_type, [direction])
 
 func _handle_removing_state(context: Dictionary) -> void:
 	var start_grid: Vector2i = context.get("start_grid", Vector2i.ZERO)

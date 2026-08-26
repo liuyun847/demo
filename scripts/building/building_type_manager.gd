@@ -34,10 +34,14 @@ static func register_defaults() -> void:
 	if not _type_table.is_empty():
 		return
 	var entries: Array[Dictionary] = [
-		{"id": "type_02", "category": BuildingTypeData.Category.PIPE},
-		{"id": "type_03", "category": BuildingTypeData.Category.SOURCE},
-		{"id": "type_04", "category": BuildingTypeData.Category.BRICK},
-		{"id": "type_07", "category": BuildingTypeData.Category.COLLECTOR},
+		{"id": MachineSpec.T_BELT, "category": BuildingTypeData.Category.BELT},
+		{"id": MachineSpec.T_NUM_SOURCE, "category": BuildingTypeData.Category.MACHINE},
+		{"id": MachineSpec.T_APPLIER, "category": BuildingTypeData.Category.MACHINE},
+		{"id": MachineSpec.T_SPLITTER, "category": BuildingTypeData.Category.MACHINE},
+		{"id": MachineSpec.T_FILTER, "category": BuildingTypeData.Category.MACHINE},
+		{"id": MachineSpec.T_TRASH, "category": BuildingTypeData.Category.MACHINE},
+		# 传送带+分流器一体建筑（非库存项，由"放分流器到传送带上"/存档恢复自动生成）
+		{"id": MachineSpec.T_BELT_SPLITTER, "category": BuildingTypeData.Category.MACHINE},
 	]
 	for entry: Dictionary in entries:
 		var td := BuildingTypeData.new()
@@ -64,6 +68,21 @@ static func is_source(type_id: String) -> bool:
 static func is_collector(type_id: String) -> bool:
 	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
 	return td != null and td.category == BuildingTypeData.Category.COLLECTOR
+
+
+static func is_belt(type_id: String) -> bool:
+	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
+	return td != null and td.category == BuildingTypeData.Category.BELT
+
+
+static func is_machine(type_id: String) -> bool:
+	var td: BuildingTypeData = _type_table.get(type_id) as BuildingTypeData
+	return td != null and td.category == BuildingTypeData.Category.MACHINE
+
+
+## 是否已注册的已知类型（未知类型 = 旧存档遗留，加载时跳过）
+static func is_known(type_id: String) -> bool:
+	return _type_table.has(type_id)
 
 
 ## 获取建筑类别（未注册时返回 GENERIC）

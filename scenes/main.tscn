@@ -13,7 +13,6 @@
 [ext_resource type="Script" uid="uid://8rr2ag6konpr" path="res://scripts/fps_display.gd" id="11_fps_display"]
 [ext_resource type="Script" uid="uid://cied8tiglusv" path="res://scripts/ui/key_hints.gd" id="12_key_hints"]
 [ext_resource type="Script" uid="uid://dbm53pnd817qb" path="res://scripts/building/ghost_preview_manager.gd" id="13_ghost"]
-[ext_resource type="Script" uid="uid://b3qe5glbfw7kj" path="res://scripts/building/pipe_render_system.gd" id="14_pipe"]
 
 [node name="Root" type="Node2D" unique_id=700315949]
 script = ExtResource("1_main")
@@ -28,10 +27,11 @@ script = ExtResource("1")
 unique_name_in_owner = true
 script = ExtResource("4_def34")
 
-[node name="PipeRenderSystem" type="Node2D" parent="BuildingManager" unique_id=577184953]
-script = ExtResource("14_pipe")
-
 [node name="GhostPreviewManager" type="Node2D" parent="BuildingManager" unique_id=1978201693]
+# 预览层置顶（z_index=5）：建筑节点（BeltNode/MachineNode）是运行时 add_child 追加的，
+# 树序在 GhostPreviewManager 之后、默认 z=0 会盖住预览——置顶后"分流器放传送带"等
+# 占用格预览才能显示在建筑上方；数值本身无特殊含义，仅需大于 0
+z_index = 5
 script = ExtResource("13_ghost")
 
 [node name="SaveManager" type="Node" parent="." unique_id=781771511]

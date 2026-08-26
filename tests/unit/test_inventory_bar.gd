@@ -18,10 +18,10 @@ func before_each() -> void:
 
 func test_select_by_type_id_found() -> void:
 	assert_false(_bar.has_building_type_selected(), "初始不应有选中")
-	var result: bool = _bar.select_by_type_id("type_02")
+	var result: bool = _bar.select_by_type_id(MachineSpec.T_BELT)
 	assert_true(result, "select_by_type_id 找到时应返回 true")
 	assert_true(_bar.has_building_type_selected(), "选中后应有选中")
-	assert_eq(_bar.current_slot_index, 0, "type_02 应对应槽位 0（管道）")
+	assert_eq(_bar.current_slot_index, 0, "传送带应对应槽位 0")
 
 func test_select_by_type_id_not_found() -> void:
 	assert_false(_bar.has_building_type_selected(), "初始不应有选中")
@@ -30,9 +30,9 @@ func test_select_by_type_id_not_found() -> void:
 	assert_false(_bar.has_building_type_selected(), "未找到时不应改变选中状态")
 
 func test_select_by_type_id_already_selected_deselects() -> void:
-	_bar.select_by_type_id("type_02")
-	assert_true(_bar.has_building_type_selected(), "选中 type_02 后应有选中")
-	var result: bool = _bar.select_by_type_id("type_02")
+	_bar.select_by_type_id(MachineSpec.T_BELT)
+	assert_true(_bar.has_building_type_selected(), "选中传送带后应有选中")
+	var result: bool = _bar.select_by_type_id(MachineSpec.T_BELT)
 	assert_true(result, "select_by_type_id 应返回 true")
 	assert_false(_bar.has_building_type_selected(), "重复选中同一类型应取消选择")
 
@@ -75,7 +75,7 @@ func test_select_out_of_range() -> void:
 func test_get_current_building_type() -> void:
 	_bar.select_slot(0)
 	var type_id: String = _bar.get_current_building_type()
-	assert_true(type_id.begins_with("type_"), "选中槽位应返回 type_xx 格式的类型 ID")
+	assert_eq(type_id, MachineSpec.T_BELT, "选中槽位应返回传送带类型 ID")
 
 func test_get_current_building_type_when_none_selected() -> void:
 	assert_eq(_bar.get_current_building_type(), "default", "未选中时应返回 default")
@@ -96,7 +96,7 @@ func test_slots_created_in_ready() -> void:
 	for child: Node in _bar.get_children():
 		if child is InventorySlot:
 			slot_count += 1
-	assert_eq(slot_count, 10, "_ready 后应有 10 个 InventorySlot 子节点")
+	assert_eq(slot_count, 10, "_ready 后应有 10 个 InventorySlot 子节点（6 建筑 + 4 占位）")
 
 func test_mode_indicator_exists() -> void:
 	var indicator := _bar.find_child("ModeIndicator", true, false)
