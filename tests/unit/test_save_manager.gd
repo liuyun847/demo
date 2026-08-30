@@ -67,24 +67,24 @@ func test_save_roundtrip_machine_fields() -> void:
 		"direction": MachineSpec.DIR_S,
 		"op_choice": OpRegistry.OP_MUL2,
 	})
-	_bm.place_building(Vector2i(6, 6), MachineSpec.T_FILTER, {
+	_bm.place_building(Vector2i(6, 6), MachineSpec.T_SPLITTER, {
 		"direction": MachineSpec.DIR_W,
-		"filter_kind": "num",
-		"filter_cmp": "eq",
-		"filter_value": 5,
+		"splitter_filters": [{}, {"kind": "num", "cmp": "eq", "value": 5}, {}, {}],
 	})
-	_bm.place_building(Vector2i(2, 2), MachineSpec.T_SPLITTER, {"splitter_phase": 1})
+	_bm.place_building(Vector2i(2, 2), MachineSpec.T_SPLITTER, {"splitter_phase": 1, "splitter_in_phase": 3})
 	_sm.save_buildings()
 	_sm.load_buildings()
 	var op_data: BuildingData = _bm.get_building_data(Vector2i(4, 4))
 	assert_eq(op_data.direction, MachineSpec.DIR_S, "应用器朝向应还原")
 	assert_eq(op_data.op_choice, OpRegistry.OP_MUL2, "操作选择应还原")
-	var filter_data: BuildingData = _bm.get_building_data(Vector2i(6, 6))
-	assert_eq(filter_data.direction, MachineSpec.DIR_W, "筛选器朝向应还原")
-	assert_eq(filter_data.filter_cmp, "eq", "筛选比较应还原")
-	assert_eq(filter_data.filter_value, 5, "筛选值应还原")
+	var split_filtered: BuildingData = _bm.get_building_data(Vector2i(6, 6))
+	assert_eq(split_filtered.direction, MachineSpec.DIR_W, "分流器朝向应还原")
+	assert_eq(int(split_filtered.splitter_filters[1].get("value", -1)), 5, "南向条件应还原")
+	assert_eq(str(split_filtered.splitter_filters[1].get("cmp", "")), "eq")
+	assert_true((split_filtered.splitter_filters[0] as Dictionary).is_empty(), "东向保持无条件")
 	var split_data: BuildingData = _bm.get_building_data(Vector2i(2, 2))
-	assert_eq(split_data.splitter_phase, 1, "分流交替位应还原")
+	assert_eq(split_data.splitter_phase, 1, "分流输出相位应还原")
+	assert_eq(split_data.splitter_in_phase, 3, "分流输入轮询相位应还原")
 
 func test_save_roundtrip_belt_splitter() -> void:
 	# 传送带+分流器一体建筑往返：类型/方向/交替位完整还原
@@ -117,22 +117,37 @@ func test_save_roundtrip_composite_op_choice() -> void:
 	assert_true(OpRegistry.has(data.op_choice), "重载后操作 id 应有效（已按定义重建）")
 	assert_eq(OpRegistry.apply(data.op_choice, 3), 8, "重建后语义一致：先 +1 再 ×2")
 
-func test_save_roundtrip_filter_op_definition() -> void:
+func test_save_roundtrip_splitter_filter_op_definition() -> void:
+	# 复合操作条件跨会话恢复：存档携带定义串，重载后 id 重建且语义一致
 	var comp := OpRegistry.compose(OpRegistry.OP_SUB1, OpRegistry.OP_NEG)
-	_bm.place_building(Vector2i(8, 8), MachineSpec.T_FILTER, {
-		"filter_kind": "op",
-		"filter_cmp": "eq",
-		"filter_value": comp,
+	_bm.place_building(Vector2i(8, 8), MachineSpec.T_SPLITTER, {
+		"splitter_filters": [{"kind": "op", "value": comp}, {}, {}, {}],
 	})
 	_sm.save_buildings()
 	var content: Dictionary = _read_save_file()
-	assert_true(content.buildings["8,8"].has("filter_op_def"), "op 筛选应落盘定义串")
+	var saved_filters: Array = content.buildings["8,8"].splitter_filters
+	assert_true((saved_filters[0] as Dictionary).has("op_def"), "op 条件应落盘定义串")
 	OpRegistry.reset()
 	_sm.load_buildings()
 	var data: BuildingData = _bm.get_building_data(Vector2i(8, 8))
-	assert_eq(data.filter_kind, "op")
-	assert_true(OpRegistry.has(data.filter_value), "重载后筛选操作 id 应有效")
-	assert_eq(OpRegistry.apply(data.filter_value, 4), -3, "重建后筛选语义一致：先 -1 得 3，再取反得 -3")
+	var op_id := int(data.splitter_filters[0].get("value", -1))
+	assert_true(OpRegistry.has(op_id), "重载后条件操作 id 应有效（已按定义重建）")
+	assert_eq(OpRegistry.apply(op_id, 4), -3, "重建后语义一致：先 -1 得 3，再取反得 -3")
+
+func test_load_legacy_filter_entry_skipped() -> void:
+	# 旧存档中的筛选器条目：类型已移除，加载应静默跳过不崩溃
+	var entries := {
+		"9,9": {"type": "filter", "direction": 0, "filter_kind": "num", "filter_cmp": "gt", "filter_value": 0},
+		"9,8": {"type": MachineSpec.T_BELT},
+	}
+	var save_data := {
+		"version": GameConfig.SAVE_VERSION,
+		"buildings": entries,
+	}
+	FileIOHelper.write_cfg_section(GameConfig.unified_save_path, GameConfig.SECTION_BUILDINGS, save_data, "SaveManager")
+	_sm.load_buildings()
+	assert_false(_bm.has_building(Vector2i(9, 9)), "旧筛选器条目应跳过")
+	assert_true(_bm.has_building(Vector2i(9, 8)), "已知类型正常加载")
 
 func test_save_load_unknown_type_skipped() -> void:
 	# 直接注入旧版/未知类型存档，加载应跳过不崩溃
@@ -166,16 +181,17 @@ func test_load_invalid_coords_skipped() -> void:
 	assert_eq(_bm.get_all_buildings_data().size(), 1, "无效坐标应跳过")
 
 func test_load_default_filter_omitted() -> void:
-	# 默认筛选（数字 > 0）不落盘，加载后恢复默认
-	_bm.place_building(Vector2i(6, 6), MachineSpec.T_FILTER)
+	# 全无条件（默认）不落盘，加载后恢复默认空条件
+	_bm.place_building(Vector2i(6, 6), MachineSpec.T_SPLITTER)
 	_sm.save_buildings()
 	var content: Dictionary = _read_save_file()
 	var entry: Dictionary = content.buildings["6,6"]
-	assert_false(entry.has("filter_kind"), "默认筛选配置不应写入存档")
+	assert_false(entry.has("splitter_filters"), "全无条件不应写入存档")
 	_sm.load_buildings()
 	var data: BuildingData = _bm.get_building_data(Vector2i(6, 6))
-	assert_eq(data.filter_kind, "num", "加载后应按默认值")
-	assert_eq(data.filter_cmp, "gt")
+	assert_eq(data.splitter_filters.size(), 4, "加载后应按默认 4 方向")
+	for cond: Variant in data.splitter_filters:
+		assert_true((cond as Dictionary).is_empty(), "默认各方向无条件")
 
 func _read_save_file() -> Dictionary:
 	var result := FileIOHelper.read_cfg_section(

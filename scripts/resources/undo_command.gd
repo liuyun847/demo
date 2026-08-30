@@ -3,8 +3,8 @@ extends RefCounted
 
 ## 撤销/重做命令。封装对建筑系统的正向/逆向操作，支持 PLACE/REMOVE/PASTE/CUT 四种类型。
 ## 源质经济策略见旧版注释（纯搭建阶段费用为 0，防刷逻辑保留但不生效）。
-## 物品流建筑状态（direction/op_choice/filter/splitter_phase）经 BuildingDataSyncService
-## 的 entry <-> restore_data 助手完整保存/恢复。
+## 物品流建筑状态（direction/op_choice/splitter_phase/splitter_in_phase/splitter_filters）经
+## BuildingDataSyncService 的 entry <-> restore_data 助手完整保存/恢复。
 enum Type { PLACE, REMOVE, PASTE, CUT }
 
 var type: Type

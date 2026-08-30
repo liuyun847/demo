@@ -203,12 +203,24 @@ func _draw_port_arrows_from_manager(cells: Array) -> void:
 func _draw_port_arrows(grid_pos: Vector2i, type_id: String, dir: int) -> void:
 	if type_id.is_empty() or not MachineSpec.is_known(type_id):
 		return
+	# 四向端口类型（分流器/一体建筑/垃圾桶）：方向完全对称，不画 8 个进出箭头
+	# （视觉混杂），改画 4 个中性端口标记
+	if MachineSpec.is_four_way_port_type(type_id):
+		_draw_four_way_port_marks(grid_pos)
+		return
 	var ports: Dictionary = MachineSpec.get_port_offsets(type_id, dir)
 	var world_center := GridCoordinate.grid_to_world(grid_pos)
 	for off: Vector2i in ports["ins"]:
 		_draw_edge_arrow(world_center, off, true)
 	for off: Vector2i in ports["outs"]:
 		_draw_edge_arrow(world_center, off, false)
+
+## 四向端口类型：4 边中点画中性小圆点（不区分进出）
+func _draw_four_way_port_marks(grid_pos: Vector2i) -> void:
+	var world_center := GridCoordinate.grid_to_world(grid_pos)
+	for off: Vector2i in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
+		var edge_mid := world_center + Vector2(off) * (GameConfig.CELL_SIZE / 2.0)
+		draw_circle(edge_mid, 3.0, Color(1, 1, 1, 0.9))
 
 
 ## 在建筑格边中点画小三角箭头：is_input 尖朝格内，否则尖朝端口方向

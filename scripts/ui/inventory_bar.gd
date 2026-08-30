@@ -102,7 +102,6 @@ func _init_default_types() -> void:
 		MachineSpec.T_NUM_SOURCE: "res://resources/num_source.svg",
 		MachineSpec.T_APPLIER: "res://resources/applier.svg",
 		MachineSpec.T_SPLITTER: "res://resources/splitter.svg",
-		MachineSpec.T_FILTER: "res://resources/filter.svg",
 		MachineSpec.T_TRASH: "res://resources/trash.svg",
 	}
 	for type_id: String in MachineSpec.get_placement_types():

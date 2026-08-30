@@ -71,7 +71,7 @@ func test_place_splitter_on_belt_fallback_belt_direction() -> void:
 func test_place_machine_on_belt_refused() -> void:
 	_bm.place_building(Vector2i(5, 5), MachineSpec.T_BELT)
 	assert_false(_bm.place_building(Vector2i(5, 5), MachineSpec.T_APPLIER), "应用器不能放在传送带上")
-	assert_false(_bm.place_building(Vector2i(5, 5), MachineSpec.T_FILTER), "筛选器不能放在传送带上")
+	assert_false(_bm.place_building(Vector2i(5, 5), MachineSpec.T_TRASH), "垃圾桶不能放在传送带上")
 	assert_eq(_bm.get_building_type(Vector2i(5, 5)), MachineSpec.T_BELT, "格上应保持传送带")
 
 func test_place_splitter_on_non_belt_occupied_refused() -> void:
@@ -104,7 +104,7 @@ func test_can_place_rules() -> void:
 	assert_true(_bm.can_place(Vector2i(5, 5), MachineSpec.T_BELT_SPLITTER), "传送带格可放一体建筑")
 	assert_false(_bm.can_place(Vector2i(5, 5), MachineSpec.T_APPLIER), "其他机器不可放传送带上")
 	assert_false(_bm.can_place(Vector2i(5, 5), MachineSpec.T_BELT), "传送带不能放传送带")
-	assert_true(_bm.can_place(Vector2i(9, 9), MachineSpec.T_FILTER), "空格任意类型可放")
+	assert_true(_bm.can_place(Vector2i(9, 9), MachineSpec.T_APPLIER), "空格任意类型可放")
 
 func test_place_building_default_type_placeholder() -> void:
 	var result: bool = _bm.place_building(Vector2i(7, 7), "default")
@@ -235,9 +235,10 @@ func test_flow_systems_created() -> void:
 
 func test_clear_all_buildings_silent_clears_grid_and_renderer() -> void:
 	_bm.place_building(Vector2i(5, 5), MachineSpec.T_NUM_SOURCE)
+	_bm.place_building(Vector2i(6, 5), MachineSpec.T_BELT)
 	var coord := _bm.get_flow_coordinator()
 	coord._on_tick()
-	assert_eq(coord.grid.count_items(), 1, "tick 后数字源应产 1")
+	assert_eq(coord.grid.count_items(), 1, "tick 后数字源应产 1（喂入相邻带格）")
 	_bm.clear_all_buildings_silent()
 	assert_true(_bm.get_all_buildings_data().is_empty(), "清除后建筑应为空")
 	assert_true(coord.grid.is_empty(), "清除后物品格应为空")
@@ -295,14 +296,53 @@ func test_remove_machine_clears_items_on_ports() -> void:
 
 ## W1 回归：端口重叠（两机器输出口同一格）时，删除其一不得误删仍被另一机器支撑的物品
 func test_remove_machine_keeps_items_on_shared_port() -> void:
-	# 数字源 (0,0) E 与应用器 (2,0) W 的输出口重叠在 (1,0)
-	_bm.place_building(Vector2i(0, 0), MachineSpec.T_NUM_SOURCE, {"direction": MachineSpec.DIR_E})
+	# 分流器 (0,0) E 的 front 口与应用器 (2,0) W 的输出口重叠在 (1,0)
+	_bm.place_building(Vector2i(0, 0), MachineSpec.T_SPLITTER)
 	_bm.place_building(Vector2i(2, 0), MachineSpec.T_APPLIER, {"direction": MachineSpec.DIR_W})
 	var coord := _bm.get_flow_coordinator()
 	coord.grid.set_item(Vector2i(1, 0), Item.num(42))
-	# 删除应用器：其端口 (1,0) 仍是数字源输出口（可停靠格），物品应保留
+	# 删除应用器：其端口 (1,0) 仍是分流器输出口（可停靠格），物品应保留
 	_bm.remove_building(Vector2i(2, 0))
 	assert_true(coord.grid.has_item(Vector2i(1, 0)), "共享端口上的物品应保留（仍被另一机器支撑）")
-	# 再删数字源：(1,0) 失去支撑，物品应被清理
+	# 再删分流器：(1,0) 失去支撑，物品应被清理
 	_bm.remove_building(Vector2i(0, 0))
 	assert_false(coord.grid.has_item(Vector2i(1, 0)), "失去全部支撑后端口残留物品应被清理")
+
+
+## 0 格贴脸直传：删除生产者时应清理其面槽上等待的面物品（despawn 事件）
+func test_remove_producer_clears_pending_face_item() -> void:
+	# 源(0,-6) 贴脸喂分流器(1,-6)；应用器(2,-6) 堵住前口（不对齐）→ 面槽持有物品
+	_bm.place_building(Vector2i(0, -6), MachineSpec.T_NUM_SOURCE)
+	_bm.place_building(Vector2i(1, -6), MachineSpec.T_SPLITTER)
+	_bm.place_building(Vector2i(2, -6), MachineSpec.T_APPLIER)
+	var coord := _bm.get_flow_coordinator()
+	coord._on_tick()
+	coord._on_tick()
+	assert_eq(coord.grid.count_edge_items(), 1, "面槽应持有 1 个等待物品")
+	var received: Array = []
+	var cb := func(e: Array) -> void:
+		received.append(e)
+	EventBus.sim_tick_completed.connect(cb)
+	_bm.remove_building(Vector2i(0, -6))
+	EventBus.sim_tick_completed.disconnect(cb)
+	assert_eq(coord.grid.count_edge_items(), 0, "删除生产者后其面物品应被清理")
+	if not received.is_empty():
+		var has_face_despawn := false
+		for e: Dictionary in received[0]:
+			if e.get("kind", "") == "despawn" and e.has("face"):
+				has_face_despawn = true
+		assert_true(has_face_despawn, "面物品清理应发 despawn 事件（带 face 定位）")
+
+
+## 0 格贴脸直传：删除消费者（互认对齐目标消失）后，滞留面物品同样应清理
+func test_remove_consumer_clears_orphaned_face_item() -> void:
+	# 源(0,-6) 贴脸喂分流器(1,-6)；分流器左口先被占（交替位=1）→ 面槽滞留
+	_bm.place_building(Vector2i(0, -6), MachineSpec.T_NUM_SOURCE)
+	_bm.place_building(Vector2i(1, -6), MachineSpec.T_SPLITTER, {"splitter_phase": 1})
+	var coord := _bm.get_flow_coordinator()
+	coord.grid.set_item(Vector2i(1, -7), Item.num(9))  # 左口被占
+	coord._on_tick()
+	coord._on_tick()
+	assert_eq(coord.grid.count_edge_items(), 1, "面槽应滞留（分流器出口被堵）")
+	_bm.remove_building(Vector2i(1, -6))
+	assert_eq(coord.grid.count_edge_items(), 0, "删除消费者后对齐目标消失, 面物品应被清理")

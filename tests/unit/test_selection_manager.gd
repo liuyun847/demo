@@ -99,11 +99,9 @@ func test_paste_restores_direction() -> void:
 	assert_eq(_bm.get_building_data(Vector2i(20, 20)).direction, MachineSpec.DIR_W, "粘贴应还原朝向")
 
 func test_paste_batch_restores_fields() -> void:
-	_bm.place_building(Vector2i(5, 5), MachineSpec.T_FILTER, {
+	_bm.place_building(Vector2i(5, 5), MachineSpec.T_SPLITTER, {
 		"direction": MachineSpec.DIR_S,
-		"filter_kind": "num",
-		"filter_cmp": "lt",
-		"filter_value": 3,
+		"splitter_filters": [{}, {"kind": "num", "cmp": "lt", "value": 3}, {}, {}],
 	})
 	SelectionManager.select_cell(Vector2i(5, 5))
 	SelectionManager.copy_selection()
@@ -111,8 +109,8 @@ func test_paste_batch_restores_fields() -> void:
 	SelectionManager.perform_paste_batch([Vector2i(30, 30)])
 	var data: BuildingData = _bm.get_building_data(Vector2i(30, 30))
 	assert_eq(data.direction, MachineSpec.DIR_S, "粘贴应还原朝向")
-	assert_eq(data.filter_cmp, "lt", "粘贴应还原筛选比较")
-	assert_eq(data.filter_value, 3, "粘贴应还原筛选值")
+	assert_eq(int(data.splitter_filters[1].get("value", -1)), 3, "粘贴应还原南向条件值")
+	assert_eq(str(data.splitter_filters[1].get("cmp", "")), "lt", "粘贴应还原南向条件比较")
 
 func test_cut_then_undo_restores_fields() -> void:
 	_bm.place_building(Vector2i(7, 7), MachineSpec.T_SPLITTER, {"splitter_phase": 1, "direction": MachineSpec.DIR_N})

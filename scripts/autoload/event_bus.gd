@@ -60,11 +60,11 @@ signal pause_state_changed(paused: bool)
 @warning_ignore("unused_signal")
 signal sim_tick_completed(events: Array)
 
-# 机器配置变更信号（筛选器谓词，触发延迟保存）
+# 机器配置变更信号（分流器按方向过滤条件，触发延迟保存）
 @warning_ignore("unused_signal")
 signal machine_config_changed(grid_pos: Vector2i)
 
-# 配置面板开关信号（筛选器配置面板）
+# 配置面板开关信号（分流器配置面板）
 @warning_ignore("unused_signal")
 signal config_panel_opened
 @warning_ignore("unused_signal")

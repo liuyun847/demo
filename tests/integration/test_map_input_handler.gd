@@ -317,15 +317,15 @@ func test_cut_selection_records_undo_and_removes_building() -> void:
 		assert_true(value.has("type"), "字典应包含 type 键")
 
 
-## 测试：放置筛选器后自动打开筛选配置面板
-func test_place_filter_opens_panel() -> void:
+## 测试：放置分流器后不再自动打开配置面板（默认全方向无条件，点击才手动配置）
+func test_place_splitter_does_not_open_panel() -> void:
 	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
 	ui_overlay.name = "UIOverlay"
 	add_child_autoqfree(ui_overlay)
 	_handler._ui_overlay = ui_overlay
 
-	_bar.select_slot(4)
-	assert_eq(_bar.get_current_building_type(), MachineSpec.T_FILTER, "应选中筛选器类型")
+	_bar.select_slot(3)
+	assert_eq(_bar.get_current_building_type(), MachineSpec.T_SPLITTER, "应选中分流器类型")
 
 	var grid_pos := Vector2i(10, 10)
 	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
@@ -333,30 +333,99 @@ func test_place_filter_opens_panel() -> void:
 	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
 	_handler._handle_building_mode(event_release, grid_pos, get_viewport())
 
-	assert_true(_bm.has_building(grid_pos), "筛选器应放置成功")
-	assert_true(is_instance_valid(_handler._current_type_panel), "放置筛选器后应自动打开配置面板")
-	assert_eq(_handler._current_type_panel.mode, MachineConfigPanel.Mode.FILTER, "面板模式应为 FILTER")
+	assert_true(_bm.has_building(grid_pos), "分流器应放置成功")
+	assert_false(is_instance_valid(_handler._current_type_panel), "放置分流器后不应自动打开配置面板")
 
 
-## 回归测试：放置模式下左键点击已有筛选器也应弹出配置面板
+## 回归测试：放置模式下左键点击已有分流器也应弹出配置面板
 func test_click_existing_filter_in_placement_mode_opens_panel() -> void:
 	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
 	ui_overlay.name = "UIOverlay"
 	add_child_autoqfree(ui_overlay)
 	_handler._ui_overlay = ui_overlay
 
-	_bar.select_slot(4)
-	assert_eq(_bar.get_current_building_type(), MachineSpec.T_FILTER, "应选中筛选器类型")
+	_bar.select_slot(3)
+	assert_eq(_bar.get_current_building_type(), MachineSpec.T_SPLITTER, "应选中分流器类型")
 
 	var grid_pos := Vector2i(12, 13)
-	_bm.place_building(grid_pos, MachineSpec.T_FILTER)
+	_bm.place_building(grid_pos, MachineSpec.T_SPLITTER)
 	assert_false(is_instance_valid(_handler._current_type_panel), "初始不应有面板")
 
 	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
 	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
 
-	assert_true(is_instance_valid(_handler._current_type_panel), "放置模式下点击已有筛选器应打开面板")
-	assert_eq(_handler._current_type_panel.mode, MachineConfigPanel.Mode.FILTER, "面板模式应为 FILTER")
+	assert_true(is_instance_valid(_handler._current_type_panel), "放置模式下点击已有分流器应打开面板")
+	assert_eq(_handler._current_type_panel.mode, MachineConfigPanel.Mode.SPLITTER, "面板模式应为 SPLITTER")
+
+
+## 回归测试：点击一体建筑（传送带+分流器）同样打开面板，setter 链端到端生效
+## （BeltSplitterNode 继承 MachineNode：字段与方法经继承链可用，防回归钉死）
+func test_click_belt_splitter_opens_panel_and_setter_chain_works() -> void:
+	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
+	ui_overlay.name = "UIOverlay"
+	add_child_autoqfree(ui_overlay)
+	_handler._ui_overlay = ui_overlay
+
+	var grid_pos := Vector2i(14, 13)
+	_bm.place_building(grid_pos, MachineSpec.T_BELT, {"direction": MachineSpec.DIR_N})
+	assert_true(_bm.place_building(grid_pos, MachineSpec.T_SPLITTER, {"direction": MachineSpec.DIR_N}), "前置：分流器放到带格应成功")
+	assert_eq(_bm.get_building_type(grid_pos), MachineSpec.T_BELT_SPLITTER, "前置：普通带格应已转换一体建筑")
+
+	var node := _bm.get_building_node(grid_pos) as MachineNode
+	assert_true(node is BeltSplitterNode, "前置：节点应为 BeltSplitterNode")
+	assert_true(node.has_method("set_splitter_filter"), "一体建筑节点应有 set_splitter_filter（继承链）")
+
+	# 模拟点击：应弹出面板（target 即一体建筑节点）
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
+	assert_true(is_instance_valid(_handler._current_type_panel), "点击一体建筑应打开配置面板")
+
+	# 经面板写条件 → setter → 节点 → machine_config_changed → data 同步
+	var panel := _handler._current_type_panel as MachineConfigPanel
+	assert_eq(panel.target, node, "面板 target 应为一体建筑节点")
+	panel._set_cond(MachineSpec.DIR_E, {"kind": "num", "cmp": "gt", "value": 1})
+
+	assert_eq(str(node.splitter_filters[MachineSpec.DIR_E].get("kind", "")), "num", "条件应写入一体建筑节点")
+	var data: BuildingData = _bm.get_building_data(grid_pos)
+	assert_eq(int(data.splitter_filters[MachineSpec.DIR_E].get("value", -1)), 1, "条件应同步到 BuildingData（端到端）")
+
+
+## 回归：面板"操作"条件下拉选择复合操作时，写入的 value 必须是真实 op id
+## 而非 OptionButton 索引（item_selected 回调语义）——复合操作 id≥100 时索引≠id，
+## 曾导致条件写入错误值（过滤永远不匹配且存档丢失 op_def）
+func test_panel_op_condition_writes_real_op_id_for_composite() -> void:
+	var ui_overlay: CanvasLayer = autoqfree(CanvasLayer.new())
+	ui_overlay.name = "UIOverlay"
+	add_child_autoqfree(ui_overlay)
+	_handler._ui_overlay = ui_overlay
+
+	var grid_pos := Vector2i(16, 13)
+	_bm.place_building(grid_pos, MachineSpec.T_SPLITTER)
+	# 合成复合操作（id≥100，与内置 0-5 区分）；须在打开面板之前创建，
+	# 面板构建时才会把该操作加进下拉列表
+	var comp := OpRegistry.compose(OpRegistry.OP_ADD1, OpRegistry.OP_MUL2)
+	assert_true(comp >= 100, "复合操作 id 应 ≥100（前置）")
+	var event_press := _make_mouse_event(MOUSE_BUTTON_LEFT, true)
+	_handler._handle_building_mode(event_press, grid_pos, get_viewport())
+	assert_true(is_instance_valid(_handler._current_type_panel), "点击分流器应打开配置面板")
+
+	var panel := _handler._current_type_panel as MachineConfigPanel
+	var node := _bm.get_building_node(grid_pos) as MachineNode
+	# 面板 dir=0（东）的条件控件容器
+	var cond_box: HBoxContainer = panel._cond_boxes[MachineSpec.DIR_E]
+	var op_option: OptionButton = (cond_box.get_meta("op_controls") as Array)[0]
+	# 先切到"操作"类型（kind_option 索引 2）
+	var kind_option: OptionButton = cond_box.get_parent().get_child(1)
+	kind_option.select(2)
+	panel._on_kind_selected(2, MachineSpec.DIR_E)
+	# 模拟用户在下拉中选中复合操作：item_selected(idx) 传的是索引
+	var idx := op_option.get_item_index(comp)
+	assert_true(idx >= 0, "复合操作应在下拉列表中（前置）")
+	panel._on_op_selected(idx, MachineSpec.DIR_E, op_option)
+
+	assert_eq(int(node.splitter_filters[MachineSpec.DIR_E].get("value", -1)), comp, "面板选择复合操作应写入真实 op id（非索引）")
+	assert_eq(str(node.splitter_filters[MachineSpec.DIR_E].get("kind", "")), "op", "条件类型应为 op")
+	assert_true(OpRegistry.has(int(node.splitter_filters[MachineSpec.DIR_E].get("value", -1))), "写入的 op id 应有效")
 
 
 ## 测试：放置拖拽按拖拽方向自动设定建筑朝向（左→右 = 东）

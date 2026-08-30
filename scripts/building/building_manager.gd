@@ -2,11 +2,14 @@ class_name BuildingManager
 extends Node2D
 
 ## 建筑管理器：建筑数据结构 + 节点生命周期 + 物品流系统装配。
-## 建筑占一格；朝向/配置存于 BuildingData（direction/op_choice/filter/splitter_phase），
+## 建筑占一格；朝向/配置存于 BuildingData（direction/op_choice/splitter_phase/splitter_filters），
 ## 节点仅负责视觉与交互；模拟由 ItemFlowCoordinator 驱动（数据驱动，不依赖节点）。
 
 var buildings: Dictionary[Vector2i, BuildingData] = {} # key: Vector2i, value: BuildingData
 var _building_nodes: Dictionary[Vector2i, Node2D] = {} # key: Vector2i, value: Node2D
+## 传送带连接信息缓存（BeltConnection.compute 结果，供带子/机器节点绘制连接视觉）。
+## 在任何建筑增删/清空后刷新（节点 _draw 经 get_parent() 读取）。
+var belt_connections: Dictionary = {}
 
 ## 源质服务（依赖注入），未注入时回退到全局 EssencePool
 var _essence_service: Variant = null
@@ -91,8 +94,15 @@ func place_building(grid_pos: Vector2i, building_type: String = "default", resto
 
 	_building_nodes[grid_pos] = building_node
 	buildings[grid_pos] = data
+	_refresh_belt_connections()
 	EventBus.building_placed.emit(grid_pos)
 	return true
+
+## 刷新传送带连接缓存（建筑变更后调用，供视觉节点读取）
+func _refresh_belt_connections() -> void:
+	belt_connections = BeltConnection.compute(buildings)
+	for node: Node2D in _building_nodes.values():
+		node.queue_redraw()
 
 ## 可否放置到指定格：空格恒可；占用格仅当为传送带且类型可转换为一体建筑（分流器）
 ## 时方可（放置即"替换"为传送带+分流器一体建筑）。供输入/粘贴流程复用同一规则。
@@ -146,6 +156,7 @@ func _place_belt_splitter_on_belt(grid_pos: Vector2i, existing: BuildingData, bu
 
 	_building_nodes[grid_pos] = building_node
 	buildings[grid_pos] = data
+	_refresh_belt_connections()
 	EventBus.building_placed.emit(grid_pos)
 	return true
 
@@ -163,6 +174,7 @@ func remove_building(grid_pos: Vector2i) -> bool:
 	_building_nodes.erase(grid_pos)
 	buildings.erase(grid_pos)
 	_clear_items_on_gone_building(grid_pos, data)
+	_refresh_belt_connections()
 	EventBus.building_removed.emit(grid_pos)
 	return true
 
@@ -170,10 +182,13 @@ func remove_building(grid_pos: Vector2i) -> bool:
 ## 一律移除（含 despawn 事件，渲染层同步消失），保证数字不遗留在空地上。
 ## 保留条件用 ItemSimulator 的"可停靠格"判定：若该格仍是另一台现存机器/传送带的
 ## 停靠格（如端口重叠），物品保留继续流通，避免误删（物品永不丢失原则）。
+## 另清理"面槽"物品：被删机器作为生产者时其面物品就地清除；面物品的消费机器
+## 已被删除/不再对齐时同样清除（否则永久卡在无消费方的共享边上）。
 func _clear_items_on_gone_building(grid_pos: Vector2i, data: BuildingData) -> void:
 	var coordinator := get_flow_coordinator()
 	if coordinator == null or coordinator.grid == null:
 		return
+	var grid := coordinator.grid
 	var affected_cells: Array[Vector2i] = [grid_pos]
 	if data != null and MachineSpec.is_machine(data.building_type):
 		for off: Vector2i in MachineSpec.get_ins(data.building_type, data.direction):
@@ -185,11 +200,41 @@ func _clear_items_on_gone_building(grid_pos: Vector2i, data: BuildingData) -> vo
 	for pos: Vector2i in affected_cells:
 		if dock_cells.has(pos):
 			continue
-		var item: Item = coordinator.grid.take_item(pos)
+		var item: Item = grid.take_item(pos)
 		if item != null:
 			events.append({"kind": "despawn", "at": pos, "item": item})
+	events.append_array(_sweep_invalid_edge_items(grid))
 	if not events.is_empty():
 		EventBus.sim_tick_completed.emit(events)
+
+## 扫描面槽：无有效来源/消费方（生产机器已删除，或贴面对齐目标已不存在/失配）
+## 的面物品一律清除。
+func _sweep_invalid_edge_items(grid: ItemGrid) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for producer_cell: Vector2i in grid.edge_slots.keys():
+		var slot: Dictionary = grid.get_edge(producer_cell)
+		if slot.is_empty():
+			continue
+		# 生产者校验：面物品的来源机器必须仍然存在（一体建筑也可作为生产者）
+		var producer: BuildingData = buildings.get(producer_cell) as BuildingData
+		if producer == null or not MachineSpec.is_machine(producer.building_type):
+			_clear_edge_slot(grid, producer_cell, slot, events)
+			continue
+		# 消费方校验：贴面对齐目标必须仍存在且互认（有输入口正对本生产者）
+		var target: Vector2i = producer_cell + slot["front"]
+		var target_data: BuildingData = buildings.get(target) as BuildingData
+		var aligned := target_data != null \
+			and MachineSpec.is_machine(target_data.building_type) \
+			and not MachineSpec.is_belt_splitter(target_data.building_type) \
+			and MachineSpec.get_ins(target_data.building_type, target_data.direction).has(producer_cell - target)
+		if not aligned:
+			_clear_edge_slot(grid, producer_cell, slot, events)
+	return events
+
+func _clear_edge_slot(grid: ItemGrid, producer_cell: Vector2i, slot: Dictionary, events: Array[Dictionary]) -> void:
+	var item: Item = grid.take_edge(producer_cell)
+	if item != null:
+		events.append({"kind": "despawn", "at": producer_cell, "face": slot["front"], "item": item})
 
 func get_all_building_positions() -> Array[Vector2i]:
 	var positions: Array[Vector2i] = []
@@ -216,6 +261,7 @@ func clear_all_buildings_silent() -> void:
 		node.queue_free()
 	_building_nodes.clear()
 	buildings.clear()
+	_refresh_belt_connections()
 	var coordinator := get_node_or_null("ItemFlowCoordinator") as ItemFlowCoordinator
 	if coordinator:
 		coordinator.clear_all()
