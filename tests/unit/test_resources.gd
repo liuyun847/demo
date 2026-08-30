@@ -28,25 +28,26 @@ func test_building_data_defaults() -> void:
 	assert_eq(data.building_type, "default", "默认 building_type 应为 default")
 	assert_eq(data.direction, 0, "默认方向应为东")
 	assert_eq(data.op_choice, -1, "默认操作选择应为 -1")
-	assert_eq(data.filter_kind, "num", "默认筛选类型应为数字")
-	assert_eq(data.filter_cmp, "gt", "默认筛选比较应为 >")
-	assert_eq(data.filter_value, 0, "默认筛选值应为 0")
+	assert_eq(data.splitter_filters.size(), 4, "默认应含 4 个方向条件槽位")
+	for cond: Variant in data.splitter_filters:
+		assert_true((cond as Dictionary).is_empty(), "默认各方向无条件")
 	assert_eq(data.splitter_phase, 0, "默认分流交替位应为 0")
 
 func test_building_data_clone_copies_flow_fields() -> void:
 	var data := BuildingData.new()
-	data.building_type = MachineSpec.T_FILTER
+	data.building_type = MachineSpec.T_SPLITTER
 	data.direction = 2
 	data.op_choice = OpRegistry.OP_ADD1
-	data.filter_kind = "op"
-	data.filter_cmp = "eq"
-	data.filter_value = OpRegistry.OP_NEG
+	data.splitter_filters[MachineSpec.DIR_E] = {"kind": "op", "value": OpRegistry.OP_NEG}
 	data.splitter_phase = 1
 	var copy := data.clone()
 	copy.direction = 0
 	assert_eq(data.direction, 2, "克隆修改不应影响原数据")
-	assert_eq(copy.filter_kind, "op")
-	assert_eq(copy.filter_value, OpRegistry.OP_NEG)
+	assert_eq(str(copy.splitter_filters[0].get("kind", "")), "op")
+	assert_eq(int(copy.splitter_filters[0].get("value", -1)), OpRegistry.OP_NEG)
+	# 深拷贝：修改克隆体条件不影响原数据
+	copy.splitter_filters[0]["value"] = 99
+	assert_eq(int(data.splitter_filters[0].get("value", -1)), OpRegistry.OP_NEG, "条件字典应独立")
 	assert_eq(copy.splitter_phase, 1)
 
 func test_building_type_manager_helpers() -> void:
@@ -69,6 +70,7 @@ func test_port_offsets_belt_and_machine() -> void:
 	assert_eq(applier.outs, MachineSpec.get_outs(MachineSpec.T_APPLIER, MachineSpec.DIR_E), "机器输出与 SPECS 一致")
 	var trash := MachineSpec.get_port_offsets(MachineSpec.T_TRASH, MachineSpec.DIR_W)
 	assert_true((trash.outs as Array).is_empty(), "垃圾桶无输出")
+	assert_eq(trash.ins, [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)], "垃圾桶四向输入（旋转不影响端口顺序）")
 
 func test_undo_command_place_type() -> void:
 	var cmd: UndoCommand = UndoCommand.new()

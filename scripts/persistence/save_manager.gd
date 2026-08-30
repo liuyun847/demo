@@ -62,7 +62,7 @@ func _build_save_dict() -> Dictionary:
 	for grid_pos: Vector2i in building_manager.buildings.keys():
 		var data: BuildingData = building_manager.buildings[grid_pos]
 
-		# 同步节点状态到 data（朝向/操作选择/筛选谓词/分流交替位）
+		# 同步节点状态到 data（朝向/操作选择/分流轮询相位/按方向过滤条件）
 		var node := building_manager.get_building_node(grid_pos)
 		if node:
 			BuildingDataSyncService.sync_from_node(data, node)

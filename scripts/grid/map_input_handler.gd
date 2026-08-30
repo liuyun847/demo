@@ -3,8 +3,9 @@ extends Node
 ## 地图输入处理器：放置/框选/删除/粘贴 + R 键旋转朝向 + 机器配置面板。
 ## 新函数式工厂语义：
 ## - 拖拽放置按拖拽方向自动设置建筑朝向（东/南/西/北），单格放置用 R 旋转
-## - 点击已有筛选器（任意模式）打开配置面板
-## - 撤销/重做捕获 direction/op_choice/filter/splitter_phase
+## - 点击已有分流器（任意模式）打开按方向过滤配置面板（放置后不自动弹窗，
+##   默认全方向无条件，需过滤时点击手动配置）
+## - 撤销/重做捕获 direction/op_choice/splitter_phase/splitter_in_phase/splitter_filters
 
 @export var building_manager: BuildingManager = null
 @export var inventory_bar: InventoryBar = null
@@ -232,7 +233,7 @@ func _handle_paste_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewpo
 		viewport.set_input_as_handled()
 		return
 
-## 打开机器配置面板（筛选器）
+## 打开机器配置面板（分流器按方向过滤；一体建筑同样可配）
 func _open_config_panel(machine: MachineNode) -> void:
 	if is_instance_valid(_current_type_panel):
 		_current_type_panel.queue_free()
@@ -240,8 +241,8 @@ func _open_config_panel(machine: MachineNode) -> void:
 
 	var kind := machine.get_kind()
 	var panel := MachineConfigPanel.new()
-	if kind == MachineSpec.KIND_FILTER:
-		panel.mode = MachineConfigPanel.Mode.FILTER
+	if kind == MachineSpec.KIND_SPLITTER or kind == MachineSpec.KIND_BELT_SPLITTER:
+		panel.mode = MachineConfigPanel.Mode.SPLITTER
 	else:
 		panel.queue_free()
 		return
@@ -253,9 +254,12 @@ func _open_config_panel(machine: MachineNode) -> void:
 	_current_type_panel = panel
 	EventBus.config_panel_opened.emit()
 
-## 需要配置面板的机器
+## 需要配置面板的机器（分流器/传送带+分流器一体建筑）
 func _is_configurable_machine(node: Node) -> bool:
-	return node is MachineNode and (node as MachineNode).get_kind() == MachineSpec.KIND_FILTER
+	if not (node is MachineNode):
+		return false
+	var kind := (node as MachineNode).get_kind()
+	return kind == MachineSpec.KIND_SPLITTER or kind == MachineSpec.KIND_BELT_SPLITTER
 
 ## 相邻格子增量 -> 建筑朝向（零增量时归北；调用方保证 from != to，单格路径走 _pending_direction）
 func _dir_between(from: Vector2i, to: Vector2i) -> int:
@@ -305,7 +309,7 @@ func _dirs_for_l_path(cells: Array[Vector2i]) -> Array[int]:
 func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, viewport: Viewport) -> void:
 	if event.is_action("place_building") and event.pressed:
 		if building_manager.has_building(grid_pos):
-			# 放置模式下点击已有可配置机器同样打开面板
+			# 放置模式下点击已有分流器同样打开面板
 			var node := building_manager.get_building_node(grid_pos)
 			if _is_configurable_machine(node):
 				_open_config_panel(node as MachineNode)
@@ -349,14 +353,7 @@ func _handle_building_mode(event: InputEventMouseButton, grid_pos: Vector2i, vie
 			cmd.buildings = placed
 			cmd.previous = previous
 			SelectionManager.push_undo_command(cmd)
-			# 放置后打开配置面板（最后放置的可配置机器）
-			var last_configurable: MachineNode = null
-			for cell: Vector2i in placed.keys():
-				var placed_node := building_manager.get_building_node(cell)
-				if _is_configurable_machine(placed_node):
-					last_configurable = placed_node as MachineNode
-			if last_configurable:
-				_open_config_panel(last_configurable)
+			# 放置后不自动打开配置面板（分流器默认全方向无条件；点击已有分流器可手动配置）
 		_state_machine.transition_to(InputStateMachine.State.IDLE)
 		viewport.set_input_as_handled()
 		return
@@ -406,7 +403,7 @@ func _handle_selection_mode(event: InputEventMouseButton, grid_pos: Vector2i, vi
 	if event.is_action("place_building") and event.pressed:
 		if building_manager.has_building(grid_pos):
 			var node := building_manager.get_building_node(grid_pos)
-			# 点击筛选器打开配置面板
+			# 点击分流器打开配置面板
 			if _is_configurable_machine(node):
 				_open_config_panel(node as MachineNode)
 				viewport.set_input_as_handled()

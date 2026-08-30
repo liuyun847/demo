@@ -34,7 +34,7 @@ func test_buildings_remain_unlocked_after_higher_threshold() -> void:
 func test_gradual_unlocking() -> void:
 	EssencePool.set_value(0.0)
 	var initial_unlocked: Array = _progress.get_unlocked_building_types()
-	assert_eq(initial_unlocked.size(), 6, "纯搭建阶段应解锁全部 6 种建筑")
+	assert_eq(initial_unlocked.size(), 5, "纯搭建阶段应解锁全部 5 种建筑")
 
 func test_get_unlocked_building_types_no_duplicates() -> void:
 	var unlocked: Array = _progress.get_unlocked_building_types()

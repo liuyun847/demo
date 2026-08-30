@@ -38,7 +38,6 @@ static func register_defaults() -> void:
 		{"id": MachineSpec.T_NUM_SOURCE, "category": BuildingTypeData.Category.MACHINE},
 		{"id": MachineSpec.T_APPLIER, "category": BuildingTypeData.Category.MACHINE},
 		{"id": MachineSpec.T_SPLITTER, "category": BuildingTypeData.Category.MACHINE},
-		{"id": MachineSpec.T_FILTER, "category": BuildingTypeData.Category.MACHINE},
 		{"id": MachineSpec.T_TRASH, "category": BuildingTypeData.Category.MACHINE},
 		# 传送带+分流器一体建筑（非库存项，由"放分流器到传送带上"/存档恢复自动生成）
 		{"id": MachineSpec.T_BELT_SPLITTER, "category": BuildingTypeData.Category.MACHINE},
