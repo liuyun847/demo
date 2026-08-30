@@ -3,7 +3,7 @@ extends MachineNode
 
 ## 传送带+分流器一体建筑节点（分流器放在传送带上时自动转换）。
 ## 视觉=传送带底（底色/内槽/方向箭头）+ 分流器盒体（复用 MachineNode 绘制）。
-## 物品流由 ItemSimulator 处理：物品经上游带流入本格，分流器交替送前/左口。
+## 物品流由 ItemSimulator 处理：物品经上游带流入本格（自身格优先读取），四向均分轮询输出。
 
 func _init() -> void:
 	building_type = MachineSpec.T_BELT_SPLITTER
@@ -11,25 +11,41 @@ func _init() -> void:
 ## 一体建筑的工具提示：注明自带传送带层
 func get_tooltip_summary() -> Dictionary:
 	var summary := super.get_tooltip_summary()
-	summary["行为"] = "装在传送带上：交替分流（前口/左口）"
-	summary["传送带"] = "物品沿带流入本格，分流后继续流动"
+	summary["行为"] = "装在传送带上：四向分流（任意口进出，均分轮询，不阻塞）"
+	summary["传送带"] = "物品沿带流入本格（自身格优先读取），分流后继续流动"
 	return summary
 
 func _draw() -> void:
 	_build_belt_base()
 	super._draw()
 
-## 传送带底：与 BeltNode 同风格（底色 + 内槽 + 方向箭头）
+## 传送带底：与 BeltNode 同风格（底色 + 内槽 + 连接带/Y 形出口）
 func _build_belt_base() -> void:
 	var half := GameConfig.BUILDING_SIZE / 2.0
 	var size := float(GameConfig.BUILDING_SIZE)
 	var color: Color = MachineSpec.get_color(MachineSpec.T_BELT)
-	draw_rect(Rect2(-half, -half, size, size), Color(color, 0.55))
+	draw_rect(Rect2(-half, -half, size, size), Color(color, 0.35))
 	draw_rect(Rect2(-half, -half, size, size), Color(0.2, 0.2, 0.2), false, 2.0)
 	var inset := 10.0
 	draw_rect(Rect2(-half + inset, -half + inset, size - inset * 2.0, size - inset * 2.0),
 		Color(0.15, 0.15, 0.18, 0.6))
-	_draw_direction_arrow(direction)
+	# 出口 = 四向（均分轮询）；无连接信息时回退四向十字短线
+	var bm := get_parent() as BuildingManager
+	var info: Dictionary = {}
+	if bm != null:
+		info = bm.belt_connections.get(grid_position, {})
+	if info.is_empty():
+		_draw_four_way_stubs()
+	else:
+		BeltConnection.draw_band(self, info)
+
+## 四向十字短线：无连接信息时表示"任意口进出"（对称，不画方向箭头）
+func _draw_four_way_stubs() -> void:
+	var half := GameConfig.CELL_SIZE / 2.0
+	for off: Vector2i in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
+		var dv := Vector2(off)
+		draw_line(dv * (half * 0.5), dv * (half - 6.0), BeltConnection.BAND_COLOR, 5.0, true)
+		BeltConnection._draw_tip(self, dv * (half - 6.0), dv, Color(0.9, 0.9, 0.95, 0.95), 5.0)
 
 ## 方向箭头（三角形，复制 BeltNode 视角；后续可提取共用，暂且保持独立）
 func _draw_direction_arrow(dir: int) -> void:
