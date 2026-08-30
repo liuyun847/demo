@@ -415,6 +415,7 @@ func test_splitter_does_not_read_back_last_output_after_delivery() -> void:
 	_tick()
 	assert_true(_has_num(Vector2i(2, 0), 1) or _has_num(Vector2i(1, 0), 1), "第一个物品投东口")
 	assert_eq(data.splitter_phase, MachineSpec.DIR_S, "投递后输出相位推进到南")
+	assert_eq(data.last_out_dir, MachineSpec.DIR_E, "普通分流器投递后 last_out_dir 应记录东（_fire_splitter 路径）")
 	# 模拟下游积压：东口端口格 (1,0) 停物品（投递过的方向=东，last_out=东）
 	_put(Vector2i(1, 0), Item.num(9))
 	# 北口放输入：last_out=东 已从输入轮询排除，北口物品应被读取
