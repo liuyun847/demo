@@ -306,6 +306,10 @@ static func _fire_belt_splitter(buildings: Dictionary, data: BuildingData, grid:
 ## 最后一项，扫到即被跳过、相位永不推进）；且一体建筑自身格投递后 phase 可
 ## 回绕 0 且 in_phase 保持 0（自身格读取不推进输入相位），相位反推会误判
 ## "从未投递"——故用独立字段 last_out_dir 记录，投递时显式写入。
+## 跳过仅作用于输入侧轮询；输出侧不受影响（物品是否可投由 _pick_out_dir 的
+## 被占/背压判定自然处理，不依赖本字段）。last_out_dir 是纯运行时记忆，撤销/
+## 粘贴/存档恢复后回到 -1：此时防循环保护短暂失效（最多一两次扫描），下一次
+## 投递即重新写入自愈，不构成持久错误。
 static func _find_input(buildings: Dictionary, data: BuildingData, grid: ItemGrid, cell: Vector2i, belt_splitter: bool) -> Array:
 	var upstream: Array[int] = []
 	if belt_splitter:
