@@ -428,6 +428,37 @@ func test_panel_op_condition_writes_real_op_id_for_composite() -> void:
 	assert_true(OpRegistry.has(int(node.splitter_filters[MachineSpec.DIR_E].get("value", -1))), "写入的 op id 应有效")
 
 
+## 回归测试：放置模式下切换建筑槽后，悬停格的预览虚影应立即更新为新建筑
+## （鼠标静止时 motion 不会触发，此前必须移动鼠标才会刷新；同时朝向重置为东）
+func test_switch_building_refreshes_ghost_immediately() -> void:
+	SelectionManager.cancel_paste_mode()
+	_bar.select_slot(0)  # 传送带
+	assert_eq(_bar.get_current_building_type(), MachineSpec.T_BELT, "前置：应选中传送带")
+
+	# 模拟鼠标悬停到某格，显示传送带预览
+	var screen_pos := Vector2(320, 240)
+	var grid_pos := _screen_to_grid(screen_pos)
+	var motion_event := InputEventMouseMotion.new()
+	motion_event.position = screen_pos
+	_handler._handle_mouse_motion(motion_event, get_viewport())
+
+	# 先把朝向转到南，验证切槽后重置回东
+	var rotate_event := InputEventKey.new()
+	rotate_event.pressed = true
+	rotate_event.keycode = KEY_R
+	_handler._unhandled_input(rotate_event)
+	assert_eq(_handler._pending_direction, MachineSpec.DIR_S, "前置：R 键应使朝向变为南")
+
+	var gp: GhostPreviewManager = _handler.ghost_preview
+	assert_eq(str(gp.ghost_types.get(grid_pos, "")), MachineSpec.T_BELT, "前置：悬停格应显示传送带预览")
+	assert_eq(int(gp.ghost_dirs.get(grid_pos, -1)), MachineSpec.DIR_S, "前置：预览朝向应为南")
+
+	# 不移动鼠标，直接切换建筑槽到分流器
+	_bar.select_slot(3)
+	assert_eq(str(gp.ghost_types.get(grid_pos, "")), MachineSpec.T_SPLITTER, "切换建筑后预览应立即更新为分流器")
+	assert_eq(int(gp.ghost_dirs.get(grid_pos, -1)), MachineSpec.DIR_E, "切换建筑后预览朝向应重置为东")
+
+
 ## 测试：放置拖拽按拖拽方向自动设定建筑朝向（左→右 = 东）
 func test_drag_placement_sets_direction_from_drag() -> void:
 	_bar.select_slot(0)  # 传送带

@@ -55,6 +55,10 @@ func _on_slot_selected(index: int, _type_id: String) -> void:
 		_cancel_all_dragging()
 		return
 	_pending_direction = MachineSpec.DIR_E
+	# 切换建筑后立即刷新预览虚影（鼠标静止时 motion 不会触发）；
+	# 粘贴模式/拖拽中不刷新，避免覆盖粘贴或拖拽预览
+	if _is_building_placement_mode() and _state_machine.current_state == InputStateMachine.State.IDLE:
+		_refresh_placement_preview()
 
 func _on_paste_mode_changed(_active: bool) -> void:
 	_cancel_all_dragging()
@@ -66,6 +70,11 @@ func _cancel_all_dragging() -> void:
 	if ghost_preview:
 		ghost_preview.clear_paste_preview()
 	_state_machine.reset()
+
+## 立即刷新当前悬停格的放置预览（鼠标静止时 motion 不会触发；切建筑/旋转后调用）
+func _refresh_placement_preview() -> void:
+	if ghost_preview and _last_hovered_grid != GameConfig.INVALID_GRID_POS and inventory_bar:
+		ghost_preview.show_ghost([_last_hovered_grid], inventory_bar.get_current_building_type(), [_pending_direction])
 
 func _get_grid_pos(event: InputEvent) -> Vector2i:
 	var viewport: Viewport = get_viewport()
@@ -108,8 +117,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _is_building_placement_mode():
 			_pending_direction = (_pending_direction + 1) % 4
 			# 旋转后立即刷新预览箭头（鼠标静止时 motion 不会触发）
-			if ghost_preview and _last_hovered_grid != GameConfig.INVALID_GRID_POS and inventory_bar:
-				ghost_preview.show_ghost([_last_hovered_grid], inventory_bar.get_current_building_type(), [_pending_direction])
+			_refresh_placement_preview()
 			get_viewport().set_input_as_handled()
 			return
 
