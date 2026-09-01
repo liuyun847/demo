@@ -123,8 +123,11 @@ func _draw() -> void:
 		_draw_four_way_ports()
 		_draw_port_ring(Vector2i.ZERO, Color(1, 1, 1, 0.7))
 	else:
-		for p: Vector2i in ins:
-			_draw_port(p, true)
+		# 垃圾桶：四向 ins 仅为贴脸投递对齐判定（端口格不可停靠、不从旁格吸取），
+		# 不画输入黑点；本体格输入通道由下方中心绿环指示
+		if kind != MachineSpec.KIND_TRASH:
+			for p: Vector2i in ins:
+				_draw_port(p, true)
 		for p: Vector2i in outs:
 			_draw_port(p, false)
 		# 数字源（无方向）：四边中点画白色小圆点 = 四向输出候选（替代原固定东侧输出口）
@@ -291,4 +294,6 @@ func _draw_glyph(glyph: String, _color: Color) -> void:
 	var font := ThemeDB.fallback_font
 	var font_size := 20
 	var text_size := font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-	draw_string(font, -text_size / 2.0, glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(0.1, 0.1, 0.1, 0.85))
+	# 基线取字形垂直中心（ascent 与 descent 的差的一半），保证符号中心落在格心
+	var baseline := (font.get_ascent(font_size) - font.get_descent(font_size)) / 2.0
+	draw_string(font, Vector2(-text_size.x / 2.0, baseline), glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(0.1, 0.1, 0.1, 0.85))
