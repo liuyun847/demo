@@ -173,7 +173,7 @@ static func _fire_machine(buildings: Dictionary, data: BuildingData, grid: ItemG
 			# 注意：循环变量不能叫 dir（与上方 var dir 局部变量遮蔽冲突，解析错误）
 			var own_item: Item = grid.take_item(cell)
 			if own_item != null:
-				events.append({"kind": "despawn", "at": cell, "item": own_item})
+				events.append({"kind": "despawn", "at": cell, "consumer": cell, "item": own_item})
 			else:
 				for scan_dir: int in GROUP_ORDER:
 					var in_cell: Vector2i = cell + MachineSpec.dir_to_offset(scan_dir)
@@ -183,7 +183,7 @@ static func _fire_machine(buildings: Dictionary, data: BuildingData, grid: ItemG
 					var item: Item = grid.take_edge(in_cell)
 					if item == null:
 						continue
-					events.append({"kind": "despawn", "at": in_cell, "face": slot["front"], "item": item})
+					events.append({"kind": "despawn", "at": in_cell, "face": slot["front"], "consumer": cell, "item": item})
 					break
 		MachineSpec.KIND_APPLIER:
 			_fire_applier(buildings, grid, cell, ins, outs, events, machine_cells)
@@ -463,9 +463,9 @@ static func _consume_input(buildings: Dictionary, grid: ItemGrid, cell: Vector2i
 		return
 	var face: Vector2i = taken[1]
 	if face == Vector2i.ZERO:
-		events.append({"kind": "despawn", "at": cell, "item": item})
+		events.append({"kind": "despawn", "at": cell, "consumer": consumer_cell, "item": item})
 	else:
-		events.append({"kind": "despawn", "at": cell, "face": face, "item": item})
+		events.append({"kind": "despawn", "at": cell, "face": face, "consumer": consumer_cell, "item": item})
 
 ## 输出目标可投递性：常规格（空格且非机器本体格），或贴面对面槽（目标机器有
 ## 输入口正对本生产者且面槽空）。不对齐的机器本体格视为"输出被占"。
@@ -519,12 +519,12 @@ static func _deliver_output(buildings: Dictionary, grid: ItemGrid, producer_cell
 			return false
 		var face_off: Vector2i = out_cell - producer_cell
 		grid.set_edge(producer_cell, item, face_off)
-		events.append({"kind": "spawn", "at": producer_cell, "face": face_off, "item": item})
+		events.append({"kind": "spawn", "at": producer_cell, "face": face_off, "producer": producer_cell, "item": item})
 		return true
 	if grid.has_item(out_cell) or machine_cells.has(out_cell):
 		return false
 	grid.set_item(out_cell, item)
-	events.append({"kind": "spawn", "at": out_cell, "item": item})
+	events.append({"kind": "spawn", "at": out_cell, "producer": producer_cell, "item": item})
 	return true
 
 # ---------- 基础操作 ----------
