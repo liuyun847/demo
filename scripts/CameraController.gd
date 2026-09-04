@@ -3,11 +3,28 @@ extends Camera2D
 
 @export var move_speed: float = 200.0 # 移动速度（像素/秒）
 
+## UIOverlay 引用缓存：菜单/设置全屏面板打开时屏蔽相机输入（WASD 移动与滚轮缩放），
+## 防止按键穿透到世界。仅在同场景树内可用；裸节点（测试）无 UIOverlay 时不做守卫。
+var _ui_overlay: CanvasLayer = null
+
 func _ready() -> void:
 	# 初始化缩放
 	zoom = Vector2(1.0, 1.0)
+	_ui_overlay = get_node_or_null("../UIOverlay") as CanvasLayer
+
+## UI 全屏面板（开始菜单/设置面板）是否可见：可见时相机不应响应世界输入
+func _ui_blocking() -> bool:
+	if _ui_overlay == null:
+		return false
+	var menu := _ui_overlay.get_node_or_null("StartMenu") as Control
+	if menu != null and menu.visible:
+		return true
+	var settings := _ui_overlay.get_node_or_null("SettingsPanel") as Control
+	return settings != null and settings.visible
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _ui_blocking():
+		return
 	if event.is_action_pressed("zoom_in"):
 		zoom_at_position(event.position, 1 + GameConfig.zoom_speed)
 	elif event.is_action_pressed("zoom_out"):
@@ -37,6 +54,8 @@ var _last_zoom: Vector2
 var _zoom_dirty: bool = false
 
 func _process(delta: float) -> void:
+	if _ui_blocking():
+		return  # 菜单/设置打开：不响应 WASD 移动（按键穿透防护）
 	var input_dir: Vector2 = Vector2.ZERO
 	if Input.is_action_pressed("move_right"):
 		input_dir.x += 1

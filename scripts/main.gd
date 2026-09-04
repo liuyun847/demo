@@ -53,18 +53,25 @@ func _exit_tree() -> void:
 	EventBus.show_settings_requested.disconnect(_on_show_settings_requested)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		if settings_panel.visible:
-			show_start_menu()
-		elif start_menu.visible:
+	# UI 全屏遮挡时的世界输入守卫：
+	# - 设置面板可见：严格屏蔽所有世界快捷键（ESC 由 Settings._input 处理并 handled，
+	#   其余按键/滚轮不得穿透改变游戏状态）
+	# - 开始菜单可见：仅放行 ui_cancel（ESC 关闭菜单），其余世界快捷键（数字键切换
+	#   槽位/空格暂停/E 放置模式等）一律屏蔽，防止穿透改变世界状态
+	if settings_panel.visible:
+		return
+	if start_menu.visible:
+		if event.is_action_pressed("ui_cancel"):
 			hide_start_menu()
-		else:
-			show_start_menu()
+			get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("ui_cancel"):
+		show_start_menu()
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("toggle_pause"):
-		if not start_menu.visible and not settings_panel.visible:
-			_manual_paused = not _manual_paused
-			_update_pause_state()
+		_manual_paused = not _manual_paused
+		_update_pause_state()
 		return
 	if not start_menu.visible and not settings_panel.visible:
 		for i in SLOT_KEYS.size():
