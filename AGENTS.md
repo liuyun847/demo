@@ -26,8 +26,8 @@ demo/
 ├── scenes/                      # 场景（6 个 .tscn）
 ├── resources/                   # 图标资源（5 个建筑 svg）
 ├── save/                        # 运行时存档（gitignore，单文件 game.cfg）
-├── tests/                       # GUT 测试（32 个脚本，491 个用例）
-├── working/                     # 开发中临时记录/资料/脚本等（如 read.md、TODO.md；不参与构建/提交）
+├── tests/                       # GUT 测试（33 个脚本，505 个用例，以 GUT 运行输出为准）
+├── working/                     # 开发中临时记录/资料/脚本等（如 TODO.md；不参与构建/提交）
 ├── project.godot / .gutconfig.json / AGENTS.md / icon.svg
 └── .githooks/                   # Git 钩子（pre-commit/commit-msg）
 ```
@@ -67,11 +67,12 @@ Root (Node2D) → main.gd
   - 移动阶段：传送带按方向分组（N→E→S→W 固定顺序），组内下游先处理（让位链），同向链整体推进；**空地守卫：传送带只把物品推进到传送带格或机器端口格，空地不接收（背压等待），数字不落空地**；机器自身格永不放物品（例外：垃圾桶本体格可停靠，见建筑清单）；满环 = 合法积压稳态
 - **0 格贴脸直传（面槽）**: 机器 A 输出口恰好是机器 B 本体格且 B 有输入口正对 A（**双向端口互认对齐**，如数字源紧贴分流器）时，物品经 `ItemGrid.edge_slots`（键=生产者格，值={item, front: Vector2i}）直接传递，不占任何网格格；面槽满/不对齐 → 按"输出被占"背压等待；`belt_splitter` 是带子语义：作为**消费目标**时输入=自身格（面输入不适用，由目标侧检查排除），但作为**生产者**可向贴脸机器面直传（读侧不排除一体建筑——否则其面输出永久不可读，回归测试覆盖）。机器格守卫回归语义不变。**带子"端口吸附"保持穿过+顺带抽取现状**：带格是机器输入口时机器在机器相位取走带格上的物品，带子照常推进（端口不是带子终点）；带子连口/顺带抽取的连接分析供视觉绘制（BeltConnection）
 - **分帧模拟**: ItemFlowCoordinator（Node 包装）0.1s Timer 仅置标记，`_process` 每帧推进一个阶段（MACHINE→MOVE）；`_on_tick()` 同步完整 tick 供测试直调；暂停即刻冻结（先补发已产生事件保持渲染一致）；tick 完成后发 `sim_tick_completed(events)` 事件数组
-- **渲染**: ItemRenderer 消费 tick 事件，每格一个视觉实体（数字=圆形/操作=方形 + Label），**位置插值**平滑（记录 tick 起止位置，`_process` 插值）；面槽物品按事件 `face` 偏移定位到**共享边中点**（视觉键 = Vector3i(cell.x, cell.y, face 索引)，与网格格视觉分离）。物品不落盘：重载后清空带子，源头重新产出；删除建筑时其上/端口残留物品同步 despawn（渲染不悬空）
+- **渲染**: ItemRenderer 消费 tick 事件，每格一个视觉实体（数字=圆形/操作=方形 + Label），**位置插值**平滑（记录 tick 起止位置，`_process` 插值）；面槽物品按事件 `face` 偏移定位到**共享边中点**（视觉键 = Vector3i(cell.x, cell.y, face 索引)，与网格格视觉分离）。**机器进出动画（"其他建筑补全移动动画"）**：模拟器在机器相关事件上附加可选字段——spawn 带 `producer`（产出机器格）、despawn 带 `consumer`（消费/销毁位置格；垃圾桶本体格销毁时 consumer=自身格）；渲染器仅对这些带字段的事件做动画——"机器产出"视觉从机器格中心滑入落点（数字源产 1/应用器/分流器吐出）、"机器消费"视觉滑入目标格后消失（应用器吞输入/垃圾桶销毁；退场视觉暂存 `_dying` 列表，动画结束释放）；同 tick 衔接 move 保留机器口起点延伸终点（`_batch_spawned` 批次标记，跨 tick 失效防跳变重滑）；**不带 producer/consumer 的事件一律原地出现/原地消失（无动画）**：传送带推进 move 照常插值、清理型 despawn（删除建筑残留/面槽扫描）原地消失。物品不落盘：重载后清空带子，源头重新产出；删除建筑时其上/端口残留物品同步 despawn（渲染不悬空）
 - **带子连接视觉**: `BeltConnection.compute(buildings)`（纯静态）分析每带子格连接：`feed`(主上游边/-1) / `feeds`(全部上游边,多上游合流格每条都画) / `exits`(出口边集；一体建筑=四向) / `taps`(本地格是哪些机器输入口——顺带抽取,画绿色 T 形支路；**存机器相对本格的轴向偏移**) / `fed_by`(哪些机器输出口正对本格——画输入接驳短线；**存机器相对本格的轴向偏移**；数字源无方向：四周相邻带格全部计入 fed_by)；BuildingManager 在建筑增删/清空时刷新 `belt_connections` 缓存并重绘节点；BeltNode/BeltSplitterNode 据此绘制连续连接带（直线/圆角转弯/Y 形/合流多入/端口接驳），MachineNode 绘制端口连接高亮环（输入被喂=绿环、输出有承接=白环）
 - **建筑生命周期**: BuildingManager 持有 `buildings: Dictionary[Vector2i, BuildingData]`，朝向/操作选择/分流位/按方向过滤条件存于 BuildingData；节点（BeltNode/MachineNode）仅负责视觉；BuildingDataSyncService 双向同步 + entry↔restore_data 助手（撤销/剪贴板/存档共用）；删除建筑清理物品时同步清理**面槽**（生产者消失或消费端失配的面物品 despawn）
 - **持久化**: 单文件存档 `save/game.cfg`（ConfigFile），`[buildings]` 含 per-building `type/direction/op_choice/splitter_phase/splitter_in_phase/splitter_filters`（默认配置省略；splitter_filters 任一方向有条件才落盘，op 条件附带 op_def；**数组下标即方向索引，固定顺序 [E,S,W,N]（FOUR_WAY_PORTS 契约），存档/恢复按序回填**）；`last_out_dir`（分流器防循环搬运的最近输出方向记忆）是**纯运行时字段不落盘**，撤销/粘贴/存档恢复后回到 -1（初始态），下一次投递即重新写入自愈；**未知类型（旧流体存档/已移除的筛选器/操作源/合流器）加载跳过不崩溃**；物品流不落盘
 - **UI**: 库存栏 10 槽（5 建筑 + 5 占位锁定，键盘 1-5 覆盖前 5 槽，其余点击）；MachineConfigPanel 仅服务分流器/一体建筑（逐方向设过滤条件：无条件/数字/操作）；配置变更经 `machine_config_changed` 触发延迟存档；放置/粘贴预览框按类型+朝向绘制**端口方向箭头**（输入=绿箭头指向格内，输出=白箭头指向格外；传送带后入前出；分流器/垃圾桶四向中性端口）
+- **UI 输入守卫（按键穿透防护）**: 全屏 UI 遮挡时屏蔽世界输入——Settings 用 `_input`（ESC/按键重绑，handled 后不再进入 `_unhandled_input`），世界快捷键在 `_unhandled_input` 阶段响应：**设置面板可见** = main/CameraController/MapInputHandler 全部拦截（main 直接 return；ESC 由 Settings._input 处理）；**开始菜单可见** = main 仅放行 ui_cancel（ESC 关闭菜单），其余世界快捷键（数字键/空格暂停/E 放置等）拦截，CameraController 经 `_ui_blocking()`（菜单或设置可见）在 `_process`（WASD 轮询移动）与 `_unhandled_input`（滚轮缩放）都拦截；MapInputHandler 已有 StartMenu/SettingsPanel 可见守卫。测试注意：SaveManager._ready 会 call_deferred 加载并触发 `buildings_loaded` → main 自动开菜单，测试中打开设置前需先等加载完成（`_open_settings_stable` 等帧再 emit），否则会被帧后的菜单覆盖
 
 # 通信方式
 
