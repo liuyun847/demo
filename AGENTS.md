@@ -84,7 +84,7 @@ Root (Node2D) → main.gd
 
 `.githooks/commit-msg` 强制 **Conventional Commits** 格式（`type(scope): 描述`，标题后空行；type ∈ feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert），不满足则阻止提交。已有提交历史均遵循此规范。
 
-**Godot 路径**: 钩子/脚本用 `$GODOT_PATH` 环境变量（默认 `C:/Users/MLTZ/Desktop/Godot_v4.6.1-stable_win64.exe`），使用前需设置。
+**Godot 路径**: 钩子/脚本用 `$GODOT_PATH` 环境变量（默认按 `%USERPROFILE%` 推导为 `<用户主目录>/Desktop/Godot_v4.6.1-stable_win64.exe`），使用前需设置。
 
 # 测试
 

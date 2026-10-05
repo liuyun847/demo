@@ -3,7 +3,8 @@
 # 安装：git config core.hooksPath .githooks
 
 PROJECT_DIR="$(git rev-parse --show-toplevel)"
-GODOT="${GODOT_PATH:-C:/Users/MLTZ/Desktop/Godot_v4.6.1-stable_win64.exe}"
+# 默认路径按当前用户主目录推导（Windows 下即 %USERPROFILE%），不写死本机用户名
+GODOT="${GODOT_PATH:-${USERPROFILE:-$HOME}/Desktop/Godot_v4.6.1-stable_win64.exe}"
 export GODOT
 TEST_SCRIPT="res://addons/gut/gut_cmdln.gd"
 TEST_OUTPUT="$PROJECT_DIR/save/test_output.xml"
